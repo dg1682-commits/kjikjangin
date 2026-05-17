@@ -153,18 +153,14 @@
         .town-map {
             position: relative;
             height: 100%;
-            /* min-width 제한을 유연하게 풀고 건물 내용물 크기만큼 늘어나게 함 */
             min-width: max-content; 
-            /* 👇 핵심: 흰 바탕을 방지하기 위해 X축으로 이미지가 반복되게 설정 (repeat-x) */
-            background: url('메인배경/배경4.png') left bottom / auto 100% repeat-x;
+            background: url('메인배경/배경2.jpeg') left bottom / auto 100% repeat-x;
             display: flex; 
             align-items: flex-end; 
             justify-content: flex-start;
             padding-left: 5vw;
-            padding-right: 15vw; /* 끝 여백 넉넉히 */
-            /* 👇 핵심: 38vh에서 15vh로 팍 낮춰서 완전히 하단으로 이동시킴 */
-            padding-bottom: 19vh; 
-            /* 👇 핵심: 건물 간격을 15px에서 5px로 좁힘 */
+            padding-right: 15vw; 
+            padding-bottom: 15vh; 
             gap: 5px; 
         }
 
@@ -176,7 +172,6 @@
             cursor: pointer;
             transition: transform 0.1s;
             z-index: 20;
-            /* 👇 간격을 좁힐 때 건물 이미지가 찌그러지지 않도록 방지 */
             flex-shrink: 0; 
         }
         .building-wrapper:active { transform: scale(0.95); }
@@ -495,6 +490,24 @@
                     state.workElapsed = 0;
                     clearInterval(state.workInterval);
                 }
+                
+                // 🚨 [오프라인 방치형 수익 정산] 앱을 끄거나 백그라운드로 오래 내렸을 때 보상 지급
+                if (state.lastSaveTime) {
+                    let offlineSecs = Math.floor((Date.now() - state.lastSaveTime) / 1000);
+                    if (offlineSecs > 10) { // 10초 이상 비웠을 경우 정산
+                        offlineSecs = Math.min(offlineSecs, 43200); // 최대 12시간까지만 적용 (밸런스)
+                        
+                        state.gameSeconds += (offlineSecs * 540);
+                        if (state.debuffTimeLeft > 0) state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - offlineSecs);
+                        
+                        let offlineEarn = (0.5 * getIncomeMultiplier(state.stamina)) * offlineSecs;
+                        state.money += offlineEarn;
+                        
+                        setTimeout(() => {
+                            showAlert("방치형 수익", `백그라운드에서 열심히 일했습니다!\n\n방치 시간: ${formatTextTime(offlineSecs)}\n💰 획득 금액: +${Math.floor(offlineEarn).toLocaleString()}원`);
+                        }, 500);
+                    }
+                }
             }
         }
 
@@ -532,18 +545,29 @@
             saveGame();
         }
 
+        // 🚨 [메인 게임 루프 수정] 1초마다 무조건 1을 올리는게 아니라, 실제 흐른 '타임스탬프 차이'를 계산하여 백그라운드 멈춤 완벽 방지
+        let lastGameTick = Date.now();
         function startGameLoop() {
+            lastGameTick = Date.now();
             setInterval(() => {
-                state.gameSeconds += 540;
+                let now = Date.now();
+                let delta = (now - lastGameTick) / 1000;
                 
-                if(state.debuffTimeLeft > 0) {
-                    state.debuffTimeLeft--;
+                if (delta >= 1) { // 1초 이상 지났을 때만 처리
+                    let passedSecs = Math.floor(delta);
+                    
+                    state.gameSeconds += (passedSecs * 540);
+                    if(state.debuffTimeLeft > 0) {
+                        state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - passedSecs);
+                    }
+                    
+                    state.money += (0.5 * getIncomeMultiplier(state.stamina)) * passedSecs;
+                    lastGameTick += (passedSecs * 1000); // 정확도 보존
+                    
+                    updateDisplay();
+                    saveGame();
                 }
-                
-                state.money += (0.5 * getIncomeMultiplier(state.stamina));
-                updateDisplay();
-                saveGame();
-            }, 1000);
+            }, 500); // 0.5초 간격으로 타임스탬프를 감시해서 밀림 없이 촘촘하게 업데이트
         }
 
         function updateDisplay() {
@@ -579,10 +603,9 @@
                 showAlert("승진!", `${RANKS[state.rankIdx].name}(으)로 승진하셨습니다!`);
             }
 
-            // 연차에 따른 캐릭터 나이 업데이트 로직
-            let currentAge = 20 + y; // 0년차 = 20살 시작
+            let currentAge = 20 + y; 
             let ageDecade = Math.floor(currentAge / 10) * 10;
-            if (ageDecade > 60) ageDecade = 60; // 60대까지만 이미지 존재
+            if (ageDecade > 60) ageDecade = 60; 
 
             const charImg = document.getElementById('char-display');
             const expectedSrc = `캐릭터/${ageDecade}대.png`;
@@ -779,6 +802,7 @@
             startTaskInterval();
         }
 
+        // 🚨 [업무/휴식 진행 타이머 수정] 화면을 내린 동안의 시간을 타임스탬프로 정밀 계산하여 진행도 즉시 반영
         function startTaskInterval() {
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
@@ -790,33 +814,53 @@
             progressWrap.style.display = 'flex';
             document.getElementById('click-notice').style.display = 'none';
 
+            let lastWorkTick = Date.now();
+
             if (task.time) { 
                 label.innerText = `💼 ${task.name} 중...`;
                 let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult);
 
                 state.workInterval = setInterval(() => {
-                    state.workElapsed++;
-                    let remain = actualTime - state.workElapsed;
-                    progressBar.style.width = ((state.workElapsed / actualTime) * 100) + "%";
-                    timeLeftLabel.innerText = `${formatMMSS(remain)} 남음`;
+                    let now = Date.now();
+                    let delta = (now - lastWorkTick) / 1000;
+                    
+                    if (delta >= 1) {
+                        let passedSecs = Math.floor(delta);
+                        state.workElapsed += passedSecs;
+                        lastWorkTick += (passedSecs * 1000);
 
-                    if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
-                }, 1000);
+                        let remain = Math.max(0, actualTime - state.workElapsed);
+                        progressBar.style.width = Math.min(100, (state.workElapsed / actualTime) * 100) + "%";
+                        timeLeftLabel.innerText = `${formatMMSS(remain)} 남음`;
+
+                        if(state.workElapsed >= actualTime) {
+                            finishWork(task, false, actualTime);
+                        }
+                    }
+                }, 500); 
             } else if (task.minTime) { 
                 label.innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
                 progressBar.style.width = '100%';
 
                 state.workInterval = setInterval(() => {
-                    state.workElapsed++;
-                    let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
-                    
-                    if (state.workElapsed < task.minTime) {
-                        timeLeftLabel.innerText = `최소 완료까지: ${formatMMSS(task.minTime - state.workElapsed)}`;
-                    } else {
-                        let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
-                        timeLeftLabel.innerText = `취소 시 체력 +${curStamina} (${formatMMSS(state.workElapsed)} 경과)`;
+                    let now = Date.now();
+                    let delta = (now - lastWorkTick) / 1000;
+
+                    if (delta >= 1) {
+                        let passedSecs = Math.floor(delta);
+                        state.workElapsed += passedSecs;
+                        lastWorkTick += (passedSecs * 1000);
+                        
+                        let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
+                        
+                        if (state.workElapsed < task.minTime) {
+                            timeLeftLabel.innerText = `최소 완료까지: ${formatMMSS(task.minTime - state.workElapsed)}`;
+                        } else {
+                            let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
+                            timeLeftLabel.innerText = `취소 시 체력 +${curStamina} (${formatMMSS(state.workElapsed)} 경과)`;
+                        }
                     }
-                }, 1000);
+                }, 500);
             }
         }
 
