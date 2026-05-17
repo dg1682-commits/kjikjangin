@@ -21,12 +21,12 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html {
             margin: 0; padding: 0;
-            width: 100%; height: 100%; /* 모바일 주소창 오류 방지를 위해 100% 고정 */
+            width: 100%; height: 100%; 
             font-family: 'Pretendard', -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             overflow: hidden;
-            touch-action: manipulation; /* 모바일 더블탭 줌 방지 */
+            touch-action: manipulation; 
         }
 
         button { cursor: pointer; border: none; border-radius: 12px; font-weight: 600; }
@@ -56,11 +56,11 @@
             top: 0; left: 0; width: 100%;
             z-index: 50;
             display: flex; flex-direction: column;
-            pointer-events: none; /* [핵심] 투명 영역이 모바일 터치를 막는 것 방지! */
+            pointer-events: none; 
         }
 
         header {
-            pointer-events: auto; /* 헤더는 터치 가능하게 복구 */
+            pointer-events: auto; 
             width: 100%;
             padding: 12px 15px; display: flex; justify-content: space-between; gap: 10px;
             background: rgba(255, 255, 255, 0.95);
@@ -103,7 +103,7 @@
 
         /* 프로그레스 바 */
         .progress-wrapper { 
-            pointer-events: auto; /* 진행바도 터치 가능하게 복구 */
+            pointer-events: auto; 
             width: 100%; display: none; flex-direction: row; align-items: center; gap: 10px; 
             background: rgba(255, 255, 255, 0.95);
             border-top: 1px solid var(--border-color);
@@ -128,7 +128,7 @@
             height: 110px; 
             object-fit: contain;
             margin-bottom: 5px; cursor: pointer; user-select: none;
-            -webkit-user-drag: none; /* 모바일 이미지 드래그 방지 */
+            -webkit-user-drag: none; 
             display: inline-block;
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.2));
             pointer-events: auto;
@@ -145,7 +145,7 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             overflow-x: auto; overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
-            touch-action: pan-x; /* 가로 스크롤 최적화 */
+            touch-action: pan-x; 
             z-index: 10;
         }
         .town-scroll-container::-webkit-scrollbar { display: none; }
@@ -153,15 +153,19 @@
         .town-map {
             position: relative;
             height: 100%;
-            min-width: 1500px; 
-            background: url('메인배경/배경2.jpeg') left center / auto 100% no-repeat;
+            /* min-width 제한을 유연하게 풀고 건물 내용물 크기만큼 늘어나게 함 */
+            min-width: max-content; 
+            /* 👇 핵심: 흰 바탕을 방지하기 위해 X축으로 이미지가 반복되게 설정 (repeat-x) */
+            background: url('메인배경/배경4.png') left bottom / auto 100% repeat-x;
             display: flex; 
             align-items: flex-end; 
             justify-content: flex-start;
             padding-left: 5vw;
-            padding-right: 10vw;
-            padding-bottom: 38vh; 
-            gap: 15px; 
+            padding-right: 15vw; /* 끝 여백 넉넉히 */
+            /* 👇 핵심: 38vh에서 15vh로 팍 낮춰서 완전히 하단으로 이동시킴 */
+            padding-bottom: 19vh; 
+            /* 👇 핵심: 건물 간격을 15px에서 5px로 좁힘 */
+            gap: 5px; 
         }
 
         .building-wrapper {
@@ -172,6 +176,8 @@
             cursor: pointer;
             transition: transform 0.1s;
             z-index: 20;
+            /* 👇 간격을 좁힐 때 건물 이미지가 찌그러지지 않도록 방지 */
+            flex-shrink: 0; 
         }
         .building-wrapper:active { transform: scale(0.95); }
         
@@ -179,7 +185,6 @@
             height: 132px; 
             object-fit: contain; 
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); 
-            /* [핵심] 이미지가 클릭을 삼키거나 드래그되지 않도록 방지하고 부모(wrapper)가 클릭을 100% 흡수하게 함 */
             pointer-events: none; 
             -webkit-user-drag: none;
             user-select: none;
@@ -208,6 +213,8 @@
         #sheet-content {
             overflow-y: auto; flex-grow: 1; padding-bottom: 15px;
             scrollbar-width: thin; scrollbar-color: #cbd5e1 var(--card-bg);
+            -webkit-overflow-scrolling: touch; 
+            overscroll-behavior: contain; 
         }
         #sheet-content::-webkit-scrollbar { width: 6px; }
         #sheet-content::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
@@ -216,8 +223,13 @@
             background: #f1f5f9; margin-bottom: 10px; padding: 15px; border-radius: 12px;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer;
             border: 1px solid var(--border-color);
+            -webkit-user-select: none; 
+            user-select: none;
         }
         .list-item:active { background: #e2e8f0; }
+        
+        .item-info, .item-price-box { pointer-events: none; }
+        
         .item-info { display: flex; flex-direction: column; gap: 4px; width: 58%; }
         .item-name { font-weight: 700; font-size: 14px; color: var(--text-main);}
         .item-sub { font-size: 11px; color: var(--text-sub); font-weight: 600;}
@@ -476,6 +488,13 @@
                 if(!state.nickname) {
                     state.nickname = "김씨";
                 }
+                
+                if (state.isWorking) {
+                    state.isWorking = false;
+                    state.currentTask = null;
+                    state.workElapsed = 0;
+                    clearInterval(state.workInterval);
+                }
             }
         }
 
@@ -594,7 +613,7 @@
                     let html = '';
                     if(job.id === 'cheat') {
                         html = `
-                        <div class="list-item" onclick='doWork(${i})'>
+                        <div class="list-item" onclick="doWork(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name" style="color:var(--danger);">${job.name}</span>
                                 <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 컨디션 소모 무</span>
@@ -608,7 +627,7 @@
                         let expected = baseTotal * mult;
                         let bonus = Math.floor(expected - baseTotal);
                         html = `
-                        <div class="list-item" onclick='doWork(${i})'>
+                        <div class="list-item" onclick="doWork(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name">${job.name}</span>
                                 <span class="item-sub">시간: ${formatTextTime(actualTime)} | 업무력: ${job.exp} | <span style="color:var(--condition-color); font-weight:800;">소모 컨디션: ${job.conditionCost}</span></span>
@@ -625,7 +644,7 @@
                 header.innerText = "휴식 및 컨디션 관리";
                 RESTS.forEach((rest, i) => {
                     content.innerHTML += `
-                        <div class="list-item" onclick='startRest(${i})'>
+                        <div class="list-item" onclick="startRest(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name">${rest.name}</span>
                                 <span class="item-sub">최소 이행: ${formatTextTime(rest.minTime)} (완치)</span>
@@ -640,7 +659,7 @@
                 header.innerText = "약국 아이템 (현재 컨디션 회복)";
                 BUFFS.forEach((buff, i) => {
                     content.innerHTML += `
-                        <div class="list-item" onclick='buyBuff(${i})'>
+                        <div class="list-item" onclick="buyBuff(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name">${buff.name}</span>
                                 <span class="item-sub" style="color:var(--condition-color); font-weight:800;">현재 컨디션 +${buff.effect.toLocaleString()} 즉시 회복</span>
@@ -655,7 +674,7 @@
                 SHOPS.forEach((shop, i) => {
                     let isOwned = state.ownedItems.includes(shop.id);
                     content.innerHTML += `
-                        <div class="list-item" onclick='buyShop(${i})' style="opacity: ${isOwned ? '0.5' : '1'}">
+                        <div class="list-item" onclick="buyShop(${i})" ontouchstart="" style="opacity: ${isOwned ? '0.5' : '1'}">
                             <div class="item-info">
                                 <span class="item-name">${shop.name}</span>
                                 <span class="item-sub">${shop.desc}</span>
@@ -668,7 +687,7 @@
                 
                 let nickPrice = state.nicknameChangeCount === 0 ? 100000 : 100000000;
                 content.innerHTML += `
-                    <div class="list-item" onclick="buyNickname()">
+                    <div class="list-item" onclick="buyNickname()" ontouchstart="">
                         <div class="item-info">
                             <span class="item-name">✨ 황금 명찰 변경권</span>
                             <span class="item-sub">캐릭터의 이름을 변경합니다.</span>
@@ -700,7 +719,7 @@
                     }
 
                     content.innerHTML += `
-                        <div class="list-item" onclick='buyHouse(${i})' style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}">
+                        <div class="list-item" onclick="buyHouse(${i})" ontouchstart="" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}">
                             <div class="item-info">
                                 <span class="item-name">${house.name} <span class="${colorClass}" style="font-size:10px; font-weight:bold;">[${house.type}]</span></span>
                                 <span class="item-sub" style="color:var(--success);">수면 효율 x${house.mult}배 | 이사비: ${house.moveCost.toLocaleString()}원</span>
@@ -717,7 +736,7 @@
                 header.innerText = "자동차 대리점";
                 CARS.forEach((car, i) => {
                     content.innerHTML += `
-                        <div class="list-item" onclick="showAlert('준비 중', '${car.name} 구매 기능은 현재 인게임 내부 시뮬레이션 구현 중입니다!')">
+                        <div class="list-item" onclick="showAlert('준비 중', '${car.name} 구매 기능은 현재 인게임 내부 시뮬레이션 구현 중입니다!')" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name">🚗 ${car.name}</span>
                                 <span class="item-sub">${car.desc}</span>
@@ -734,11 +753,13 @@
             let job = JOBS[idx];
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중이라 일을 할 수 없습니다!");
             
+            if(state.isWorking) {
+                return showAlert("안내", "이미 진행 중인 업무나 휴식이 있습니다.\n화면 상단의 취소 버튼을 먼저 눌러주세요.");
+            }
+
             if(state.condition < job.conditionCost) {
                 return showAlert("컨디션 부족!", `업무를 수행하기에 컨디션이 부족합니다.\n필요량: ${job.conditionCost}\n(현재 컨디션: ${Math.floor(state.condition)})`);
             }
-
-            if(state.isWorking) return;
             
             if (job.id === 'cheat') {
                 let warningDesc = `⚠️ 부장님께 들키면 치명적인 불이익이 따릅니다.\n\n딴짓을 하다가 30% 확률로 걸리면 3분 동안 혼나고 통장에서 1,000원이 감소됩니다. 그래도 하실건가요?`;
@@ -849,7 +870,11 @@
         function startRest(idx) {
             let rest = RESTS[idx];
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중입니다!");
-            if(state.isWorking) return;
+            
+            if(state.isWorking) {
+                return showAlert("안내", "이미 진행 중인 업무나 휴식이 있습니다.\n화면 상단의 취소 버튼을 먼저 눌러주세요.");
+            }
+            
             state.isWorking = true;
             state.currentTask = rest;
             state.workElapsed = 0;
