@@ -110,7 +110,7 @@
         #time-left { font-size: 12px; color: var(--text-main); font-weight: 800; min-width: 55px; text-align: right;}
         #cancel-btn { background: var(--danger); color: white; padding: 6px 12px; font-size: 11px; margin: 0; }
 
-        /* 터치용 돈다발 코인 */
+        /* 터치용 캐릭터 컨테이너 */
         #coin-container {
             position: fixed;
             top: 150px;
@@ -120,8 +120,11 @@
             display: flex; flex-direction: column; align-items: center;
             pointer-events: none;
         }
+        /* 이모지 대신 이미지 태그에 맞춘 스타일 */
         #char-display { 
-            font-size: 90px; margin-bottom: 5px; cursor: pointer; user-select: none;
+            height: 110px; /* 클릭하기 편한 크기로 조정 */
+            object-fit: contain;
+            margin-bottom: 5px; cursor: pointer; user-select: none;
             display: inline-block;
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.2));
             pointer-events: auto;
@@ -152,7 +155,6 @@
             justify-content: flex-start;
             padding-left: 5vw;
             padding-right: 10vw;
-            /* 👇 핵심 수정: 이전 30vh와 중앙 50vh 사이인 42vh로 건물 라인 상승 */
             padding-bottom: 38vh; 
             gap: 15px; 
         }
@@ -166,8 +168,9 @@
             transition: transform 0.1s;
         }
         .building-wrapper:active { transform: scale(0.95); }
+        
         .building-img { 
-            height: 150px; 
+            height: 132px; 
             object-fit: contain; 
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); 
         }
@@ -331,7 +334,7 @@
 
         <div id="coin-container">
             <div id="debuff-label"></div>
-            <div id="char-display" onclick="clickCharacter()">💸</div>
+            <img id="char-display" src="캐릭터/20대.png" alt="캐릭터" onclick="clickCharacter()">
             <div id="current-action-label">대기 중...</div>
             <div class="click-notice" id="click-notice">💡 터치해서 돈 벌기!</div>
         </div>
@@ -451,7 +454,6 @@
 
         const SAVE_KEY = "k_worker_tycoon_save_data";
 
-        // 로컬 스토리지 저장 및 불러오기
         function saveGame() { 
             state.lastSaveTime = Date.now(); 
             localStorage.setItem(SAVE_KEY, JSON.stringify(state)); 
@@ -467,7 +469,6 @@
             }
         }
 
-        // 유틸리티 함수
         function formatMMSS(s) { 
             const m = Math.floor(s / 60); 
             const ss = s % 60; 
@@ -486,7 +487,6 @@
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
         }
 
-        // 캐릭터 터치 시 수익 발생
         function clickCharacter() {
             if(state.debuffTimeLeft > 0) return;
             
@@ -503,7 +503,6 @@
             saveGame();
         }
 
-        // 게임 메인 루프 (1초마다 실행)
         function startGameLoop() {
             setInterval(() => {
                 state.gameSeconds += 540;
@@ -518,7 +517,6 @@
             }, 1000);
         }
 
-        // 화면 UI 업데이트
         function updateDisplay() {
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
@@ -551,9 +549,19 @@
                 state.rankIdx++;
                 showAlert("승진!", `${RANKS[state.rankIdx].name}(으)로 승진하셨습니다!`);
             }
+
+            // 👇 연차에 따른 캐릭터 나이 업데이트 로직
+            let currentAge = 20 + y; // 0년차 = 20살 시작
+            let ageDecade = Math.floor(currentAge / 10) * 10;
+            if (ageDecade > 60) ageDecade = 60; // 60대까지만 이미지 존재
+
+            const charImg = document.getElementById('char-display');
+            const expectedSrc = `캐릭터/${ageDecade}대.png`;
+            if (charImg.getAttribute('src') !== expectedSrc) {
+                charImg.src = expectedSrc;
+            }
         }
 
-        // 바텀 시트 열기
         function openSheet(type) {
             if(state.debuffTimeLeft > 0 && type === 'work') {
                 return showAlert("업무 불가", "혼나는 중이라 일을 지시받을 수 없습니다!");
@@ -712,7 +720,6 @@
             }
         }
 
-        // 업무 시작 제어
         function doWork(idx) {
             let job = JOBS[idx];
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중이라 일을 할 수 없습니다!");
@@ -741,7 +748,6 @@
             startTaskInterval();
         }
 
-        // 프로그레스바 타이머 로직
         function startTaskInterval() {
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
@@ -773,7 +779,6 @@
                     state.workElapsed++;
                     let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
                     
-                    // [NEW] 휴식 실시간 기대 획득량 표기 로직 적용
                     if (state.workElapsed < task.minTime) {
                         timeLeftLabel.innerText = `최소 완료까지: ${formatMMSS(task.minTime - state.workElapsed)}`;
                     } else {
@@ -784,7 +789,6 @@
             }
         }
 
-        // 업무 완료 및 정산 (모달창 추가)
         function finishWork(job, isCanceled, actualTime) {
             clearInterval(state.workInterval);
             resetUI();
@@ -822,7 +826,6 @@
             state.money += earnedMoney;
             state.exp += earnedExp;
             
-            // [NEW] 업무 결과 모달 표기 로직 적용
             if(isCanceled) {
                 showAlert("작업 취소", `중도 취소했습니다.\n\n진행 비율 정산에 따라\n💰 수익: ${earnedMoney.toLocaleString()}원\n📉 컨디션 소모: ${costDeducted}`);
             } else {
@@ -844,7 +847,6 @@
             startTaskInterval();
         }
 
-        // 업무/휴식 취소
         function cancelWork() {
             if(!state.isWorking || !state.currentTask) return;
             
@@ -886,7 +888,6 @@
             finishWork(state.currentTask, true, actualTime);
         }
 
-        // UI 리셋
         function resetUI() {
             state.isWorking = false; 
             state.currentTask = null;
@@ -895,7 +896,6 @@
             document.getElementById('click-notice').style.display = 'block';
         }
 
-        // 아이템 구매 (버프)
         function buyBuff(i) {
             let b = BUFFS[i];
             
@@ -914,7 +914,6 @@
             }
         }
         
-        // 아이템 구매 (상점)
         function buyShop(i) {
             let s = SHOPS[i];
             if (state.ownedItems.includes(s.id)) return showAlert("안내", "이미 보유 중인 장비입니다.");
@@ -932,7 +931,6 @@
             }
         }
 
-        // 부동산 계약 로직
         function buyHouse(idx) {
             let house = HOUSES[idx];
             if (state.houseIdx === idx) return showAlert("안내", "현재 거주 중인 집입니다.");
@@ -967,7 +965,6 @@
             });
         }
         
-        // 닉네임 변경권 구매
         function buyNickname() {
             let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
             
@@ -987,7 +984,6 @@
             }
         }
 
-        // 모달 닫기 제어
         function closeSheet() { 
             document.getElementById('bottom-sheet').classList.remove('active'); 
             document.getElementById('overlay').style.display = 'none'; 
@@ -1021,7 +1017,6 @@
             document.getElementById('alert-modal').style.display = 'none'; 
         }
 
-        // 초기 실행 로직
         window.onload = () => { 
             loadGame(); 
             updateDisplay(); 
