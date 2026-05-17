@@ -21,11 +21,12 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html {
             margin: 0; padding: 0;
-            width: 100%; height: 100%;
+            width: 100%; height: 100%; /* 모바일 주소창 오류 방지를 위해 100% 고정 */
             font-family: 'Pretendard', -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             overflow: hidden;
+            touch-action: manipulation; /* 모바일 더블탭 줌 방지 */
         }
 
         button { cursor: pointer; border: none; border-radius: 12px; font-weight: 600; }
@@ -55,9 +56,11 @@
             top: 0; left: 0; width: 100%;
             z-index: 50;
             display: flex; flex-direction: column;
+            pointer-events: none; /* [핵심] 투명 영역이 모바일 터치를 막는 것 방지! */
         }
 
         header {
+            pointer-events: auto; /* 헤더는 터치 가능하게 복구 */
             width: 100%;
             padding: 12px 15px; display: flex; justify-content: space-between; gap: 10px;
             background: rgba(255, 255, 255, 0.95);
@@ -100,6 +103,7 @@
 
         /* 프로그레스 바 */
         .progress-wrapper { 
+            pointer-events: auto; /* 진행바도 터치 가능하게 복구 */
             width: 100%; display: none; flex-direction: row; align-items: center; gap: 10px; 
             background: rgba(255, 255, 255, 0.95);
             border-top: 1px solid var(--border-color);
@@ -120,11 +124,11 @@
             display: flex; flex-direction: column; align-items: center;
             pointer-events: none;
         }
-        /* 이모지 대신 이미지 태그에 맞춘 스타일 */
         #char-display { 
-            height: 110px; /* 클릭하기 편한 크기로 조정 */
+            height: 110px; 
             object-fit: contain;
             margin-bottom: 5px; cursor: pointer; user-select: none;
+            -webkit-user-drag: none; /* 모바일 이미지 드래그 방지 */
             display: inline-block;
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.2));
             pointer-events: auto;
@@ -138,9 +142,10 @@
 
         /* 가로 스크롤 타운 (마을) 뷰 */
         .town-scroll-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             overflow-x: auto; overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-x; /* 가로 스크롤 최적화 */
             z-index: 10;
         }
         .town-scroll-container::-webkit-scrollbar { display: none; }
@@ -166,6 +171,7 @@
             align-items: center;
             cursor: pointer;
             transition: transform 0.1s;
+            z-index: 20;
         }
         .building-wrapper:active { transform: scale(0.95); }
         
@@ -173,6 +179,10 @@
             height: 132px; 
             object-fit: contain; 
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); 
+            /* [핵심] 이미지가 클릭을 삼키거나 드래그되지 않도록 방지하고 부모(wrapper)가 클릭을 100% 흡수하게 함 */
+            pointer-events: none; 
+            -webkit-user-drag: none;
+            user-select: none;
         }
 
         .disabled-overlay {
@@ -550,7 +560,7 @@
                 showAlert("승진!", `${RANKS[state.rankIdx].name}(으)로 승진하셨습니다!`);
             }
 
-            // 👇 연차에 따른 캐릭터 나이 업데이트 로직
+            // 연차에 따른 캐릭터 나이 업데이트 로직
             let currentAge = 20 + y; // 0년차 = 20살 시작
             let ageDecade = Math.floor(currentAge / 10) * 10;
             if (ageDecade > 60) ageDecade = 60; // 60대까지만 이미지 존재
