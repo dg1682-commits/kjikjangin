@@ -59,9 +59,9 @@
 <body>
 
     <header>
-        <a href="main.html#game" class="back-btn" onclick="goBack(event)">←</a>
+        <a href="main.html#game" class="back-btn">←</a>
         <div class="header-title">K-증권</div>
-        <div class="empty-space" style="width:24px;"></div>
+        <div class="empty-space"></div>
     </header>
 
     <main>
@@ -98,13 +98,14 @@
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
-        // 메인 데이터 구조와 유기적으로 동기화 연동
+        // 데이터 구조 분해 및 원금 배열 독립 추적 세팅
         let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
         if (!gameState.holdings) gameState.holdings = {};
+        if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; // 🚨 원입금액 트래킹 공간 신설
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-        // 주임님 엑셀 이미지 기반 15개 마스터 기업 데이터 스토리지 보존식 로드
+        // 15개 기업 리스트 마스터 데이터 보존 로드
         let MOCK_STOCKS = JSON.parse(localStorage.getItem("k_stock_market_prices")) || [
             { name: "애비디아", price: 353189, prev: 353189 },
             { name: "파인애플", price: 446539, prev: 446539 },
@@ -123,6 +124,9 @@
             { name: "OK증권", price: 1250, prev: 1250 }
         ];
 
+        // 데이터 방어 보정 연산
+        MOCK_STOCKS.forEach(s => { if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; });
+
         let currentTarget = null;
         let currentTab = "list";
 
@@ -130,7 +134,7 @@
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
         }
 
-        // 주식창에서도 메인 게임의 흐름이 끊기지 않는 백그라운드 엔진 루프 기동
+        // 🚨 실시간 시간 흐름 및 리얼타임 초당 주가 변동 연산 처리 루프
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -142,28 +146,29 @@
                     lastGameTick += passedSecs * 1000;
 
                     let oldDayIdx = Math.floor(gameState.gameSeconds / 86400);
-                    gameState.gameSeconds += (passedSecs * 540); // 메인 배속 동기화
-                    gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; // 패시브 머니 실시간 추적
+                    gameState.gameSeconds += (passedSecs * 540); 
+                    gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
                     let newDayIdx = Math.floor(gameState.gameSeconds / 86400);
 
-                    // 메인 타임 기준 하루(1일) 지날 때 마다 ±30% 변동 발생
+                    // 실시간 시장 생동감 부여 엔진: 매 1초마다 -1.5% ~ +1.5% 무작위 유동 기동
+                    MOCK_STOCKS.forEach(s => {
+                        let microRange = (Math.random() * 0.03 - 0.015);
+                        s.price = Math.floor(s.price * (1 + microRange));
+                        if (s.price < 10) s.price = 10;
+                    });
+
+                    // 인게임 하루 경과 시 전일가 정산 마감 처리
                     if (newDayIdx > oldDayIdx) {
-                        MOCK_STOCKS.forEach(s => {
-                            s.prev = s.price;
-                            let range = (Math.random() * 0.6 - 0.3); // 최대 상하한가 30%
-                            s.price = Math.floor(s.price * (1 + range));
-                            if (s.price < 10) s.price = 10;
-                        });
-                        localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
+                        MOCK_STOCKS.forEach(s => { s.prev = s.price; });
                     }
 
-                    updateAccountUI();
-                    if (currentTab === 'list' || currentTab === 'my') {
-                        renderCoreView();
-                    }
+                    localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
                     localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+
+                    updateAccountUI();
+                    renderCoreView();
                 }
-            }, 200);
+            }, 1000); 
         }
 
         function updateDateDisplay() {
@@ -179,9 +184,7 @@
             let stockAsset = 0;
             for (let name in gameState.holdings) {
                 let stock = MOCK_STOCKS.find(s => s.name === name);
-                if (stock) {
-                    stockAsset += stock.price * Number(gameState.holdings[name] || 0);
-                }
+                if (stock) stockAsset += stock.price * Number(gameState.holdings[name] || 0);
             }
             let totalAsset = gameState.money + stockAsset;
             document.getElementById('total-asset').innerText = Math.floor(totalAsset).toLocaleString() + "원";
@@ -225,19 +228,32 @@
                     let qty = Number(gameState.holdings[name] || 0);
                     if (qty > 0) {
                         let s = MOCK_STOCKS.find(x => x.name === name);
-                        let evalPrice = s ? s.price * qty : 0;
+                        if (!s) continue;
+                        
+                        let principal = Number(gameState.buyPrinciples[name] || 0);
+                        let evaluation = s.price * qty;
+                        let profitLoss = evaluation - principal;
+                        let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
+                        let sign = profitLoss > 0 ? "+" : "";
+                        let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
+
                         list.innerHTML += `
-                            <li class="stock-item" onclick="openModal('${name}')">
-                                <div class="stock-info">
-                                    <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
-                                    <div class="stock-name-box">
-                                        <span class="stock-name">${name}</span>
-                                        <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span>
+                            <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="stock-info">
+                                        <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
+                                        <div class="stock-name-box">
+                                            <span class="stock-name">${name}</span>
+                                            <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span>
+                                        </div>
+                                    </div>
+                                    <div class="stock-price-box">
+                                        <span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Number(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span>
                                     </div>
                                 </div>
-                                <div class="stock-price-box">
-                                    <span class="stock-price">${evalPrice.toLocaleString()}원</span>
-                                    <span style="font-size:11px; color:var(--text-sub); font-weight:600;">평가금액</span>
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 8px 12px; border-radius: 8px; font-weight: 600;">
+                                    <div>매입원금: <span style="color:var(--text-main);">${Math.floor(principal).toLocaleString()}원</span></div>
+                                    <div>평가금액: <span style="color:var(--text-main);">${Math.floor(evaluation).toLocaleString()}원</span></div>
                                 </div>
                             </li>`;
                         has = true;
@@ -262,7 +278,7 @@
                                 </div>
                                 <div class="stock-price-box">
                                     <span class="stock-price" style="font-size:14px; color:${typeColor};">${h.type === '매수' ? '-' : '+'}${Number(h.total || 0).toLocaleString()}원</span>
-                                    <span style="font-size:11px; color:var(--text-sub); font-weight:600;">${h.qty}주 (${Number(h.price || 0).toLocaleString()}원)</span>
+                                    <span style="font-size:11px; color:var(--text-sub); font-weight:600;">${h.qty}주</span>
                                 </div>
                             </li>`;
                     }
@@ -285,7 +301,7 @@
             document.getElementById('total-cost').innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
-        // [핵심] 먹통 현상 완벽 조치 및 연산 가공 누적 로직 고정
+        // 🚨 추가 매수 합산 가산 연산 버그 및 평단가 원금 트래킹 완벽화
         function trade(type) {
             if (!currentTarget) return;
             let qty = parseInt(document.getElementById('trade-qty').value);
@@ -296,8 +312,9 @@
             if (type === 'buy') {
                 if (gameState.money >= totalCost) {
                     gameState.money -= totalCost;
-                    // 🚨 Number 형 변환을 강제 가공 처리하여 덮어쓰지 않고 가산 합산 누적
+                    // 가산 누적 및 투자 원금 합산 누적 완료
                     gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
+                    gameState.buyPrinciples[currentTarget.name] = Number(gameState.buyPrinciples[currentTarget.name] || 0) + totalCost;
                     alert(`${currentTarget.name} ${qty}주 매수 완료!`);
                 } else {
                     return alert("예수금 부족!");
@@ -305,8 +322,11 @@
             } else {
                 let currentQty = Number(gameState.holdings[currentTarget.name] || 0);
                 if (currentQty >= qty) {
+                    // 매도 시 보유 원금 비례 차감 정산
+                    let currentAvgPrice = Number(gameState.buyPrinciples[currentTarget.name] || 0) / currentQty;
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
+                    gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                     alert(`${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
                     return alert("보유 수량 부족!");
