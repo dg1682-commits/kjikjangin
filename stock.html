@@ -74,9 +74,11 @@
     </header>
 
     <main>
-        <section class="account-section">
-            <div class="account-title">나의 총 자산</div>
-            <div class="account-balance" id="total-asset">0원</div>
+<section class="account-section">
+    <div id="game-date" style="font-size: 14px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
+    
+    <div class="account-title">나의 총 자산</div>
+    <div class="account-balance" id="total-asset">0원</div>
             <div class="account-details">
                 <span>주문 가능 예수금</span>
                 <span class="val-cash" id="available-cash">0원</span>
@@ -109,34 +111,39 @@
 
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
-        
-        // 메인 게임 데이터 동기화 세팅 (holdings, history 원천 보존)
-        let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 0 };
-        if (!gameState.holdings) gameState.holdings = {};
-        if (!gameState.history) gameState.history = [];
-        if (!gameState.lastStockDate) gameState.lastStockDate = new Date().toLocaleDateString();
 
-        // 주임님이 지정해주신 실전 15개 교체 종목 마스터 데이터
-        let MOCK_STOCKS = JSON.parse(localStorage.getItem("k_stock_market_prices")) || [
-            { name: "애비디아", price: 353189, prev: 353189 },
-            { name: "파인애플", price: 446539, prev: 446539 },
-            { name: "테슐라", price: 664130, prev: 664130 },
-            { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
-            { name: "NBR", price: 8510000, prev: 8510000 },
-            { name: "시바보드", price: 7050000, prev: 7050000 },
-            { name: "효도중공업", price: 4600000, prev: 4600000 },
-            { name: "SK바이닉스", price: 1864000, prev: 1864000 },
-            { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
-            { name: "사성전기", price: 982000, prev: 982000 },
-            { name: "미래차", price: 756000, prev: 756000 },
-            { name: "한미중반도체", price: 409500, prev: 409500 },
-            { name: "오성전자", price: 277000, prev: 277000 },
-            { name: "코코아", price: 92400, prev: 92400 },
-            { name: "OK증권", price: 1250, prev: 1250 }
-        ];
+// 메인 게임의 모든 데이터 구조를 그대로 가져오고 없으면 초기화합니다.
+let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
+if (!gameState.holdings) gameState.holdings = {};
+if (!gameState.history) gameState.history = [];
+if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-        let currentTarget = null; 
-        let currentTab = "list";
+// 주임님이 주신 15개 기업 원본 데이터 및 전일 대비 변동 기준값(prev) 세팅
+let MOCK_STOCKS = JSON.parse(localStorage.getItem("k_stock_market_prices")) || [
+    { name: "애비디아", price: 353189, prev: 353189 },
+    { name: "파인애플", price: 446539, prev: 446539 },
+    { name: "테슐라", price: 664130, prev: 664130 },
+    { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
+    { name: "NBR", price: 8510000, prev: 8510000 },
+    { name: "시바보드", price: 7050000, prev: 7050000 },
+    { name: "효도중공업", price: 4600000, prev: 4600000 },
+    { name: "SK바이닉스", price: 1864000, prev: 1864000 },
+    { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
+    { name: "사성전기", price: 982000, prev: 982000 },
+    { name: "미래차", price: 756000, prev: 756000 },
+    { name: "한미중반도체", price: 409500, prev: 409500 },
+    { name: "오성전자", price: 277000, prev: 277000 },
+    { name: "코코아", price: 92400, prev: 92400 },
+    { name: "OK증권", price: 1250, prev: 1250 }
+];
+
+let currentTarget = null; 
+let currentTab = "list";
+
+// 메인 게임과 동일한 수입 배율 공식 이식
+function getIncomeMultiplier(s) { 
+    return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
+}
 
         // 1. 예수금 및 총 자산 실시간 계산 및 반영
         function updateAccountUI() {
@@ -344,11 +351,117 @@
             renderCoreView();
         }
 
-        window.onload = () => {
-            checkDailyPriceFluctuation();
+window.onload = () => { 
+    updateAccountUI(); 
+    renderView('list', document.querySelector('.nav-item')); 
+    startGameLoop(); // 실시간 주가 변동 및 타이머 루프 기동
+};
+        // 인게임 시간 흐름 및 자산 실시간 동기화 루프
+let lastGameTick = Date.now();
+function startGameLoop() {
+    lastGameTick = Date.now();
+    setInterval(() => {
+        let now = Date.now();
+        let delta = (now - lastGameTick) / 1000;
+        
+        if (delta >= 1) { 
+            let passedSecs = Math.floor(delta);
+            lastGameTick += passedSecs * 1000;
+
+            // 1일 계산을 위한 이전 날짜 저장
+            let oldDay = Math.floor(gameState.gameSeconds / (60 * 24));
+            
+            // 시간 진행 및 패시브 수입 실시간 동기화
+            gameState.gameSeconds += (passedSecs * 540);
+            gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs;
+            
+            let newDay = Math.floor(gameState.gameSeconds / (60 * 24));
+
+            // 인게임 시간이 딱 1일(24시간) 지났을 때 ±30% 상하한가 변동 발동
+            if (newDay > oldDay) {
+                MOCK_STOCKS.forEach(s => {
+                    s.prev = s.price; // 전일가 갱신
+                    let range = (Math.random() * 0.6 - 0.3); // -30% ~ +30% 범위
+                    s.price = Math.floor(s.price * (1 + range));
+                    if (s.price < 1) s.price = 1; // 주가 파산 방지
+                });
+                localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
+            }
+            
+            // 자산 및 날짜 UI 실시간 갱신
             updateAccountUI();
-            renderCoreView();
-        };
+            if (currentTab === 'list' || currentTab === 'my') {
+                renderCoreView();
+            }
+            
+            // 메인 데이터 백업
+            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+        }
+    }, 200); 
+}
+
+// 인게임 날짜 포맷 변환 함수
+function updateDateDisplay() {
+    const totalMin = Math.floor(gameState.gameSeconds / 60);
+    const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
+    const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
+    const d = Math.floor(totalMin / (60 * 24)) % 30;
+    const h = Math.floor(totalMin / 60) % 24;
+    document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
+}
+        // 총 자산(예수금 + 실시간 주가 평가액) 실시간 트래킹 함수
+function updateAccountUI() {
+    let stockAsset = 0;
+    for (let name in gameState.holdings) {
+        let stock = MOCK_STOCKS.find(s => s.name === name);
+        if (stock) {
+            stockAsset += stock.price * Number(gameState.holdings[name] || 0);
+        }
+    }
+    let totalAsset = gameState.money + stockAsset;
+    document.getElementById('total-asset').innerText = Math.floor(totalAsset).toLocaleString() + "원";
+    document.getElementById('available-cash').innerText = Math.floor(gameState.money).toLocaleString() + "원";
+    updateDateDisplay();
+}
+
+// 매수/매도 추가 더하기 버그 전면 수정 완료본 (창 새로고침 제거)
+function trade(type) {
+    if (!currentTarget) return;
+    
+    let qty = parseInt(document.getElementById('trade-qty').value);
+    if(!qty || qty <= 0) return alert("수량을 입력하세요");
+    
+    let totalCost = currentTarget.price * qty;
+    
+    if(type === 'buy') {
+        if(gameState.money >= totalCost) {
+            gameState.money -= totalCost;
+            // 🚨 Number() 가공 처리로 추가 매수 시 더하기가 누적되도록 명확히 고쳤습니다.
+            gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
+            alert(`${currentTarget.name} ${qty}주 매수 완료!`);
+        } else {
+            return alert("예수금 부족!");
+        }
+    } else {
+        let myQty = Number(gameState.holdings[currentTarget.name] || 0);
+        if(myQty >= qty) {
+            gameState.money += totalCost;
+            gameState.holdings[currentTarget.name] = myQty - qty;
+            alert(`${currentTarget.name} ${qty}주 매도 완료!`);
+        } else {
+            return alert("보유 수량 부족!");
+        }
+    }
+    
+    // 거래내역 추가 기록
+    gameState.history.push({ name: currentTarget.name, type: type === 'buy' ? '매수' : '매도', qty: qty });
+    localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+    
+    // 🚨 창을 새로고침하지 않고 모달만 닫은 후 실시간 UI만 즉각 리렌더링 처리합니다.
+    document.getElementById('trade-modal').style.display = 'none';
+    updateAccountUI();
+    renderCoreView();
+}
     </script>
 </body>
 </html>
