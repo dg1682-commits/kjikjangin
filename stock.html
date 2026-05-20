@@ -5,44 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>K-증권 (주식 거래)</title>
     <style>
-        /* 주임님 원본 디자인 및 레이아웃 100% 보존 */
+        /* 주임님 원본 증권사 앱 테마 및 레이아웃 스타일 100% 보존 */
         :root { 
             --bg-main: #ffffff; 
             --bg-sub: #f3f4f6; 
             --text-main: #111827; 
             --text-sub: #6b7280; 
             --text-light: #9ca3af; 
-            --stock-up: #ef4444;   
-            --stock-down: #3b82f6; 
-            --stock-even: #4b5563; 
+            --stock-up: #ef4444;   /* 상승 (빨강) */
+            --stock-down: #3b82f6; /* 하락 (파랑) */
+            --stock-even: #4b5563; /* 보합 (회색) */
             --border-light: #f3f4f6; 
             --accent-color: #0ea5e9; 
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', -apple-system, sans-serif; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); }
         
-        /* 상단 헤더 */
-        header { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 0 20px; background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-light); z-index: 100; 
-        }
+        header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-light); z-index: 100; }
         .back-btn { font-size: 24px; font-weight: bold; color: var(--text-main); cursor: pointer; text-decoration: none; }
         .header-title { font-size: 18px; font-weight: 800; }
         .empty-space { width: 24px; } 
 
-        /* 메인 컨텐츠 영역 */
         main { padding-top: 60px; padding-bottom: 80px; overflow-y: auto; height: 100%; }
 
-        /* 내 계좌 정보 섹션 */
         .account-section { padding: 30px 20px 20px 20px; background: var(--bg-main); border-bottom: 8px solid var(--bg-sub); }
         .account-title { font-size: 14px; color: var(--text-sub); font-weight: 600; margin-bottom: 8px; }
         .account-balance { font-size: 32px; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 15px; }
         .account-details { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sub); background: var(--bg-sub); padding: 12px 15px; border-radius: 12px; font-weight: 600; }
         .val-cash { color: var(--text-main); font-weight: 800; }
-
-        /* 주식 리스트 */
+        
         .stock-list { list-style: none; margin: 0; padding: 0; }
         .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; }
         .stock-item:active { background: var(--bg-sub); }
@@ -56,225 +47,231 @@
 
         /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; padding: 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .modal-btn { width: 45%; padding: 14px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
+        .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
         /* 하단 메뉴 바 */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-item { cursor: pointer; font-size: 14px; font-weight: bold; color: var(--text-sub); padding: 10px; }
+        .nav-item { cursor: pointer; font-size: 14px; font-weight: bold; color: var(--text-sub); }
         .nav-item.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); }
     </style>
 </head>
 <body>
 
     <header>
-        <a href="main.html#game" class="back-btn">←</a>
+        <a href="main.html#game" class="back-btn" onclick="goBack(event)">←</a>
         <div class="header-title">K-증권</div>
-        <div class="empty-space"></div>
+        <div class="empty-space" style="width:24px;"></div>
     </header>
 
     <main>
-<section class="account-section">
-    <div id="game-date" style="font-size: 14px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
-    
-    <div class="account-title">나의 총 자산</div>
-    <div class="account-balance" id="total-asset">0원</div>
+        <section class="account-section">
+            <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
+            <div class="account-title">나의 총 자산</div>
+            <div class="account-balance" id="total-asset">0원</div>
             <div class="account-details">
                 <span>주문 가능 예수금</span>
                 <span class="val-cash" id="available-cash">0원</span>
             </div>
         </section>
-        
         <ul class="stock-list" id="stock-list"></ul>
     </main>
 
     <nav class="bottom-nav">
-        <div class="nav-item active" id="nav-list" onclick="changeTab('list', this)">목록</div>
-        <div class="nav-item" id="nav-my" onclick="changeTab('my', this)">내 주식</div>
-        <div class="nav-item" id="nav-history" onclick="changeTab('history', this)">거래내역</div>
+        <div class="nav-item active" onclick="renderView('list', this)">목록</div>
+        <div class="nav-item" onclick="renderView('my', this)">내 주식</div>
+        <div class="nav-item" onclick="renderView('history', this)">거래내역</div>
     </nav>
 
     <div id="trade-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-name" style="margin: 0 0 10px 0; font-size: 20px;"></h3>
-            <p id="modal-price" style="margin: 0 0 20px 0; color: var(--text-sub); font-weight: 600;"></p>
-            <input type="number" id="trade-qty" placeholder="수량 입력" style="width:100%; padding:12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom:15px; font-size: 16px;" oninput="calcTotalCost()">
-            <p style="font-size: 14px; font-weight: 600; margin-bottom: 20px;">총 주문 금액: <span id="total-cost" style="color: var(--stock-up); font-size: 18px; font-weight: 800;">0</span>원</p>
-            
-            <div style="display: flex; justify-content: space-between;">
-                <button class="modal-btn" style="background:#ef4444; color:white;" onclick="executeTrade('buy')">매수</button>
-                <button class="modal-btn" style="background:#3b82f6; color:white;" onclick="executeTrade('sell')">매도</button>
-            </div>
-            <button class="modal-btn" style="background:#cbd5e1; color: var(--text-main); width: 93%; margin-top: 10px;" onclick="closeModal()">닫기</button>
+            <h3 id="modal-name"></h3>
+            <p id="modal-price"></p>
+            <input type="number" id="trade-qty" placeholder="수량 입력" style="width:100%; padding:10px; margin-bottom:10px;" oninput="calcTotal()">
+            <p>총 거래금액: <span id="total-cost" style="color: var(--stock-up); font-weight: 800;">0</span>원</p>
+            <button class="modal-btn" style="background:#ef4444; color:white;" onclick="trade('buy')">매수</button>
+            <button class="modal-btn" style="background:#3b82f6; color:white;" onclick="trade('sell')">매도</button>
+            <button class="modal-btn" onclick="document.getElementById('trade-modal').style.display='none'">닫기</button>
         </div>
     </div>
 
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
+        
+        // 메인 데이터 구조와 유기적으로 동기화 연동
+        let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
+        if (!gameState.holdings) gameState.holdings = {};
+        if (!gameState.history) gameState.history = [];
+        if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-// 메인 게임의 모든 데이터 구조를 그대로 가져오고 없으면 초기화합니다.
-let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
-if (!gameState.holdings) gameState.holdings = {};
-if (!gameState.history) gameState.history = [];
-if (!gameState.gameSeconds) gameState.gameSeconds = 0;
+        // 주임님 엑셀 이미지 기반 15개 마스터 기업 데이터 스토리지 보존식 로드
+        let MOCK_STOCKS = JSON.parse(localStorage.getItem("k_stock_market_prices")) || [
+            { name: "애비디아", price: 353189, prev: 353189 },
+            { name: "파인애플", price: 446539, prev: 446539 },
+            { name: "테슐라", price: 664130, prev: 664130 },
+            { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
+            { name: "NBR", price: 8510000, prev: 8510000 },
+            { name: "시바보드", price: 7050000, prev: 7050000 },
+            { name: "효도중공업", price: 4600000, prev: 4600000 },
+            { name: "SK바이닉스", price: 1864000, prev: 1864000 },
+            { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
+            { name: "사성전기", price: 982000, prev: 982000 },
+            { name: "미래차", price: 756000, prev: 756000 },
+            { name: "한미중반도체", price: 409500, prev: 409500 },
+            { name: "오성전자", price: 277000, prev: 277000 },
+            { name: "코코아", price: 92400, prev: 92400 },
+            { name: "OK증권", price: 1250, prev: 1250 }
+        ];
 
-// 주임님이 주신 15개 기업 원본 데이터 및 전일 대비 변동 기준값(prev) 세팅
-let MOCK_STOCKS = JSON.parse(localStorage.getItem("k_stock_market_prices")) || [
-    { name: "애비디아", price: 353189, prev: 353189 },
-    { name: "파인애플", price: 446539, prev: 446539 },
-    { name: "테슐라", price: 664130, prev: 664130 },
-    { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
-    { name: "NBR", price: 8510000, prev: 8510000 },
-    { name: "시바보드", price: 7050000, prev: 7050000 },
-    { name: "효도중공업", price: 4600000, prev: 4600000 },
-    { name: "SK바이닉스", price: 1864000, prev: 1864000 },
-    { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
-    { name: "사성전기", price: 982000, prev: 982000 },
-    { name: "미래차", price: 756000, prev: 756000 },
-    { name: "한미중반도체", price: 409500, prev: 409500 },
-    { name: "오성전자", price: 277000, prev: 277000 },
-    { name: "코코아", price: 92400, prev: 92400 },
-    { name: "OK증권", price: 1250, prev: 1250 }
-];
+        let currentTarget = null;
+        let currentTab = "list";
 
-let currentTarget = null; 
-let currentTab = "list";
+        function getIncomeMultiplier(s) { 
+            return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
+        }
 
-// 메인 게임과 동일한 수입 배율 공식 이식
-function getIncomeMultiplier(s) { 
-    return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
-}
+        // 주식창에서도 메인 게임의 흐름이 끊기지 않는 백그라운드 엔진 루프 기동
+        let lastGameTick = Date.now();
+        function startGameLoop() {
+            lastGameTick = Date.now();
+            setInterval(() => {
+                let now = Date.now();
+                let delta = (now - lastGameTick) / 1000;
+                if (delta >= 1) {
+                    let passedSecs = Math.floor(delta);
+                    lastGameTick += passedSecs * 1000;
 
-        // 1. 예수금 및 총 자산 실시간 계산 및 반영
+                    let oldDayIdx = Math.floor(gameState.gameSeconds / 86400);
+                    gameState.gameSeconds += (passedSecs * 540); // 메인 배속 동기화
+                    gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; // 패시브 머니 실시간 추적
+                    let newDayIdx = Math.floor(gameState.gameSeconds / 86400);
+
+                    // 메인 타임 기준 하루(1일) 지날 때 마다 ±30% 변동 발생
+                    if (newDayIdx > oldDayIdx) {
+                        MOCK_STOCKS.forEach(s => {
+                            s.prev = s.price;
+                            let range = (Math.random() * 0.6 - 0.3); // 최대 상하한가 30%
+                            s.price = Math.floor(s.price * (1 + range));
+                            if (s.price < 10) s.price = 10;
+                        });
+                        localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
+                    }
+
+                    updateAccountUI();
+                    if (currentTab === 'list' || currentTab === 'my') {
+                        renderCoreView();
+                    }
+                    localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                }
+            }, 200);
+        }
+
+        function updateDateDisplay() {
+            const totalMin = Math.floor(gameState.gameSeconds / 60);
+            const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
+            const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
+            const d = Math.floor(totalMin / (60 * 24)) % 30;
+            const h = Math.floor(totalMin / 60) % 24;
+            document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
+        }
+
         function updateAccountUI() {
             let stockAsset = 0;
             for (let name in gameState.holdings) {
                 let stock = MOCK_STOCKS.find(s => s.name === name);
                 if (stock) {
-                    stockAsset += stock.price * gameState.holdings[name];
+                    stockAsset += stock.price * Number(gameState.holdings[name] || 0);
                 }
             }
             let totalAsset = gameState.money + stockAsset;
             document.getElementById('total-asset').innerText = Math.floor(totalAsset).toLocaleString() + "원";
             document.getElementById('available-cash').innerText = Math.floor(gameState.money).toLocaleString() + "원";
+            updateDateDisplay();
         }
 
-        // 2. 1일 주기 주가 변동 연산 엔진 (전일 대비 % 실시간 계산)
-        function checkDailyPriceFluctuation() {
-            let today = new Date().toLocaleDateString();
-            if (gameState.lastStockDate !== today) {
-                MOCK_STOCKS.forEach(s => {
-                    s.prev = s.price;
-                    // 국내/해외 통합 변동폭 시뮬레이션 설정 (-7% ~ +7% 랜덤 기동)
-                    let range = (Math.random() * 0.14 - 0.07);
-                    s.price = Math.floor(s.price * (1 + range));
-                });
-                gameState.lastStockDate = today;
-                localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
-                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+        function renderView(view, el) {
+            if(el) {
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                el.classList.add('active');
             }
-        }
-
-        // 3. 네비게이션 탭 변환 및 렌더링 통합 관리
-        function changeTab(view, el) {
             currentTab = view;
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            el.classList.add('active');
             renderCoreView();
         }
 
         function renderCoreView() {
-            const listContainer = document.getElementById('stock-list');
-            listContainer.innerHTML = ""; 
+            const list = document.getElementById('stock-list');
+            list.innerHTML = "";
 
             if (currentTab === 'list') {
-                MOCK_STOCKS.forEach(stock => {
-                    let rate = (((stock.price - stock.prev) / stock.prev) * 100).toFixed(2);
+                MOCK_STOCKS.forEach(s => {
+                    let rate = (((s.price - s.prev) / s.prev) * 100).toFixed(2);
                     let sign = rate > 0 ? "+" : "";
-                    let colorClass = rate > 0 ? "up" : (rate < 0 ? "down" : "even");
-                    
-                    const li = document.createElement('li');
-                    li.className = 'stock-item';
-                    li.onclick = () => openTradeModal(stock.name);
-                    li.innerHTML = `
-                        <div class="stock-info">
-                            <div class="stock-icon">${stock.name.charAt(0)}</div>
-                            <div class="stock-name-box">
-                                <span class="stock-name">${stock.name}</span>
+                    let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
+                    list.innerHTML += `
+                        <li class="stock-item" onclick="openModal('${s.name}')">
+                            <div class="stock-info">
+                                <div class="stock-icon">${s.name.charAt(0)}</div>
+                                <div class="stock-name-box"><span class="stock-name">${s.name}</span></div>
                             </div>
-                        </div>
-                        <div class="stock-price-box">
-                            <span class="stock-price ${colorClass}">${stock.price.toLocaleString()}원</span>
-                            <span class="stock-change ${colorClass}" style="font-size:12px; font-weight:700;">${sign}${rate}%</span>
-                        </div>
-                    `;
-                    listContainer.appendChild(li);
+                            <div class="stock-price-box">
+                                <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
+                                <span style="color:${color}; font-size:12px; font-weight:700;">${sign}${rate}%</span>
+                            </div>
+                        </li>`;
                 });
             } else if (currentTab === 'my') {
-                let hasStock = false;
+                let has = false;
                 for (let name in gameState.holdings) {
-                    if (gameState.holdings[name] > 0) {
-                        let stock = MOCK_STOCKS.find(s => s.name === name);
-                        let evaluation = stock ? (stock.price * gameState.holdings[name]) : 0;
-                        
-                        const li = document.createElement('li');
-                        li.className = 'stock-item';
-                        li.onclick = () => openTradeModal(name);
-                        li.innerHTML = `
-                            <div class="stock-info">
-                                <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
-                                <div class="stock-name-box">
-                                    <span class="stock-name">${name}</span>
-                                    <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유수량: ${gameState.holdings[name]}주</span>
+                    let qty = Number(gameState.holdings[name] || 0);
+                    if (qty > 0) {
+                        let s = MOCK_STOCKS.find(x => x.name === name);
+                        let evalPrice = s ? s.price * qty : 0;
+                        list.innerHTML += `
+                            <li class="stock-item" onclick="openModal('${name}')">
+                                <div class="stock-info">
+                                    <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
+                                    <div class="stock-name-box">
+                                        <span class="stock-name">${name}</span>
+                                        <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="stock-price-box">
-                                <span class="stock-price" style="color:var(--text-main);">${evaluation.toLocaleString()}원</span>
-                                <span style="font-size:11px; color:var(--text-sub); font-weight:600;">평가금액</span>
-                            </div>
-                        `;
-                        listContainer.appendChild(li);
-                        hasStock = true;
+                                <div class="stock-price-box">
+                                    <span class="stock-price">${evalPrice.toLocaleString()}원</span>
+                                    <span style="font-size:11px; color:var(--text-sub); font-weight:600;">평가금액</span>
+                                </div>
+                            </li>`;
+                        has = true;
                     }
                 }
-                if (!hasStock) {
-                    listContainer.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 중인 주식이 없습니다.</li>`;
-                }
-            } else if (currentTab === 'history') {
+                if (!has) list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 주식이 없습니다.</li>`;
+            } else {
                 if (gameState.history.length === 0) {
-                    listContainer.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">거래 내역이 존재하지 않습니다.</li>`;
+                    list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">거래 내역이 없습니다.</li>`;
                 } else {
-                    // 최신 거래 내역이 상단에 배치되도록 역순 출력
                     for (let i = gameState.history.length - 1; i >= 0; i--) {
-                        let log = gameState.history[i];
-                        let typeColor = log.type === '매수' ? 'var(--stock-up)' : 'var(--stock-down)';
-                        
-                        const li = document.createElement('li');
-                        li.className = 'stock-item';
-                        li.innerHTML = `
-                            <div class="stock-info">
-                                <div class="stock-icon" style="font-size:12px; background:var(--bg-sub); color:${typeColor};">${log.type}</div>
-                                <div class="stock-name-box">
-                                    <span class="stock-name">${log.name}</span>
-                                    <span style="font-size:11px; color:var(--text-sub); font-weight:500;">${log.date}</span>
+                        let h = gameState.history[i];
+                        let typeColor = h.type === '매수' ? 'var(--stock-up)' : 'var(--stock-down)';
+                        list.innerHTML += `
+                            <li class="stock-item">
+                                <div class="stock-info">
+                                    <div class="stock-icon" style="font-size:12px; background:var(--bg-sub); color:${typeColor};">${h.type}</div>
+                                    <div class="stock-name-box">
+                                        <span class="stock-name">${h.name}</span>
+                                        <span style="font-size:11px; color:var(--text-sub); font-weight:500;">${h.date}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="stock-price-box">
-                                <span class="stock-price" style="font-size:14px; color:${typeColor};">${log.type === '매수' ? '-' : '+'}${log.total.toLocaleString()}원</span>
-                                <span style="font-size:11px; color:var(--text-sub); font-weight:600;">${log.qty}주 (${log.price.toLocaleString()}원)</span>
-                            </div>
-                        `;
-                        listContainer.appendChild(li);
+                                <div class="stock-price-box">
+                                    <span class="stock-price" style="font-size:14px; color:${typeColor};">${h.type === '매수' ? '-' : '+'}${Number(h.total || 0).toLocaleString()}원</span>
+                                    <span style="font-size:11px; color:var(--text-sub); font-weight:600;">${h.qty}주 (${Number(h.price || 0).toLocaleString()}원)</span>
+                                </div>
+                            </li>`;
                     }
                 }
             }
         }
 
-        // 4. 큰 주문 모달창 핸들러
-        function openTradeModal(name) {
+        function openModal(name) {
             currentTarget = MOCK_STOCKS.find(s => s.name === name);
-            if (!currentTarget) return;
-
             document.getElementById('modal-name').innerText = currentTarget.name;
             document.getElementById('modal-price').innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
             document.getElementById('trade-qty').value = "";
@@ -282,186 +279,65 @@ function getIncomeMultiplier(s) {
             document.getElementById('trade-modal').style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('trade-modal').style.display = 'none';
-            currentTarget = null;
+        function calcTotal() {
+            if (!currentTarget) return;
+            let qty = document.getElementById('trade-qty').value;
+            document.getElementById('total-cost').innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
-        function calcTotalCost() {
+        // [핵심] 먹통 현상 완벽 조치 및 연산 가공 누적 로직 고정
+        function trade(type) {
             if (!currentTarget) return;
-            let qty = parseInt(document.getElementById('trade-qty').value) || 0;
-            document.getElementById('total-cost').innerText = (currentTarget.price * qty).toLocaleString();
-        }
-
-        // 5. [매수 / 매도] 핵심 연산 로직 (먹통 버그 완벽 수정본)
-        function executeTrade(type) {
-            if (!currentTarget) return;
-            
             let qty = parseInt(document.getElementById('trade-qty').value);
-            if (!qty || qty <= 0) {
-                alert("주문할 수량을 올바르게 입력해 주세요.");
-                return;
-            }
+            if (!qty || qty <= 0) return alert("수량을 입력하세요");
 
             let totalCost = currentTarget.price * qty;
 
             if (type === 'buy') {
                 if (gameState.money >= totalCost) {
                     gameState.money -= totalCost;
-                    gameState.holdings[currentTarget.name] = (gameState.holdings[currentTarget.name] || 0) + qty;
-                    
-                    // 누적 기록 저장
-                    gameState.history.push({
-                        name: currentTarget.name,
-                        type: "매수",
-                        qty: qty,
-                        price: currentTarget.price,
-                        total: totalCost,
-                        date: new Date().toLocaleTimeString()
-                    });
-                    alert(`${currentTarget.name} ${qty}주 매수 완료되었습니다.`);
+                    // 🚨 Number 형 변환을 강제 가공 처리하여 덮어쓰지 않고 가산 합산 누적
+                    gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
+                    alert(`${currentTarget.name} ${qty}주 매수 완료!`);
                 } else {
-                    alert("예수금이 부족하여 매수 주문을 처리할 수 없습니다.");
-                    return;
+                    return alert("예수금 부족!");
                 }
-            } else if (type === 'sell') {
-                if ((gameState.holdings[currentTarget.name] || 0) >= qty) {
+            } else {
+                let currentQty = Number(gameState.holdings[currentTarget.name] || 0);
+                if (currentQty >= qty) {
                     gameState.money += totalCost;
-                    gameState.holdings[currentTarget.name] -= qty;
-                    
-                    gameState.history.push({
-                        name: currentTarget.name,
-                        type: "매도",
-                        qty: qty,
-                        price: currentTarget.price,
-                        total: totalCost,
-                        date: new Date().toLocaleTimeString()
-                    });
-                    alert(`${currentTarget.name} ${qty}주 매도 완료되었습니다.`);
+                    gameState.holdings[currentTarget.name] = currentQty - qty;
+                    alert(`${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
-                    alert("보유하고 계신 주식 수량이 입력하신 주문 수량보다 부족합니다.");
-                    return;
+                    return alert("보유 수량 부족!");
                 }
             }
 
-            // 전체 세이브 연동 동기화 및 즉시 새로고침 리프레시
+            gameState.history.push({
+                name: currentTarget.name,
+                type: type === 'buy' ? '매수' : '매도',
+                qty: qty,
+                price: currentTarget.price,
+                total: totalCost,
+                date: new Date().toLocaleTimeString()
+            });
+
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-            closeModal();
+            document.getElementById('trade-modal').style.display = 'none';
             updateAccountUI();
             renderCoreView();
         }
 
-window.onload = () => { 
-    updateAccountUI(); 
-    renderView('list', document.querySelector('.nav-item')); 
-    startGameLoop(); // 실시간 주가 변동 및 타이머 루프 기동
-};
-        // 인게임 시간 흐름 및 자산 실시간 동기화 루프
-let lastGameTick = Date.now();
-function startGameLoop() {
-    lastGameTick = Date.now();
-    setInterval(() => {
-        let now = Date.now();
-        let delta = (now - lastGameTick) / 1000;
-        
-        if (delta >= 1) { 
-            let passedSecs = Math.floor(delta);
-            lastGameTick += passedSecs * 1000;
-
-            // 1일 계산을 위한 이전 날짜 저장
-            let oldDay = Math.floor(gameState.gameSeconds / (60 * 24));
-            
-            // 시간 진행 및 패시브 수입 실시간 동기화
-            gameState.gameSeconds += (passedSecs * 540);
-            gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs;
-            
-            let newDay = Math.floor(gameState.gameSeconds / (60 * 24));
-
-            // 인게임 시간이 딱 1일(24시간) 지났을 때 ±30% 상하한가 변동 발동
-            if (newDay > oldDay) {
-                MOCK_STOCKS.forEach(s => {
-                    s.prev = s.price; // 전일가 갱신
-                    let range = (Math.random() * 0.6 - 0.3); // -30% ~ +30% 범위
-                    s.price = Math.floor(s.price * (1 + range));
-                    if (s.price < 1) s.price = 1; // 주가 파산 방지
-                });
-                localStorage.setItem("k_stock_market_prices", JSON.stringify(MOCK_STOCKS));
-            }
-            
-            // 자산 및 날짜 UI 실시간 갱신
-            updateAccountUI();
-            if (currentTab === 'list' || currentTab === 'my') {
-                renderCoreView();
-            }
-            
-            // 메인 데이터 백업
-            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+        function goBack(e) {
+            e.preventDefault();
+            location.href = 'main.html#game';
         }
-    }, 200); 
-}
 
-// 인게임 날짜 포맷 변환 함수
-function updateDateDisplay() {
-    const totalMin = Math.floor(gameState.gameSeconds / 60);
-    const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
-    const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
-    const d = Math.floor(totalMin / (60 * 24)) % 30;
-    const h = Math.floor(totalMin / 60) % 24;
-    document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
-}
-        // 총 자산(예수금 + 실시간 주가 평가액) 실시간 트래킹 함수
-function updateAccountUI() {
-    let stockAsset = 0;
-    for (let name in gameState.holdings) {
-        let stock = MOCK_STOCKS.find(s => s.name === name);
-        if (stock) {
-            stockAsset += stock.price * Number(gameState.holdings[name] || 0);
-        }
-    }
-    let totalAsset = gameState.money + stockAsset;
-    document.getElementById('total-asset').innerText = Math.floor(totalAsset).toLocaleString() + "원";
-    document.getElementById('available-cash').innerText = Math.floor(gameState.money).toLocaleString() + "원";
-    updateDateDisplay();
-}
-
-// 매수/매도 추가 더하기 버그 전면 수정 완료본 (창 새로고침 제거)
-function trade(type) {
-    if (!currentTarget) return;
-    
-    let qty = parseInt(document.getElementById('trade-qty').value);
-    if(!qty || qty <= 0) return alert("수량을 입력하세요");
-    
-    let totalCost = currentTarget.price * qty;
-    
-    if(type === 'buy') {
-        if(gameState.money >= totalCost) {
-            gameState.money -= totalCost;
-            // 🚨 Number() 가공 처리로 추가 매수 시 더하기가 누적되도록 명확히 고쳤습니다.
-            gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
-            alert(`${currentTarget.name} ${qty}주 매수 완료!`);
-        } else {
-            return alert("예수금 부족!");
-        }
-    } else {
-        let myQty = Number(gameState.holdings[currentTarget.name] || 0);
-        if(myQty >= qty) {
-            gameState.money += totalCost;
-            gameState.holdings[currentTarget.name] = myQty - qty;
-            alert(`${currentTarget.name} ${qty}주 매도 완료!`);
-        } else {
-            return alert("보유 수량 부족!");
-        }
-    }
-    
-    // 거래내역 추가 기록
-    gameState.history.push({ name: currentTarget.name, type: type === 'buy' ? '매수' : '매도', qty: qty });
-    localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-    
-    // 🚨 창을 새로고침하지 않고 모달만 닫은 후 실시간 UI만 즉각 리렌더링 처리합니다.
-    document.getElementById('trade-modal').style.display = 'none';
-    updateAccountUI();
-    renderCoreView();
-}
+        window.onload = () => { 
+            updateAccountUI(); 
+            renderCoreView(); 
+            startGameLoop(); 
+        };
     </script>
 </body>
 </html>
