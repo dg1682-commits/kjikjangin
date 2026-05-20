@@ -160,8 +160,8 @@
             justify-content: flex-start;
             padding-left: 5vw;
             padding-right: 15vw; 
-            padding-bottom: 15vh; 
-            gap: 5px; 
+            padding-bottom: 38vh; 
+            gap: 15px; 
         }
 
         .building-wrapper {
@@ -399,7 +399,6 @@
             lastSaveTime: 0
         };
 
-        // 게임 기본 데이터
         const RANKS = [
             {name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 8000, bonus: 500},
             {name: "사원", req: 32000, bonus: 1000}, {name: "주임", req: 64000, bonus: 2500},
@@ -483,31 +482,96 @@
                 if(!state.nickname) {
                     state.nickname = "김씨";
                 }
-                
-                if (state.isWorking) {
-                    state.isWorking = false;
-                    state.currentTask = null;
-                    state.workElapsed = 0;
-                    clearInterval(state.workInterval);
+            }
+        }
+
+        // 🚨 오프라인(앱 완전 종료 후) 방치 시간 정산
+        function processOfflineProgress(deltaTime) {
+            if (deltaTime <= 0) return;
+            
+            let offlineReports = [];
+            state.gameSeconds += deltaTime * 540;
+            
+            let passiveRate = 0.5 * getIncomeMultiplier(state.stamina);
+            let passiveEarned = passiveRate * deltaTime;
+            state.money += passiveEarned;
+
+            if (state.debuffTimeLeft > 0) {
+                state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - deltaTime);
+            }
+
+            if (passiveEarned > 0) {
+                offlineReports.push(`💰 [패시브 소득] 자리를 비운 ${formatTextTime(deltaTime)} 동안 숨만 쉬고도 총 +${Math.floor(passiveEarned).toLocaleString()}원이 자동으로 쌓였습니다.`);
+            }
+
+            if (state.isWorking && state.currentTask) {
+                let task = state.currentTask;
+
+                if (task.time) { 
+                    let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult);
+                    let remainingTaskTime = actualTime - state.workElapsed;
+
+                    if (deltaTime >= remainingTaskTime) {
+                        if (task.id === 'cheat') {
+                            if (Math.random() < task.risk) {
+                                let lostMoney = 1000;
+                                state.money = Math.max(0, state.money - lostMoney);
+                                let offlineAfterCheat = deltaTime - remainingTaskTime;
+                                state.debuffTimeLeft = Math.max(0, 180 - offlineAfterCheat);
+                                offlineReports.push(`📱 [적발] 방치 중 딴짓(주식보기)을 하다가 부장님께 들켰습니다! 위자료 1,000원이 감봉되었고 페널티가 부여되었습니다.`);
+                            } else {
+                                let earn = Math.floor(Math.random() * (task.money[1] - task.money[0] + 1)) + task.money[0];
+                                state.money += earn;
+                                state.exp = Math.max(0, state.exp - 1);
+                                offlineReports.push(`📱 [완전범죄] 부장님의 눈을 피해 성공적으로 딴짓을 마쳤습니다! 용돈 +${earn.toLocaleString()}원 보너스 획득 (업무력 -1)`);
+                            }
+                        } else {
+                            if (state.condition >= task.conditionCost) {
+                                let baseMoney = task.money + RANKS[state.rankIdx].bonus;
+                                let totalMoney = Math.floor(baseMoney * getIncomeMultiplier(state.stamina));
+                                state.money += totalMoney;
+                                state.exp += task.exp;
+                                state.condition = Math.max(0, state.condition - task.conditionCost);
+                                offlineReports.push(`💼 [업무완료] 부재 중 [${task.name}] 업무가 정상 완료되었습니다. (+${totalMoney.toLocaleString()}원, 업무력 +${task.exp})`);
+                            } else {
+                                offlineReports.push(`⚠️ [업무중단] 컨디션 부족으로 인해 [${task.name}] 업무가 중도에 멈췄습니다.`);
+                            }
+                        }
+                        state.isWorking = false;
+                        state.currentTask = null;
+                        state.workElapsed = 0;
+                    } else {
+                        state.workElapsed += deltaTime;
+                        offlineReports.push(`💼 [업무 진행 중] 부재중에도 [${task.name}] 업무를 묵묵히 수행하고 있습니다.`);
+                    }
+                } else if (task.minTime) { 
+                    state.workElapsed += deltaTime;
+                    offlineReports.push(`💤 [휴식 진행 중] [${task.name}] 상태로 편안하게 휴식을 취하며 체력을 비축했습니다.`);
                 }
-                
-                // 🚨 [오프라인 방치형 수익 정산] 앱을 끄거나 백그라운드로 오래 내렸을 때 보상 지급
-                if (state.lastSaveTime) {
-                    let offlineSecs = Math.floor((Date.now() - state.lastSaveTime) / 1000);
-                    if (offlineSecs > 10) { // 10초 이상 비웠을 경우 정산
-                        offlineSecs = Math.min(offlineSecs, 43200); // 최대 12시간까지만 적용 (밸런스)
-                        
-                        state.gameSeconds += (offlineSecs * 540);
-                        if (state.debuffTimeLeft > 0) state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - offlineSecs);
-                        
-                        let offlineEarn = (0.5 * getIncomeMultiplier(state.stamina)) * offlineSecs;
-                        state.money += offlineEarn;
-                        
-                        setTimeout(() => {
-                            showAlert("방치형 수익", `백그라운드에서 열심히 일했습니다!\n\n방치 시간: ${formatTextTime(offlineSecs)}\n💰 획득 금액: +${Math.floor(offlineEarn).toLocaleString()}원`);
-                        }, 500);
+            }
+
+            let totalMin = Math.floor(state.gameSeconds / 60);
+            let currentDay = Math.floor(totalMin / (60 * 24));
+            if (currentDay > 0 && Math.floor(currentDay / 30) > Math.floor(state.rentDayCounter / 30)) {
+                let monthsPassed = Math.floor(currentDay / 30) - Math.floor(state.rentDayCounter / 30);
+                let house = HOUSES[state.houseIdx];
+                if (house.rent > 0) {
+                    let totalRent = house.rent * monthsPassed;
+                    if (state.money >= totalRent) {
+                        state.money -= totalRent;
+                        offlineReports.push(`🏠 [부동산 월세] 방치 도중 월세 집 계약 만료일이 도래하여 총 ${totalRent.toLocaleString()}원이 자동 이체되었습니다.`);
+                    } else {
+                        state.houseIdx = 0;
+                        offlineReports.push(`🏠 [강제 퇴거] 잔고 부족으로 인해 월세가 연체되어 고시원/오피스텔에서 쫓겨났습니다! 부모님 집으로 강제 복귀합니다...`);
                     }
                 }
+                state.rentDayCounter = currentDay;
+            }
+
+            if (offlineReports.length > 0) {
+                setTimeout(() => {
+                    showAlert("💤 오프라인 방치 정산 보고서", offlineReports.join("\n\n"));
+                }, 600);
             }
         }
 
@@ -545,7 +609,7 @@
             saveGame();
         }
 
-        // 🚨 [메인 게임 루프 수정] 1초마다 무조건 1을 올리는게 아니라, 실제 흐른 '타임스탬프 차이'를 계산하여 백그라운드 멈춤 완벽 방지
+        // 🚨 메인 타이머: setInterval 강제 지연 시 Date.now() 로 격차 계산해서 즉시 따라잡음
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -553,21 +617,21 @@
                 let now = Date.now();
                 let delta = (now - lastGameTick) / 1000;
                 
-                if (delta >= 1) { // 1초 이상 지났을 때만 처리
+                if (delta >= 1) { 
                     let passedSecs = Math.floor(delta);
-                    
+                    lastGameTick += passedSecs * 1000;
+
                     state.gameSeconds += (passedSecs * 540);
                     if(state.debuffTimeLeft > 0) {
                         state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - passedSecs);
                     }
                     
                     state.money += (0.5 * getIncomeMultiplier(state.stamina)) * passedSecs;
-                    lastGameTick += (passedSecs * 1000); // 정확도 보존
                     
                     updateDisplay();
                     saveGame();
                 }
-            }, 500); // 0.5초 간격으로 타임스탬프를 감시해서 밀림 없이 촘촘하게 업데이트
+            }, 200); 
         }
 
         function updateDisplay() {
@@ -802,7 +866,7 @@
             startTaskInterval();
         }
 
-        // 🚨 [업무/휴식 진행 타이머 수정] 화면을 내린 동안의 시간을 타임스탬프로 정밀 계산하여 진행도 즉시 반영
+        // 🚨 업무 타이머: setInterval 강제 지연 시 Date.now() 로 격차 계산해서 즉시 따라잡음
         function startTaskInterval() {
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
@@ -827,7 +891,7 @@
                     if (delta >= 1) {
                         let passedSecs = Math.floor(delta);
                         state.workElapsed += passedSecs;
-                        lastWorkTick += (passedSecs * 1000);
+                        lastWorkTick += passedSecs * 1000;
 
                         let remain = Math.max(0, actualTime - state.workElapsed);
                         progressBar.style.width = Math.min(100, (state.workElapsed / actualTime) * 100) + "%";
@@ -837,7 +901,7 @@
                             finishWork(task, false, actualTime);
                         }
                     }
-                }, 500); 
+                }, 200); 
             } else if (task.minTime) { 
                 label.innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
                 progressBar.style.width = '100%';
@@ -849,8 +913,8 @@
                     if (delta >= 1) {
                         let passedSecs = Math.floor(delta);
                         state.workElapsed += passedSecs;
-                        lastWorkTick += (passedSecs * 1000);
-                        
+                        lastWorkTick += passedSecs * 1000;
+
                         let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
                         
                         if (state.workElapsed < task.minTime) {
@@ -860,7 +924,7 @@
                             timeLeftLabel.innerText = `취소 시 체력 +${curStamina} (${formatMMSS(state.workElapsed)} 경과)`;
                         }
                     }
-                }, 500);
+                }, 200);
             }
         }
 
@@ -1097,14 +1161,33 @@
         }
 
         window.onload = () => { 
-            loadGame(); 
-            updateDisplay(); 
-            startGameLoop(); 
-            
             document.getElementById('start-btn').onclick = () => { 
+                loadGame(); 
+                const savedData = localStorage.getItem(SAVE_KEY);
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    let deltaTime = Math.floor((Date.now() - parsed.lastSaveTime) / 1000);
+                    if (deltaTime > 0) {
+                        processOfflineProgress(deltaTime);
+                    }
+                }
+                
                 document.getElementById('login-screen').style.display = 'none'; 
                 document.getElementById('game-screen').style.display = 'block'; 
+                
+                updateDisplay(); 
+                
+                if (state.isWorking && state.currentTask) {
+                    startTaskInterval();
+                } else {
+                    resetUI();
+                }
+                startGameLoop(); 
             }; 
+            
+            if (localStorage.getItem(SAVE_KEY)) {
+                document.getElementById('start-btn').innerText = "이어하기";
+            }
         };
     </script>
 </body>
