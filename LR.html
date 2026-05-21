@@ -233,6 +233,7 @@
         let feverRemainingCount = 0;
         let lastHitTime = 0;
         let isInputLocked = false;
+        let feverTimer = null; // 7초 카운트다운용
 
         const OBJ_ASSETS = {
             1: "arcade/LR/ob1.png", 2: "arcade/LR/ob2.png", 3: "arcade/LR/ob3.png",
@@ -381,17 +382,38 @@ function hitDirection(dir) {
 }
 
         function enterFeverMode() {
-            isFeverMode = true; combo = 0; feverRemainingCount = 30;
-            objectQueue = []; refillObjects(35);
+            isFeverMode = true;
+            combo = 0;
+            hideComboUI();
+            
+            // 피버 타겟 결정 (현재 게임의 랜덤한 좌측 또는 우측 타겟 중 하나만 선택)
+            const feverTarget = (Math.random() < 0.5) ? leftTargets[0] : rightTargets[0];
+            
+            // 큐 교체
+            objectQueue = [];
+            for(let i=0; i<50; i++) objectQueue.push(feverTarget);
+
             document.body.classList.add('fever-active');
             document.getElementById('fever-banner').style.display = 'block';
+
+            // 7초 동안 피버 지속
+            feverTimer = setTimeout(() => {
+                exitFeverMode();
+            }, 7000);
+
+            drawStackDisplay();
         }
 
         function exitFeverMode() {
+            if(!isFeverMode) return;
+            
+            clearTimeout(feverTimer); // 남은 시간 초기화
             isFeverMode = false;
             document.body.classList.remove('fever-active');
             document.getElementById('fever-banner').style.display = 'none';
-            objectQueue = []; refillObjects(15);
+            
+            objectQueue = [];
+            refillObjects(15);
             drawStackDisplay();
         }
 
