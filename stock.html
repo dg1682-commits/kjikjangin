@@ -176,7 +176,30 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 백그라운드 오프라인 주가 변동 정산 루프 (밸런스 패치 버전)
+        // 🚨 [수정 반영] 주임님이 요청하신 구간별 등락률 확률 연산 공식 함수
+        function calculateProbabilityRange() {
+            let rand = Math.random();
+            let magnitude = 0;
+            
+            if (rand < 0.50) {
+                magnitude = Math.random() * 0.05; // 5% 미만 확률 50%
+            } else if (rand < 0.80) {
+                magnitude = 0.05 + Math.random() * 0.05; // 10% 미만 확률 30%
+            } else if (rand < 0.90) {
+                magnitude = 0.10 + Math.random() * 0.05; // 15% 미만 확률 10%
+            } else if (rand < 0.95) {
+                magnitude = 0.15 + Math.random() * 0.05; // 20% 미만 확률 5%
+            } else if (rand < 0.98) {
+                magnitude = 0.20 + Math.random() * 0.05; // 25% 미만 확률 3%
+            } else {
+                magnitude = 0.25 + Math.random() * 0.05; // 30% 이하 확률 2%
+            }
+            
+            // 극심한 우하향 방지를 위해 상승 확률을 53%로 미세 상향 조정해 밸런스를 맞춥니다.
+            return (Math.random() < 0.53) ? magnitude : -magnitude;
+        }
+
+        // 백그라운드 오프라인 시간/업무 동기화 및 1일 주기 확률 변동 연산
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -207,8 +230,8 @@
                 for (let i = 0; i < daysPassed; i++) {
                     gameState.stocks.forEach(s => {
                         s.prev = s.price; 
-                        // 🚨 [밸런스 패치] 변동폭 ±15% 압축 + 장기 우상향 Drift +2% 보정 부여 및 반올림 연산 적용
-                        let range = (Math.random() * 0.30 - 0.15) + 0.02; 
+                        // 🚨 새롭게 설계한 구간 확률형 연산 적용
+                        let range = calculateProbabilityRange(); 
                         s.price = Math.round(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
                     });
@@ -218,7 +241,7 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
-        // 실시간 인게임 루프 (밸런스 패치 버전)
+        // 실시간 인게임 루프 내 확률 변동 처리
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -251,8 +274,8 @@
                         for (let i = 0; i < daysPassed; i++) {
                             gameState.stocks.forEach(s => {
                                 s.prev = s.price; 
-                                // 🚨 [밸런스 패치] 변동폭 ±15% 압축 + 장기 우상향 Drift +2% 보정 부여 및 반올림 연산 적용
-                                let range = (Math.random() * 0.30 - 0.15) + 0.02; 
+                                // 🚨 새롭게 설계한 구간 확률형 연산 적용
+                                let range = calculateProbabilityRange(); 
                                 s.price = Math.round(s.price * (1 + range));
                                 if (s.price < 10) s.price = 10;
                             });
