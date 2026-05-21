@@ -333,60 +333,61 @@
         }
 
 // 🚨 [v1.3] hitDirection 함수 전체 교체
-function hitDirection(dir) {
-    const now = Date.now();
-    
-    // 1. 실수(흔들림) 중이거나, 0.15초 이내의 빠른 터치는 무시 (더블 터치 방지)
-    if (isInputLocked || (now - lastHitTime < 150)) return;
-    
-    lastHitTime = now; 
-    if(!isGameRunning || objectQueue.length === 0) return;
-
-    const currentId = objectQueue[0];
-    const isLeftCorrect = dir === 'L' && leftTargets.includes(currentId);
-    const isRightCorrect = dir === 'R' && rightTargets.includes(currentId);
-
-    if(isLeftCorrect || isRightCorrect) {
-        const objEl = document.getElementById('current-obj');
-        objEl.classList.add('hit-effect');
-        
-        setTimeout(() => {
-            objectQueue.shift();
-            score += 10;
-            document.getElementById('score-val').innerText = score;
-
-            if(!isFeverMode) {
-                combo++;
-                if(combo >= 20) enterFeverMode();
-            }
+        function hitDirection(dir) {
+            const now = Date.now();
+            if (isInputLocked || (now - lastHitTime < 150)) return;
             
-            if(objectQueue.length < 10) refillObjects(10);
-            drawStackDisplay();
-        }, 50);
-    } else {
-        // ❌ [실패] 0.5초 동안 입력 차단 및 흔들림 로직
-        isInputLocked = true; // 🚨 실수 락 걸기
-        const objEl = document.getElementById('current-obj');
-        objEl.classList.add('fail-shake');
-        
-        timeLeft = Math.max(0, timeLeft - 5.0);
-        combo = 0;
-        
-        if(isFeverMode) exitFeverMode();
-        
-        setTimeout(() => {
-            objEl.classList.remove('fail-shake');
-            isInputLocked = false; // 🚨 0.5초 후 락 해제
-        }, 500);
-    }
-}
+            lastHitTime = now; 
+            if(!isGameRunning || objectQueue.length === 0) return;
+
+            const currentId = objectQueue[0];
+            const isLeftCorrect = dir === 'L' && leftTargets.includes(currentId);
+            const isRightCorrect = dir === 'R' && rightTargets.includes(currentId);
+
+            if(isLeftCorrect || isRightCorrect) {
+                const objEl = document.getElementById('current-obj');
+                objEl.classList.add('hit-effect');
+                
+                setTimeout(() => {
+                    objectQueue.shift();
+                    score += 10;
+                    document.getElementById('score-val').innerText = score;
+
+                    if(isFeverMode) {
+                        // 🚨 피버타임 중에는 맞출 때마다 게임 제한 시간 1초 연장
+                        timeLeft += 1.0;
+                    } else {
+                        combo++;
+                        if(combo >= 20) enterFeverMode();
+                    }
+                    
+                    if(objectQueue.length < 10) refillObjects(10);
+                    drawStackDisplay();
+                }, 50);
+            } else {
+                isInputLocked = true;
+                const objEl = document.getElementById('current-obj');
+                objEl.classList.add('fail-shake');
+                
+                timeLeft = Math.max(0, timeLeft - 5.0);
+                combo = 0;
+                
+                // 피버 중 틀리면 즉시 해제
+                if(isFeverMode) exitFeverMode();
+                
+                setTimeout(() => {
+                    objEl.classList.remove('fail-shake');
+                    isInputLocked = false;
+                }, 500);
+            }
+        }
 
         function enterFeverMode() {
             isFeverMode = true;
             combo = 0;
             hideComboUI();
             
-            // 피버 타겟 결정 (현재 게임의 랜덤한 좌측 또는 우측 타겟 중 하나만 선택)
+            // 피버 타겟 결정
             const feverTarget = (Math.random() < 0.5) ? leftTargets[0] : rightTargets[0];
             
             // 큐 교체
@@ -396,7 +397,8 @@ function hitDirection(dir) {
             document.body.classList.add('fever-active');
             document.getElementById('fever-banner').style.display = 'block';
 
-            // 7초 동안 피버 지속
+            // 기존 타이머가 있다면 삭제하고 7초 카운트 시작
+            if (feverTimer) clearTimeout(feverTimer);
             feverTimer = setTimeout(() => {
                 exitFeverMode();
             }, 7000);
@@ -407,7 +409,6 @@ function hitDirection(dir) {
         function exitFeverMode() {
             if(!isFeverMode) return;
             
-            clearTimeout(feverTimer); // 남은 시간 초기화
             isFeverMode = false;
             document.body.classList.remove('fever-active');
             document.getElementById('fever-banner').style.display = 'none';
