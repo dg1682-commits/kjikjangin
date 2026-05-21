@@ -123,6 +123,15 @@
         .alert-title { font-size: 17px; font-weight: 800; margin-bottom: 12px; color: var(--neon-cyan); }
         .alert-desc { font-size: 14px; color: var(--text-light); margin-bottom: 22px; line-height: 1.5; font-weight: 500; }
         .alert-btn { background: var(--neon-pink); color: #fff; padding: 12px; width: 100%; border-radius: 10px; font-weight: 800; }
+        /* 🚨 [추가] BEST 점수 배지 스타일 */
+#best-score-display {
+    position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
+    background: rgba(244, 63, 94, 0.9); /* 네온 핑크 배경 */
+    color: #fff; padding: 4px 10px; border-radius: 20px;
+    font-size: 13px; font-weight: 800; white-space: nowrap;
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+    z-index: 10; display: none; /* 기본값은 숨김 */
+}
     </style>
 </head>
 <body>
@@ -149,6 +158,10 @@
             <div class="carousel-track" id="carousel-track" onscroll="trackScrollHandler()">
                 <div class="arcade-card active" data-index="0" onclick="clickTargetGame(0)">
                     <img src="arcade/game1.png" class="arcade-img" alt="game1">
+                </div>
+                <div class="arcade-card active" data-index="0" onclick="clickTargetGame(0)">
+                <div id="best-score-display">BEST: 0</div> 
+                <img src="arcade/game1.png" class="arcade-img" alt="game1">
                 </div>
                 <div class="arcade-card" data-index="1" onclick="clickTargetGame(1)">
                     <img src="arcade/game2.png" class="arcade-img" alt="game2">
@@ -265,24 +278,32 @@
             }
         }
 
-        function syncArcadeSelection(index) {
-            activeIndex = index;
-            const cards = document.querySelectorAll('.arcade-card');
-            const dots = document.querySelectorAll('.dot');
-            
-            cards.forEach((c, i) => {
-                if (i === activeIndex) c.classList.add('active');
-                else c.classList.remove('active');
-            });
-            
-            dots.forEach((d, i) => {
-                if (i === activeIndex) d.classList.add('active');
-                else d.classList.remove('active');
-            });
-            
-            document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
-            document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
-        }
+function syncArcadeSelection(index) {
+    activeIndex = index;
+    const cards = document.querySelectorAll('.arcade-card');
+    const dots = document.querySelectorAll('.dot');
+    
+    cards.forEach((c, i) => {
+        if (i === activeIndex) c.classList.add('active');
+        else c.classList.remove('active');
+    });
+    
+    dots.forEach((d, i) => {
+        if (i === activeIndex) d.classList.add('active');
+        else d.classList.remove('active');
+    });
+
+    // 🚨 [조건부 노출] index 0(니꺼내꺼)일 때만 BEST 점수 보여주기
+    const bestScoreEl = document.getElementById('best-score-display');
+    if (index === 0) {
+        bestScoreEl.style.display = 'block';
+    } else {
+        bestScoreEl.style.display = 'none';
+    }
+    
+    document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
+    document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
+}
 
         // 🚨 [중요 엔진 결합] 1번 게임(니꺼내꺼)은 실제 자금 100원 차감 후 바로 LR.html로 네이티브 진입 처리
         function insertCoinToPlay() {
@@ -324,30 +345,24 @@
             e.preventDefault();
             location.replace('main.html'); 
         }
+        
 
-        window.onload = () => {
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    currentUser = user;
-                    firebase.firestore().collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                state = { ...state, ...doc.data() };
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-                            }
-                            updateDisplay();
-                            startGameLoop();
-                        })
-                        .catch((err) => {
-                            console.error("오락실 정보 로드 장해:", err);
-                            updateDisplay();
-                            startGameLoop();
-                        });
-                } else {
-                    location.href = 'index.html';
+        
+window.onload = () => {
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
+                if (doc.exists) {
+                    state.money = doc.data().money || 0;
+                    // 🚨 데이터 로드 후 최고기록 텍스트에 삽입
+                    const highScore = doc.data().highScore || 0;
+                    document.getElementById('best-score-display').innerText = "BEST: " + highScore;
                 }
             });
-        };
+        } else { location.href = 'index.html'; }
+    });
+};
     </script>
 </body>
 </html>
