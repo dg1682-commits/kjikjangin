@@ -379,7 +379,7 @@
     <script>
         let state = {
             money: 0, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
-            houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
+            houseIdx: 0, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
             currentTask: null, workElapsed: 0, workInterval: null, debuffTimeLeft: 0, 
             timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: 0
         };
@@ -446,13 +446,14 @@
             {id: 'pent_m', name: "펜트하우스 (매매)", deposit: 12000000000, rent: 0, moveCost: 15000000, mult: 35.0, type: "매매"}
         ];
 
-        // 🚨 [밸런스 액티베이션] 자동차 고유 버프 속성값 추가 설계
         const CARS = [
-            {id: 'light_car', name: "K-경차 (스파크/레이)", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "업무 시간 5% 단축 | 업무 보상 5% 증가"},
-            {id: 'small_car', name: "소형 세단 (아반떼)", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "업무 시간 10% 단축 | 업무 보상 12% 증가"},
-            {id: 'mid_car', name: "중형 SUV (쏘렌토)", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "업무 시간 18% 단축 | 업무 보상 25% 증가"},
-            {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
+            {id: 'light_car', name: "K-경차 (스파크/레이)", price: 12000000, desc: "출퇴근 기동성이 미미하게 상승합니다."},
+            {id: 'small_car', name: "소형 세단 (아반떼)", price: 25000000, desc: "주말 거래처 미팅 시 기가 살기 시작합니다."},
+            {id: 'mid_car', name: "중형 SUV (쏘렌토)", price: 42000000, desc: "대리급 직장인의 이상적인 패밀리카."},
+            {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, desc: "임원진 주차 구역 프리패스권 획득 가능."}
         ];
+
+        const SAVE_KEY = "k_worker_tycoon_save_data";
 
         function saveGame() { 
             state.lastSaveTime = Date.now(); 
@@ -466,7 +467,6 @@
                     state = {...state, ...JSON.parse(saved)};
                     if(!state.nickname) state.nickname = "김씨";
                     if(state.nicknameChangeCount === undefined) state.nicknameChangeCount = 0;
-                    if(state.carIdx === undefined) state.carIdx = -1; // 누락 키 안전 보정
                     state.maxCondition = 100;
                     if(state.condition > 100) state.condition = 100;
                 } catch(e) {
@@ -596,14 +596,11 @@
             document.getElementById('overlay').style.display = 'block';
 
             let mult = getIncomeMultiplier(state.stamina);
-            // 🚨 차량 등속성 조건 변수 맵핑 확보
-            let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
-            let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
 
             if(type === 'work') {
                 header.innerText = "업무 지시";
                 JOBS.forEach((job, i) => {
-                    let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult * carTimeMult);
+                    let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult);
                     let html = '';
                     if(job.id === 'cheat') {
                         html = `
@@ -619,7 +616,7 @@
                         </div>`;
                     } else {
                         let baseTotal = job.money + RANKS[state.rankIdx].bonus;
-                        let expected = baseTotal * mult * carIncomeMult; // 보상 승수 차량 연동 적용
+                        let expected = baseTotal * mult;
                         let bonus = Math.floor(expected - baseTotal);
                         html = `
                         <div class="list-item" onclick="doWork(${i})" ontouchstart="">
@@ -708,40 +705,20 @@
                         </div>`;
                 });
             } else if(type === 'car') {
-                // 🚨 [인터페이스 활성화] 준비 중 경고창을 철거하고 상점 계약 UI 실시간 동적 구현
                 header.innerText = "자동차 대리점";
                 CARS.forEach((car, i) => {
-                    let isCurrent = (state.carIdx === i);
                     content.innerHTML += `
-                        <div class="list-item" onclick="buyCar(${i})" ontouchstart="" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}">
+                        <div class="list-item" onclick="showAlert('준비 중', '${car.name} 구매 기능은 현재 인게임 내부 시뮬레이션 구현 중입니다!')" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name">🚗 ${car.name}</span>
-                                <span class="item-sub" style="color:var(--success); font-weight:600;">${car.desc}</span>
+                                <span class="item-sub">${car.desc}</span>
                             </div>
                             <div class="item-price-box">
-                                ${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}
+                                <span class="item-price" style="color:var(--accent-color); font-size:13px;">${car.price.toLocaleString()}원</span>
                             </div>
                         </div>`;
                 });
             }
-        }
-
-        // 🚨 [신설] 자동차 구매 연산 처리 엔진
-        function buyCar(idx) {
-            let car = CARS[idx];
-            if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
-            if (state.money < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
-
-            let desc = `🚗 [${car.name}] 신차 인도 청구서\n\n`;
-            desc += `차량 가격: ${car.price.toLocaleString()}원\n`;
-            desc += `-----------------------------\n효과: ${car.desc}\n\n이 차량을 계약하시겠습니까?`;
-
-            showConfirm("차량을 구매하시겠습니까?", desc, () => {
-                state.money -= car.price;
-                state.carIdx = idx;
-                showAlert("구매 성공", `${car.name} 인도가 완료되었습니다!\n출퇴근 및 출장 속도 가속화 버프가 즉시 적용됩니다.`);
-                updateDisplay(); closeSheet(); saveGame();
-            });
         }
 
         function doWork(idx) {
@@ -768,11 +745,10 @@
             document.getElementById('progress-wrapper').style.display = 'flex';
             document.getElementById('click-notice').style.display = 'none';
             let lastWorkTick = Date.now();
-            let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
 
             if (task.time) { 
                 document.getElementById('current-action-label').innerText = `💼 ${task.name} 중...`;
-                let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult * carTimeMult);
+                let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult);
 
                 state.workInterval = setInterval(() => {
                     let now = Date.now();
@@ -816,9 +792,11 @@
             
             if(job.risk && !isCanceled) {
                 if(Math.random() < job.risk) {
-                    let lostPct = Math.floor(Math.random() * 10) + 1; 
+                    // 🚨 [수정 반영] 적발 시 고정 1,000원 차감 대신 보유 현금의 1% ~ 10% 범위 랜덤 정수 삭감 시스템 구축
+                    let lostPct = Math.floor(Math.random() * 10) + 1; // 1% ~ 10% 범위 추출
                     let lostMoney = Math.floor(state.money * (lostPct / 100));
                     
+                    // 소액 보유 유저 보호 및 가치 보전을 위한 보정값 (현금이 있는 경우에만 작동)
                     if (lostMoney < 100 && state.money > 0) {
                         lostMoney = Math.min(state.money, 100);
                     }
@@ -858,9 +836,7 @@
             state.condition = Math.max(0, state.condition - costDeducted);
 
             let baseMoney = job.money + RANKS[state.rankIdx].bonus;
-            // 🚨 차량 보상 증가 시뮬레이션 가산 결합
-            let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
-            let totalMoney = baseMoney * getIncomeMultiplier(state.stamina) * carIncomeMult;
+            let totalMoney = baseMoney * getIncomeMultiplier(state.stamina);
             let earnedMoney = Math.floor(totalMoney * ratio);
             let earnedExp = Math.floor(job.exp * ratio);
 
@@ -906,8 +882,7 @@
                 state.stamina += gainedStamina;
                 resetUI(); showAlert("휴식 정산", msg); updateDisplay(); saveGame(); return;
             }
-            let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
-            let actualTime = Math.ceil(state.currentTask.time * state.timeMult * carTimeMult);
+            let actualTime = Math.ceil(state.currentTask.time * state.timeMult);
             finishWork(state.currentTask, true, actualTime);
         }
 
