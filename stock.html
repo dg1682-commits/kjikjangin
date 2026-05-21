@@ -39,7 +39,10 @@
         }
         .account-title { font-size: 14px; color: var(--text-sub); font-weight: 600; margin-bottom: 8px; }
         .account-balance { font-size: 32px; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 15px; }
-        .account-details { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sub); background: var(--bg-sub); padding: 12px 15px; border-radius: 12px; font-weight: 600; }
+        
+        /* 🚨 [디자인 보존 및 확장] 다단 자산 리포트 구현을 위해 컬럼 플렉스로 변경 및 간격 추가 */
+        .account-details { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-sub); background: var(--bg-sub); padding: 14px 15px; border-radius: 12px; font-weight: 600; }
+        .account-detail-row { display: flex; justify-content: space-between; align-items: center; }
         .val-cash { color: var(--text-main); font-weight: 800; }
         
         .stock-list { list-style: none; margin: 0; padding: 0; }
@@ -100,9 +103,20 @@
             <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
             <div class="account-title">나의 총 자산</div>
             <div class="account-balance" id="total-asset">0원</div>
+            
             <div class="account-details">
-                <span>주문 가능 예수금</span>
-                <span class="val-cash" id="available-cash">0원</span>
+                <div class="account-detail-row">
+                    <span>주문 가능 예수금</span>
+                    <span class="val-cash" id="available-cash">0원</span>
+                </div>
+                <div class="account-detail-row" style="border-top: 1px dashed #e5e7eb; padding-top: 6px; margin-top: 2px;">
+                    <span>총 매입원금</span>
+                    <span id="total-principal" style="color: var(--text-main); font-weight: 800;">0원</span>
+                </div>
+                <div class="account-detail-row">
+                    <span>총 수익률</span>
+                    <span id="total-profit-rate" style="font-weight: 800; color: var(--text-main);">0.00%</span>
+                </div>
             </div>
         </section>
         <ul class="stock-list" id="stock-list"></ul>
@@ -176,30 +190,28 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 🚨 [수정 반영] 주임님이 요청하신 구간별 등락률 확률 연산 공식 함수
+        // 주임님이 정교하게 설계해주신 구간 확률형 연산 보존
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
             
             if (rand < 0.50) {
-                magnitude = Math.random() * 0.05; // 5% 미만 확률 50%
+                magnitude = Math.random() * 0.05; 
             } else if (rand < 0.80) {
-                magnitude = 0.05 + Math.random() * 0.05; // 10% 미만 확률 30%
+                magnitude = 0.05 + Math.random() * 0.05; 
             } else if (rand < 0.90) {
-                magnitude = 0.10 + Math.random() * 0.05; // 15% 미만 확률 10%
+                magnitude = 0.10 + Math.random() * 0.05; 
             } else if (rand < 0.95) {
-                magnitude = 0.15 + Math.random() * 0.05; // 20% 미만 확률 5%
+                magnitude = 0.15 + Math.random() * 0.05; 
             } else if (rand < 0.98) {
-                magnitude = 0.20 + Math.random() * 0.05; // 25% 미만 확률 3%
+                magnitude = 0.20 + Math.random() * 0.05; 
             } else {
-                magnitude = 0.25 + Math.random() * 0.05; // 30% 이하 확률 2%
+                magnitude = 0.25 + Math.random() * 0.05; 
             }
             
-            // 극심한 우하향 방지를 위해 상승 확률을 53%로 미세 상향 조정해 밸런스를 맞춥니다.
             return (Math.random() < 0.53) ? magnitude : -magnitude;
         }
 
-        // 백그라운드 오프라인 시간/업무 동기화 및 1일 주기 확률 변동 연산
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -230,7 +242,6 @@
                 for (let i = 0; i < daysPassed; i++) {
                     gameState.stocks.forEach(s => {
                         s.prev = s.price; 
-                        // 🚨 새롭게 설계한 구간 확률형 연산 적용
                         let range = calculateProbabilityRange(); 
                         s.price = Math.round(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
@@ -241,7 +252,6 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
-        // 실시간 인게임 루프 내 확률 변동 처리
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -274,7 +284,6 @@
                         for (let i = 0; i < daysPassed; i++) {
                             gameState.stocks.forEach(s => {
                                 s.prev = s.price; 
-                                // 🚨 새롭게 설계한 구간 확률형 연산 적용
                                 let range = calculateProbabilityRange(); 
                                 s.price = Math.round(s.price * (1 + range));
                                 if (s.price < 10) s.price = 10;
@@ -291,20 +300,41 @@
             }, 1000); 
         }
 
+        // 🚨 [연산 고도화] 포트폴리오 총 매입원금 및 전체 수익률 계산 기능 추가
         function updateAccountUI() {
             let stockAsset = 0;
+            let totalPrincipal = 0;
+            
             for (let name in gameState.holdings) {
-                let stock = gameState.stocks.find(s => s.name === name);
-                if (stock) stockAsset += stock.price * Number(gameState.holdings[name] || 0);
+                let qty = Number(gameState.holdings[name] || 0);
+                if (qty > 0) {
+                    let stock = gameState.stocks.find(s => s.name === name);
+                    if (stock) stockAsset += stock.price * qty;
+                    totalPrincipal += Number(gameState.buyPrinciples[name] || 0);
+                }
             }
             let totalAsset = gameState.money + stockAsset;
             
+            // 종합 투자 성적 계산
+            let totalProfitLoss = stockAsset - totalPrincipal;
+            let totalProfitRate = totalPrincipal > 0 ? ((totalProfitLoss / totalPrincipal) * 100).toFixed(2) : "0.00";
+            let sign = totalProfitLoss > 0 ? "+" : "";
+            let color = totalProfitLoss > 0 ? "var(--stock-up)" : (totalProfitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
+            
+            // DOM 매칭 및 Null 방어 처리
             const totalAssetEl = document.getElementById('total-asset');
             const availCashEl = document.getElementById('available-cash');
+            const totalPrincipalEl = document.getElementById('total-principal');
+            const totalProfitRateEl = document.getElementById('total-profit-rate');
             const gameDateEl = document.getElementById('game-date');
             
             if (totalAssetEl) totalAssetEl.innerText = Math.floor(totalAsset).toLocaleString() + "원";
             if (availCashEl) availCashEl.innerText = Math.floor(gameState.money).toLocaleString() + "원";
+            if (totalPrincipalEl) totalPrincipalEl.innerText = Math.floor(totalPrincipal).toLocaleString() + "원";
+            if (totalProfitRateEl) {
+                totalProfitRateEl.innerText = `${sign}${totalProfitRate}%`;
+                totalProfitRateEl.style.color = color;
+            }
             if (gameDateEl) gameDateEl.innerText = getGameDateString();
         }
 
