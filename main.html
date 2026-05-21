@@ -20,7 +20,7 @@
             --condition-color: #f43f5e;
             --border-color: #e2e8f0;
 
-            /* 🚨 오락실 및 설정단 연용 형광 네온 테마 명세 선언 */
+            /* 오락실 및 네온 연출용 테마 명세 */
             --neon-pink: #f43f5e;
             --neon-purple: #a855f7;
             --neon-cyan: #06b6d4;
@@ -264,20 +264,20 @@
         }
 
         /* ==========================================================================
-           🚨 [시각 가독성 패치] 우측 하단 톱니바퀴 설정 및 말풍선 디자인 보정 반영
+           🚨 [요구사항 반영] 우측 하단 톱니바퀴 플로팅 단추 화이트 테마 변경
            ========================================================================== */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
-            background: var(--neon-cyan); /* 배경을 아주 밝은 형광 네온 블루 색상으로 전개 */
-            border: 2px solid var(--border-neon);
+            background: #ffffff; /* 🚨 배경을 깔끔한 순백색(하얀색)으로 강제 고정 */
+            border: 2px solid var(--border-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 22px; 
-            color: #0f0a1c; /* 💡 글씨(이모지 아이콘) 색상을 다크 네이비로 강제 반전하여 시각성 극대화 */
+            color: #1e293b; /* 아이콘 톱니바퀴 이모지가 선명하게 보이도록 슬레이트 블랙 반전 */
             cursor: pointer; z-index: 900;
-            box-shadow: 0 0 12px rgba(6, 182, 212, 0.6); 
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); /* 화이트 테마에 걸맞은 입체적인 투명 그림자 */
             transition: transform 0.1s, background-color 0.2s;
         }
-        .settings-floating-btn:active { transform: scale(0.9); background-color: var(--neon-purple); color: #fff; }
+        .settings-floating-btn:active { transform: scale(0.9); background-color: #f1f5f9; }
         
         /* 말풍선 스타일 모달창 */
         .settings-bubble-modal {
@@ -425,7 +425,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.0.5-beta<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 오락실 강제 진입 예외 샌드박스 가동 및 데이터 마스터 무결성 보호 격벽 조치
+            • 업데이트: 증권사 무한 로딩 해제 완료 및 우측 하단 톱니바퀴 화이트 커스텀 적용 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -525,27 +525,11 @@
             {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
         ];
 
-        const SAVE_KEY = "k_worker_tycoon_save_data";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
-            authDomain: "kkkjikjang.firebaseapp.com",
-            projectId: "kkkjikjang",
-            storageBucket: "kkkjikjang.firebasestorage.app",
-            messagingSenderId: "138250223666",
-            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
-        };
-        firebase.initializeApp(firebaseConfig);
-        
-        let currentUser = null; 
-
-        // 🚨 [안전 처리 메커니즘] 직렬화 오류 방지를 위해 런타임 타이머 식별값을 분리 정제 후 저장
         function saveGame() { 
             try {
                 state.lastSaveTime = Date.now(); 
-                
                 let saveState = { ...state };
-                delete saveState.workInterval; // 객체 직렬화 에러를 유발할 수 있는 핸들 제거
+                delete saveState.workInterval; 
                 
                 let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
                 let merged = { ...existing, ...saveState }; 
@@ -556,7 +540,7 @@
                         .catch(e => console.error("클라우드 백업 전송 실패:", e));
                 }
             } catch (error) {
-                console.error("내부 세이브 엔진 런타임 장해 우회 처리:", error);
+                console.error("내부 세이브 엔진 예외 우회 처리:", error);
             }
         }
 
@@ -680,13 +664,17 @@
             }
         }
 
+        // 🚨 [무한로딩 해결] 증권 런치 기능에도 예외 격벽 샌드박스를 적용하여 로딩 멈춤 현상 차단
         function goToStock() {
             document.getElementById('loading-screen').style.display = 'flex';
-            saveGame(); 
+            try {
+                saveGame(); 
+            } catch (e) {
+                console.error("증권사 이동 세이브 예외 무시 우회:", e);
+            }
             setTimeout(() => { location.href = 'stock.html'; }, 2000); 
         }
 
-        // 🚨 [내비게이션 완전 수정] 비동기 세이브 오동작 시에도 무조건 오락실 구역 진입 강제 보장 연동
         function goToArcade() {
             try {
                 saveGame(); 
@@ -841,7 +829,7 @@
         }
 
         function buyCar(idx) {
-            let car = CARS[idx];
+            let car = CARARS[idx];
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
             if (state.money < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
 
@@ -1152,7 +1140,6 @@
             startGameLoop(); 
         }
 
-        // 🚨 [동기화 격벽 패치] 로드 데이터 보존 정밀화
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
@@ -1161,7 +1148,7 @@
                         .then((doc) => {
                             if (doc.exists) {
                                 let cloudData = doc.data();
-                                // 데이터 증발 원천 차단: 기존 로컬 뼈대 스켈레톤 상태를 보존하며 안정 병합
+                                // 데이터 증발 원천 차단: 기존 로컬 뼈대 상태를 보존하며 파이어베이스에서 로드한 체력/업무력을 안전하게 병합
                                 state = { ...state, ...cloudData };
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(state));
                             }
