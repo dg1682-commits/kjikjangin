@@ -96,7 +96,7 @@
         /* 🚨 [추가] 틀렸을 때 띵~ 좌우 흔들림 효과 */
         .fail-shake {
             filter: grayscale(1) brightness(0.5) sepia(1) saturate(10000%) hue-rotate(-50deg);
-            animation: shake 0.1s 3;
+            animation: shake 0.1s 5; /* 0.1초 * 5회 = 0.5초 지속 */
         }
         @keyframes shake {
             0% { transform: translateX(0); }
@@ -231,6 +231,8 @@
         
         let isFeverMode = false;
         let feverRemainingCount = 0;
+        let lastHitTime = 0;
+        let isInputLocked = false;
 
         const OBJ_ASSETS = {
             1: "arcade/LR/ob1.png", 2: "arcade/LR/ob2.png", 3: "arcade/LR/ob3.png",
@@ -329,48 +331,54 @@
             }, 100);
         }
 
-        function hitDirection(dir) {
-            if(!isGameRunning || objectQueue.length === 0) return;
+// 🚨 [v1.3] hitDirection 함수 전체 교체
+function hitDirection(dir) {
+    const now = Date.now();
+    
+    // 1. 실수(흔들림) 중이거나, 0.15초 이내의 빠른 터치는 무시 (더블 터치 방지)
+    if (isInputLocked || (now - lastHitTime < 150)) return;
+    
+    lastHitTime = now; 
+    if(!isGameRunning || objectQueue.length === 0) return;
 
-            const currentId = objectQueue[0];
-            const isLeftCorrect = dir === 'L' && leftTargets.includes(currentId);
-            const isRightCorrect = dir === 'R' && rightTargets.includes(currentId);
+    const currentId = objectQueue[0];
+    const isLeftCorrect = dir === 'L' && leftTargets.includes(currentId);
+    const isRightCorrect = dir === 'R' && rightTargets.includes(currentId);
 
-            if(isLeftCorrect || isRightCorrect) {
-                // ✅ [성공] 팡! 애니메이션 처리
-                const objEl = document.getElementById('current-obj');
-                objEl.classList.add('hit-effect');
-                
-                setTimeout(() => {
-                    objectQueue.shift();
-                    score += 10;
-                    document.getElementById('score-val').innerText = score;
+    if(isLeftCorrect || isRightCorrect) {
+        const objEl = document.getElementById('current-obj');
+        objEl.classList.add('hit-effect');
+        
+        setTimeout(() => {
+            objectQueue.shift();
+            score += 10;
+            document.getElementById('score-val').innerText = score;
 
-                    if(isFeverMode) {
-                        timeLeft += 1.0;
-                        feverRemainingCount--;
-                        if(feverRemainingCount <= 0) exitFeverMode();
-                    } else {
-                        combo++;
-                        if(combo >= 20) enterFeverMode();
-                    }
-                    if(objectQueue.length < 10) refillObjects(10);
-                    drawStackDisplay();
-                }, 50);
-            } else {
-                // ❌ [실패] 띵~ 흔들림 효과
-                const objEl = document.getElementById('current-obj');
-                objEl.classList.add('fail-shake');
-                
-                timeLeft = Math.max(0, timeLeft - 5.0);
-                combo = 0;
-                if(isFeverMode) exitFeverMode();
-                
-                setTimeout(() => {
-                    objEl.classList.remove('fail-shake');
-                }, 300);
+            if(!isFeverMode) {
+                combo++;
+                if(combo >= 20) enterFeverMode();
             }
-        }
+            
+            if(objectQueue.length < 10) refillObjects(10);
+            drawStackDisplay();
+        }, 50);
+    } else {
+        // ❌ [실패] 0.5초 동안 입력 차단 및 흔들림 로직
+        isInputLocked = true; // 🚨 실수 락 걸기
+        const objEl = document.getElementById('current-obj');
+        objEl.classList.add('fail-shake');
+        
+        timeLeft = Math.max(0, timeLeft - 5.0);
+        combo = 0;
+        
+        if(isFeverMode) exitFeverMode();
+        
+        setTimeout(() => {
+            objEl.classList.remove('fail-shake');
+            isInputLocked = false; // 🚨 0.5초 후 락 해제
+        }, 500);
+    }
+}
 
         function enterFeverMode() {
             isFeverMode = true; combo = 0; feverRemainingCount = 30;
