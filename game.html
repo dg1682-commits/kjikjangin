@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
+            --bg-card: rgba(30, 21, 56, 0.85); 
             --neon-pink: #f43f5e;
             --neon-purple: #a855f7;
             --neon-cyan: #06b6d4;
@@ -28,7 +29,6 @@
             touch-action: manipulation;
         }
 
-        /* 🚨 [슬림화 패치] 상단 헤더 영역 높이 축소 (65px ➡️ 50px) */
         header {
             position: fixed; top: 0; left: 0; width: 100%; height: 50px;
             display: flex; align-items: center; justify-content: space-between;
@@ -40,10 +40,8 @@
         .header-title { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-light); }
         .empty-space { width: 22px; }
 
-        /* 🚨 헤더 압축에 맞춰 메인 패딩 축소 */
         main { padding-top: 50px; height: 100%; display: flex; flex-direction: column; align-items: center; }
 
-        /* 🚨 [슬림화 패치] 상단 자산 현황판 두께 및 폰트 압축 컴팩트화 */
         .status-board {
             width: 92%; max-width: 400px; background: rgba(22, 15, 41, 0.9);
             border: 1.5px solid var(--neon-purple); box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
@@ -56,55 +54,47 @@
         .board-val-time { font-size: 12px; font-weight: 700; color: var(--neon-cyan); }
         .board-val-money { font-size: 18px; font-weight: 900; color: #fbbf24; letter-spacing: -0.5px; }
 
-        /* 좌우 터치 스와이프 트랙 궤도 */
         .carousel-container {
             width: 100%; flex-grow: 1; display: flex; align-items: center;
-            position: relative; margin-top: 5px; overflow: hidden;
+            position: relative; margin-top: 10px; overflow: hidden;
         }
         .carousel-track {
             display: flex; width: 100%; height: 320px;
             overflow-x: auto; overflow-y: hidden;
             scroll-snap-type: x mandatory; 
-            scroll-behavior: smooth; /* 🚨 클릭 이동 시 부드럽게 미끄러지도록 연출 */
+            scroll-behavior: smooth; 
             -webkit-overflow-scrolling: touch;
-            padding-left: calc(50% - 120px);  /* 이미지 커진 비율에 맞게 정중앙 보정폭 수정 */
+            padding-left: calc(50% - 120px);  
             padding-right: calc(50% - 120px);
         }
         .carousel-track::-webkit-scrollbar { display: none; } 
 
-        /* 🚨 [구조 전면 혁신] 네모 상자 투명하게 철거 및 마우스 커서/포인터 활성화 */
         .arcade-card {
             width: 240px; height: 300px; flex-shrink: 0;
             scroll-snap-align: center; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: transparent; border: none; /* 뒷배경 박스 및 테두리 전면 삭제 */
+            background: transparent; border: none; 
             border-radius: 0; margin: 0 20px; transition: transform 0.3s;
             position: relative;
-            cursor: pointer; /* 클릭 가능한 느낌 소환 */
+            cursor: pointer; 
         }
 
-        /* 🚨 [핵심 요구사항] 오락기 자체 크기 대폭 확장(240px) 및 네이티브 네온 그래픽 필터 이식 */
         .arcade-img {
             height: 240px; width: auto; object-fit: contain;
             -webkit-user-drag: none; user-select: none;
             transition: filter 0.3s, transform 0.3s;
-            /* 기본 대기 상태일 때는 은은한 퍼플 네온 아웃라인 형성 */
             filter: drop-shadow(0 0 4px var(--neon-purple)) drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
-        /* 🚨 [액티브 연출] 중앙에 도달한 주임님의 선택된 오락기에 강렬한 레이저 네온 아웃라인 주입 */
         .arcade-card.active .arcade-img {
             transform: scale(1.04);
-            /* 이미지 외곽선을 따서 뿜어내는 정밀 핑크 레이저 네온 필터 */
             filter: drop-shadow(0 0 12px var(--neon-pink)) drop-shadow(0 0 4px var(--neon-pink)) drop-shadow(0 4px 8px rgba(0,0,0,0.6));
         }
 
-        /* 하단 인디케이터 도트 */
         .indicator-dots { display: flex; gap: 8px; margin-bottom: 15px; }
         .dot { width: 8px; height: 8px; background: var(--border-neon); border-radius: 50%; transition: background 0.2s; }
         .dot.active { background: var(--neon-pink); box-shadow: 0 0 6px var(--neon-pink); }
 
-        /* 하단 오락 런처 패널 */
         .launcher-panel {
             width: 100%; background: rgba(20, 13, 36, 0.9); border-top: 2px solid var(--border-neon);
             padding: 15px 30px; display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -123,7 +113,6 @@
         }
         .coin-insert-btn:active { transform: scale(0.96); }
 
-        /* 알림 모달 */
         .alert-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(30, 21, 56, 0.95); padding: 25px; border-radius: 20px;
@@ -181,8 +170,8 @@
         </div>
 
         <section class="launcher-panel">
-            <div class="game-title" id="display-title">인형 뽑기 마스터</div>
-            <div class="game-cost" id="display-cost">1회 플레이: 500원</div>
+            <div class="game-title" id="display-title">니꺼내꺼</div>
+            <div class="game-cost" id="display-cost">1회 플레이: 100원</div>
             <button class="coin-insert-btn" onclick="insertCoinToPlay()">🪙 코인 넣고 게임 시작</button>
         </section>
     </main>
@@ -213,13 +202,14 @@
         firebase.initializeApp(firebaseConfig);
         let currentUser = null;
         let activeIndex = 0; 
-        let isAutoScrolling = false; // 🚨 자동 스크롤 연산 시 스크롤 이벤트와 충돌 차단 차단 플래그
+        let isAutoScrolling = false; 
 
+        // 🚨 [데이터 패치] 1번 게임명 "니꺼내꺼", 코인 가격 "100원" 메타데이터 적용 완료
         const ARCADE_GAMES = [
-            { title: "추억의 인형 뽑기", cost: 500, desc: "짜릿한 손맛! 성공 시 멘탈(컨디션)이 소폭 회복되거나 꽝이 나옵니다." },
-            { title: "스트리트 직장인 파이터", cost: 1000, desc: "부장님 아바타를 타격하여 일주일 치 스트레스를 전액 해소합니다." },
-            { title: "리듬 테일즈 (리듬게임)", cost: 2000, desc: "화려한 콤보 달성 시 순발력(체력 스탯)이 영구 상승할 기회!" },
-            { title: "K-오락실 연금 대박 복권", cost: 5000, desc: "인생 역전의 기회! 초고액의 현금 자산 당첨 스케줄 시뮬레이션." }
+            { id: "LR", title: "니꺼내꺼", cost: 100, desc: "좌우 순발력 폭발! 성공 시 스코어 비례 두둑한 보너스 자금이 입금됩니다." },
+            { id: "fight", title: "스트리트 직장인 파이터", cost: 1000, desc: "부장님 아바타를 타격하여 일주일 치 스트레스를 전액 해소합니다." },
+            { id: "rhythm", title: "리듬 테일즈 (리듬게임)", cost: 2000, desc: "화려한 콤보 달성 시 순발력(체력 스탯)이 영구 상승할 기회!" },
+            { id: "lotto", title: "K-오락실 연금 대박 복권", cost: 5000, desc: "인생 역전의 기회! 초고액의 현금 자산 당첨 스케줄 시뮬레이션." }
         ];
 
         function saveGame() { 
@@ -246,25 +236,21 @@
             document.getElementById('stat-money').innerText = Math.floor(state.money).toLocaleString() + "원";
         }
 
-        // 🚨 [요구사항 구현] 다른 오락기 터치 시 중앙으로 즉시 자동 견인 스크롤링 함수
         function clickTargetGame(idx) {
-            if (activeIndex === idx) return; // 이미 중앙이면 스킵
+            if (activeIndex === idx) return; 
             
             isAutoScrolling = true;
             const track = document.getElementById('carousel-track');
-            const cardWidth = 280; // 변경된 카드 확장 너비(240px) + 가로 마진 합산 추정폭 조율
+            const cardWidth = 280; 
             
             track.scrollLeft = idx * cardWidth;
-            
-            // 정렬 후 선택 인덱스 즉각 동기화 강제 집행
             syncArcadeSelection(idx);
             
-            // 애니메이션 부드러운 스크롤 이동(0.3초) 대기 후 락 해제
             setTimeout(() => { isAutoScrolling = false; }, 350);
         }
 
         function trackScrollHandler() {
-            if (isAutoScrolling) return; // 🚨 터치 이동 연산 중이면 스크롤 인터셉터 일시 비활성화
+            if (isAutoScrolling) return; 
             
             const track = document.getElementById('carousel-track');
             let cardWidth = 280; 
@@ -279,7 +265,6 @@
             }
         }
 
-        // 선택 동기화 서브 모듈 분리
         function syncArcadeSelection(index) {
             activeIndex = index;
             const cards = document.querySelectorAll('.arcade-card');
@@ -299,12 +284,25 @@
             document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
         }
 
+        // 🚨 [중요 엔진 결합] 1번 게임(니꺼내꺼)은 실제 자금 100원 차감 후 바로 LR.html로 네이티브 진입 처리
         function insertCoinToPlay() {
             let game = ARCADE_GAMES[activeIndex];
+            
             if (state.money < game.cost) {
                 return showAlert("지갑 확인 필요", "코인을 넣기 위한 현금이 부족합니다.\n사무실에서 열심히 일하거나 주식으로 돈을 더 벌어오세요!");
             }
-            showAlert("🚧 기기 점검 중 (공사 중)", `[${game.title}] 기기는 현재 기기 고유 연동 시스템 공사 중입니다!\n\n실제 미니게임이 가동되는 다음 패치 버전부터 코인이 정상 차감되오니 안심하고 구경해 주세요!`);
+
+            if (game.id === "LR") {
+                // 1번 게임 니꺼내꺼인 경우 정식 런치 파이프라인 기동
+                state.money -= game.cost;
+                saveGame(); // 클라우드에 100원 차감 자산 강제 주입
+                
+                // 렉 없이 즉각 LR.html 게임 공간으로 리플레이스 전환
+                location.replace('LR.html');
+            } else {
+                // 2, 3, 4번 기기는 철저하게 방어막 유지
+                showAlert("🚧 기기 점검 중 (공사 중)", `[${game.title}] 기기는 현재 기기 고유 연동 시스템 공사 중입니다!\n\n실제 미니게임이 가동되는 다음 패치 버전부터 코인이 정상 차감되오니 안심하고 구경해 주세요!`);
+            }
         }
 
         function startGameLoop() {
