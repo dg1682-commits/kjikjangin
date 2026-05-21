@@ -197,11 +197,11 @@
             ];
         }
 
-        // 🚨 [방어 세팅] 역사 기록(history) 배열이 누락되어 있다면 현재가로 초기 채워 넣음
+        // 실제 역사 기록(history) 배열 초기 구성 메커니즘 안전 정착
         gameState.stocks.forEach(s => { 
             if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
             if(!s.history || !Array.isArray(s.history)) {
-                s.history = [s.price]; // 최초 실행 시 현재 주가로 메모리 생성
+                s.history = [s.price]; // 게임을 켠 첫 시점의 주가 하나로 순수하게 스타트
             }
         });
 
@@ -222,7 +222,7 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 주임님 맞춤형 정교 구간 확률등락 연산 알고리즘
+        // 주임님 최적화 정밀 구간 확률등락 연산 알고리즘
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
@@ -260,7 +260,6 @@
             }
         }
 
-        // 백그라운드 오프라인 주가 실제 역사 데이터 누적 정산 루프
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -295,7 +294,6 @@
                         s.price = Math.round(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
                         
-                        // 🚨 [역사 기록 추가] 지나간 하루하루의 주가를 스토리지 배열에 고스란히 누적 (최근 30일 최대 한도 유지)
                         if (!s.history) s.history = [];
                         s.history.push(s.price);
                         if (s.history.length > 30) s.history.shift();
@@ -306,7 +304,6 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
-        // 실시간 게임 타이머 작동 시 실제 역사 데이터 동시 누적 루프
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -343,7 +340,6 @@
                                 s.price = Math.round(s.price * (1 + range));
                                 if (s.price < 10) s.price = 10;
                                 
-                                // 🚨 [역사 기록 추가] 인게임 실시간 진행 중 날짜 변경 시에도 리얼 주가를 히스토리에 누적
                                 if (!s.history) s.history = [];
                                 s.history.push(s.price);
                                 if (s.history.length > 30) s.history.shift();
@@ -520,31 +516,24 @@
             }
         }
 
-        // 🚨 [엔진 전면 고도화] 실제 저장된 히스토리 데이터를 1순위로 바인딩하여 차트 렌더링
+        // 🚨 [패치 핵심] 임의의 가짜 백트래킹 코드를 전면 삭제하고 실제 누적 데이터 배열 크기에 유연하게 연동
         function openChartModal() {
             if (!currentTarget) return;
             
             document.getElementById('chart-modal').style.display = 'flex';
-            document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 30일 추이)`;
             
-            let labels = [];
-            // 세이브된 실제 인게임 주가 데이터 로그 로드
+            // 🚨 가짜 메꿈 연산을 걷어내고 순수 히스토리 배열(history)을 있는 그대로 복사해서 바인딩
             let data = [...(currentTarget.history || [])];
-            
-            // 🚨 [방어 연산 메커니즘] 만약 게임 시작 초기라서 실제 목격 데이터가 30일보다 적은 경우,
-            // 텅 비어 보이지 않도록 부족한 과거 부분만 자연스럽게 백트래킹(역산) 메꿈 처리 발동
-            if (data.length < 30) {
-                let tempPrice = data[0] || currentTarget.price;
-                while (data.length < 30) {
-                    let range = calculateProbabilityRange();
-                    tempPrice = Math.round(tempPrice / (1 + range));
-                    if (tempPrice < 10) tempPrice = 10;
-                    data.unshift(tempPrice); 
-                }
+            if (data.length === 0) {
+                data.push(currentTarget.price); // 데이터가 없는 특수 상황 방어용
             }
             
-            // 30일 타임라인 라벨 세팅
-            for (let i = 29; i >= 0; i--) {
+            // 누적된 실제 일수에 맞춰 차트 제목 갱신
+            document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 ${data.length}일 기록)`;
+            
+            // 🚨 기록된 데이터 개수(N)만큼만 정확하게 타임라인 라벨 분할 구성
+            let labels = [];
+            for (let i = data.length - 1; i >= 0; i--) {
                 if (i === 0) labels.push("오늘");
                 else labels.push(`${i}일 전`);
             }
@@ -563,7 +552,7 @@
                         borderColor: '#0ea5e9',
                         backgroundColor: 'rgba(14, 165, 233, 0.08)',
                         borderWidth: 2.5,
-                        pointRadius: 0, 
+                        pointRadius: data.length === 1 ? 4 : 0, // 데이터가 1개일 때는 점으로 식별되도록 조건부 반지름 부여
                         lineTension: 0.15,
                         fill: true
                     }]
