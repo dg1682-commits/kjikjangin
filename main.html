@@ -410,15 +410,16 @@
             {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 35, conditionBonus: 30}
         ];
 
+        // 🚨 [요청 반영] 후반 3종 약국 제품 가격 및 컨디션 회복 수치 커스텀 밸런스 이식 완료
         const BUFFS = [
             {id: 'water', name: "냉수 한 잔", price: 500, effect: 1},
             {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4},
             {id: 'bacchus', name: "박카스", price: 2500, effect: 8},
             {id: 'hot6', name: "핫식스", price: 3500, effect: 12},
             {id: 'soju', name: "참이슬", price: 5000, effect: 20},
-            {id: 'photo', name: "첫사랑 사진", price: 10000, effect: 45},
-            {id: 'ginseng', name: "홍삼 스틱", price: 35000, effect: 150},
-            {id: 'wild', name: "100년 산삼", price: 500000, effect: 2500}
+            {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40},
+            {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70},
+            {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}
         ];
 
         const SHOPS = [
@@ -467,7 +468,6 @@
                     state = {...state, ...JSON.parse(saved)};
                     if(!state.nickname) state.nickname = "김씨";
                     if(state.nicknameChangeCount === undefined) state.nicknameChangeCount = 0;
-                    // 🚨 구세이브 파일의 컨디션 최대치 한도 보정 연산 고정
                     state.maxCondition = 100;
                     if(state.condition > 100) state.condition = 100;
                 } catch(e) {
@@ -635,7 +635,6 @@
             } else if(type === 'rest') {
                 header.innerText = "휴식 및 컨디션 관리";
                 RESTS.forEach((rest, i) => {
-                    // 🚨 [UI 갱신] 컨디션 최대치 상향 영구 누적 텍스트 안내 삭제 후 풀 회복 안내로 교체
                     content.innerHTML += `
                         <div class="list-item" onclick="startRest(${i})" ontouchstart="">
                             <div class="item-info">
@@ -845,7 +844,6 @@
                 let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
                 let msg = `총 ${formatWorkTime(state.workElapsed)} 동안 휴식했습니다.\n체력 +${Math.floor(gainedStamina)} 상승`;
                 
-                // 🚨 [로직 수정] 최소 이행 시간 도달 시 최대 한도 증가 연산 삭제 및 100% 풀 완치 회복 적용
                 if (state.workElapsed >= rest.minTime) {
                     state.condition = 100; 
                     msg += `\n\n💡 [보너스] 최소 이행 시간 달성으로 현재 컨디션이 최대 한도(100)로 전액 완치되었습니다!`;
@@ -931,8 +929,9 @@
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn" onclick="closeAlert()">확인</button>`;
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; 
         }
+        // 🚨 오타가 있던 미세 버그 패치 (d -> desc 바인딩 정상화)
         function showConfirm(title, desc, onConfirm) {
-            document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = d;
+            document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc;
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`;
             document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); };
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block';
