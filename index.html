@@ -58,6 +58,16 @@
             box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3); cursor: pointer; transition: transform 0.1s;
         }
         .login-btn:active { transform: scale(0.97); }
+        /* 로그인 버튼 바로 아래에 추가 */
+.signup-btn {
+    width: 100%; padding: 12px; margin-top: 10px;
+    background: transparent; border: 1.5px solid var(--neon-purple);
+    color: var(--neon-purple); font-size: 14px; font-weight: 700;
+    border-radius: 12px; cursor: pointer; transition: all 0.2s;
+}
+.signup-btn:hover { 
+    background: rgba(168, 85, 247, 0.1); 
+}
         
         .alert-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -91,7 +101,8 @@
             </label>
         </div>
 
-        <button class="login-btn" onclick="handleLogin()">출근하기 (로그인)</button>
+<button class="login-btn" onclick="handleLogin()">출근하기 (로그인)</button>
+<button class="signup-btn" onclick="location.href='signup.html'">아직 계정이 없나요? (회원가입)</button>
     </div>
 
     <div class="alert-modal" id="alert-modal">
