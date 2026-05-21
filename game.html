@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K-직장인 키우기 - 오락실</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* 오락실 전용 딥 퍼플 & 네온 사이버 테마 스타일 정의 */
+        :root {
+            --bg-arcade: #0f0a1c;       /* 암전된 진한 보라색 배경 */
+            --bg-card: #1e1538;         /* 오락기 컨테이너 배경 */
+            --neon-pink: #f43f5e;
+            --neon-purple: #a855f7;
+            --neon-cyan: #06b6d4;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-neon: #3b2d66;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg-arcade);
+            color: var(--text-light);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 65px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; background: rgba(15, 10, 28, 0.9);
+            backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-neon);
+            z-index: 100;
+        }
+        .back-btn { font-size: 26px; font-weight: bold; color: var(--neon-cyan); cursor: pointer; text-decoration: none; }
+        .header-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-light); }
+        .empty-space { width: 26px; }
+
+        main { padding-top: 65px; height: 100%; display: flex; flex-direction: column; align-items: center; }
+
+        /* 상단 전광판 자산/시간 현황판 */
+        .status-board {
+            width: 90%; max-width: 400px; background: #160f29;
+            border: 2px solid var(--neon-purple); box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+            border-radius: 14px; padding: 12px 16px; margin-top: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .board-info { display: flex; flex-direction: column; gap: 4px; }
+        .board-label { font-size: 11px; color: var(--text-muted); font-weight: bold; }
+        .board-val-time { font-size: 13px; font-weight: 700; color: var(--neon-cyan); }
+        .board-val-money { font-size: 22px; font-weight: 900; color: #fbbf24; letter-spacing: -0.5px; }
+
+        /* 🚨 [핵심 기능] 좌우 터치 스와이프 스냅 카러셀 컨테이너 */
+        .carousel-container {
+            width: 100%; flex-grow: 1; display: flex; align-items: center;
+            position: relative; margin-top: 10px; overflow: hidden;
+        }
+        .carousel-track {
+            display: flex; width: 100%; height: 280px;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-snap-type: x mandatory; /* 좌우 스냅 강제 고정 */
+            -webkit-overflow-scrolling: touch;
+            padding-left: calc(50% - 110px);  /* 정중앙 정렬 보정 패딩 */
+            padding-right: calc(50% - 110px);
+        }
+        .carousel-track::-webkit-scrollbar { display: none; } /* 스크롤바 투명화 */
+
+        .arcade-card {
+            width: 220px; height: 260px; flex-shrink: 0;
+            scroll-snap-align: center; /* 카드 중앙 스냅 고정 */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-card); border: 2px solid var(--border-neon);
+            border-radius: 20px; margin: 0 15px; transition: transform 0.3s, border-color 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        /* 센터에 소환된 액티브 오락기 하이라이트 효과 */
+        .arcade-card.active {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+            transform: scale(1.05);
+        }
+
+        .arcade-img {
+            height: 190px; object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+            -webkit-user-drag: none; user-select: none;
+        }
+
+        /* 하단 제어 지표 인디케이터 도트 */
+        .indicator-dots { display: flex; gap: 8px; margin-bottom: 15px; }
+        .dot { width: 8px; height: 8px; background: var(--border-neon); border-radius: 50%; transition: background 0.2s; }
+        .dot.active { background: var(--neon-pink); box-shadow: 0 0 6px var(--neon-pink); }
+
+        /* 하단 오락 런처 패널 */
+        .launcher-panel {
+            width: 100%; background: #140d24; border-top: 2px solid var(--border-neon);
+            padding: 20px 30px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* 모바일 하단 노치 안전 격리 */
+        }
+        .game-title { font-size: 20px; font-weight: 900; color: var(--text-light); }
+        .game-cost { font-size: 14px; font-weight: 700; color: var(--neon-cyan); margin-bottom: 5px; }
+
+        .coin-insert-btn {
+            width: 100%; max-width: 320px; padding: 16px;
+            background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+            color: white; font-size: 16px; font-weight: 800; border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+            transition: transform 0.1s; cursor: pointer; text-align: center;
+        }
+        .coin-insert-btn:active { transform: scale(0.96); }
+
+        /* 알림 모달 */
+        .alert-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--bg-card); padding: 25px; border-radius: 20px;
+            width: 85%; max-width: 320px; z-index: 200; display: none; text-align: center;
+            border: 2px solid var(--neon-purple); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5);
+        }
+        .alert-title { font-size: 17px; font-weight: 800; margin-bottom: 12px; color: var(--neon-cyan); }
+        .alert-desc { font-size: 14px; color: var(--text-light); margin-bottom: 22px; line-height: 1.5; font-weight: 500; }
+        .alert-btn { background: var(--neon-pink); color: #fff; padding: 12px; width: 100%; border-radius: 10px; font-weight: 800; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
+        <div class="header-title">⚡ K-오락실 구역</div>
+        <div class="empty-space"></div>
+    </header>
+
+    <main>
+        <section class="status-board">
+            <div class="board-info">
+                <span class="board-label">인게임 표준 시간</span>
+                <span class="board-val-time" id="game-date">0년 1월 1일 00:00</span>
+            </div>
+            <div class="board-info" style="align-items: flex-end;">
+                <span class="board-label">소유 가용 현금</span>
+                <span class="board-val-money" id="stat-money">0원</span>
+            </div>
+        </section>
+
+        <section class="carousel-container">
+            <div class="carousel-track" id="carousel-track" onscroll="trackScrollHandler()">
+                <div class="arcade-card active" data-index="0">
+                    <img src="오락실/게임1.png" class="arcade-img" alt="게임1">
+                </div>
+                <div class="arcade-card" data-index="1">
+                    <img src="오락실/게임2.png" class="arcade-img" alt="게임2">
+                </div>
+                <div class="arcade-card" data-index="2">
+                    <img src="오락실/게임3.png" class="arcade-img" alt="게임3">
+                </div>
+                <div class="arcade-card" data-index="3">
+                    <img src="오락실/게임4.png" class="arcade-img" alt="게임4">
+                </div>
+            </div>
+        </section>
+
+        <div class="indicator-dots" id="indicator-dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+        <section class="launcher-panel">
+            <div class="game-title" id="display-title">인형 뽑기 마스터</div>
+            <div class="game-cost" id="display-cost">1회 플레이: 500원</div>
+            <button class="coin-insert-btn" onclick="insertCoinToPlay()">🪙 코인 넣고 게임 시작</button>
+        </section>
+    </main>
+
+    <div class="alert-modal" id="alert-modal">
+        <div class="alert-title" id="alert-title">알림</div>
+        <div class="alert-desc" id="alert-desc">내용</div>
+        <button class="alert-btn" onclick="closeAlert()">확인</button>
+    </div>
+
+    <script>
+        const SAVE_KEY = "k_worker_tycoon_save_data";
+        
+        let state = {
+            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
+            houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
+            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, timeMult: 1.0, ownedItems: []
+        };
+
+        // 파이어베이스 마스터 설정 보존
+        const firebaseConfig = {
+            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
+            authDomain: "kkkjikjang.firebaseapp.com",
+            projectId: "kkkjikjang",
+            storageBucket: "kkkjikjang.firebasestorage.app",
+            messagingSenderId: "138250223666",
+            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        let currentUser = null;
+        let activeIndex = 0; // 현재 바라보고 있는 오락기 번호
+
+        // 오락실 미니게임 메타 레코드 구조체 구성
+        const ARCADE_GAMES = [
+            { title: "추억의 인형 뽑기", cost: 500, desc: "짜릿한 손맛! 성공 시 멘탈(컨디션)이 소폭 회복되거나 꽝이 나옵니다." },
+            { title: "스트리트 직장인 파이터", cost: 1000, desc: "부장님 아바타를 타격하여 일주일 치 스트레스를 전액 해소합니다." },
+            { title: "리듬 테일즈 (리듬게임)", cost: 2000, desc: "화려한 콤보 달성 시 순발력(체력 스탯)이 영구 상승할 기회!" },
+            { title: "K-오락실 연금 대박 복권", cost: 5000, desc: "인생 역전의 기회! 초고액의 현금 자산 당첨 스케줄 시뮬레이션." }
+        ];
+
+        function saveGame() { 
+            let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+            let merged = { ...existing, ...state }; 
+            localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
+
+            if (currentUser) {
+                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
+                    .catch(e => console.error("오락실 클라우드 백업 전송 실패:", e));
+            }
+        }
+
+        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
+
+        function updateDisplay() {
+            const totalMin = Math.floor(state.gameSeconds / 60);
+            const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
+            const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
+            const d = Math.floor(totalMin / (60 * 24)) % 30;
+            const h = Math.floor(totalMin / 60) % 24;
+            
+            document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
+            document.getElementById('stat-money').innerText = Math.floor(state.money).toLocaleString() + "원";
+        }
+
+        // 🚨 [스와이프 추적 인터셉터] 스크롤 움직임을 실시간 감지하여 가운뎃장 액티브 카드 재계산 처리
+        function trackScrollHandler() {
+            const track = document.getElementById('carousel-track');
+            const cards = document.querySelectorAll('.arcade-card');
+            const dots = document.querySelectorAll('.dot');
+            
+            let cardWidth = 250; // 카드 너비(220px) + 마진 마진 총합 추정폭
+            let scrollLeft = track.scrollLeft;
+            
+            // 정밀 나눗셈 기반 인덱스 맵핑
+            let index = Math.round(scrollLeft / cardWidth);
+            if(index < 0) index = 0;
+            if(index > 3) index = 3;
+            
+            if (activeIndex !== index) {
+                activeIndex = index;
+                
+                // 1. 카드 액티브 비주얼 하이라이트 트랜지션
+                cards.forEach((c, i) => {
+                    if (i === activeIndex) c.classList.add('active');
+                    else c.classList.remove('active');
+                });
+                
+                // 2. 도트 내비게이터 갱신
+                dots.forEach((d, i) => {
+                    if (i === activeIndex) d.classList.add('active');
+                    else d.classList.remove('active');
+                });
+                
+                // 3. 하단 설명 런처 텍스트 실시간 갱신
+                document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
+                document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
+            }
+        }
+
+        // 🚨 [코인 투입 코어 엔진] 현금 검사 후 차단 및 플레이 시뮬레이션 이행
+        function insertCoinToPlay() {
+            let game = ARCADE_GAMES[activeIndex];
+            if (state.money < game.cost) {
+                return showAlert("지갑 확인 필요", "코인을 넣기 위한 현금이 부족합니다.\n사무실에서 열심히 일하거나 주식으로 돈을 더 벌어오세요!");
+            }
+
+            // 차감 처리 실행
+            state.money -= game.cost;
+            updateDisplay();
+            saveGame();
+
+            // 미니게임 연산 결과 확정 전 임시 뼈대 안내 팝업 바인딩
+            showAlert("🪙 코인 투입 완료", `[${game.title}] 기기에 코인이 정상 투입되었습니다!\n\n현재 미니게임 기기 고유 연동 시스템 공사 중입니다.\n다음 패치에서 실제 오락을 즐기실 수 있습니다!`);
+        }
+
+        function startGameLoop() {
+            setInterval(() => {
+                state.gameSeconds += 108; // 주식/메인 스케줄 속도 동기화 보정 유지
+                state.money += (0.5 * getIncomeMultiplier(state.stamina)) * 0.2;
+                updateDisplay();
+            }, 200);
+        }
+
+        function showAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'block';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function goBack(e) {
+            e.preventDefault();
+            location.replace('main.html'); // 무한 렉 차단 세션 리플레이스 안전 철거
+        }
+
+        window.onload = () => {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user;
+                    firebase.firestore().collection("users").doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                state = { ...state, ...doc.data() };
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+                            }
+                            updateDisplay();
+                            startGameLoop();
+                        })
+                        .catch((err) => {
+                            console.error("오락실 정보 로드 장해:", err);
+                            updateDisplay();
+                            startGameLoop();
+                        });
+                } else {
+                    location.href = 'index.html';
+                }
+            });
+        };
+    </script>
+</body>
+</html>
