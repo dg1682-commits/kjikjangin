@@ -34,7 +34,7 @@
             position: sticky; 
             top: 0; 
             z-index: 90; 
-            padding: 25px 20px 20px 20px; 
+            padding: 25px 20px 15px 20px; 
             background: var(--bg-main); 
             border-bottom: 8px solid var(--bg-sub); 
         }
@@ -105,7 +105,7 @@
             <div class="account-title" id="account-title">나의 총 자산</div>
             <div class="account-balance" id="total-asset">0원</div>
             
-            <div class="account-details">
+            <div class="account-details" id="account-details">
                 <div class="account-detail-row">
                     <span>주문 가능 예수금</span>
                     <span class="val-cash" id="available-cash">0원</span>
@@ -126,6 +126,10 @@
                     <span>총 수익률</span>
                     <span id="total-profit-rate" style="font-weight: 800; color: var(--text-main);">0.00%</span>
                 </div>
+            </div>
+
+            <div id="portfolio-toggle-btn" onclick="togglePortfolioLayout()" style="text-align: center; cursor: pointer; margin-top: 10px; font-size: 13px; color: var(--text-sub); font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <span id="toggle-text">상세 접기</span> <span id="toggle-arrow">▲</span>
             </div>
         </section>
         <ul class="stock-list" id="stock-list"></ul>
@@ -197,7 +201,7 @@
 
         let currentTarget = null;
         let currentTab = "list";
-        let chartInstance = null; // 차트 객체 파괴/재생성 추적용 전역 변수
+        let chartInstance = null; 
 
         function getIncomeMultiplier(s) { 
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
@@ -212,7 +216,7 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 주임님 최적화 정밀 구간 확률등락 연산 알고리즘
+        // 주임님이 정교하게 설계해주신 구간 확률형 연산 보존
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
@@ -232,6 +236,23 @@
             }
             
             return (Math.random() < 0.53) ? magnitude : -magnitude;
+        }
+
+        // 🚨 [기능 추가] 자산 카드 상세 영역을 접고 펴는 토글 제어 함수
+        function togglePortfolioLayout() {
+            const detailsBox = document.getElementById('account-details');
+            const arrowIcon = document.getElementById('toggle-arrow');
+            const textLabel = document.getElementById('toggle-text');
+            
+            if (detailsBox.style.display === 'none') {
+                detailsBox.style.display = 'flex';
+                arrowIcon.innerText = '▲';
+                textLabel.innerText = '상세 접기';
+            } else {
+                detailsBox.style.display = 'none';
+                arrowIcon.innerText = '▼';
+                textLabel.innerText = '상세 펼치기';
+            }
         }
 
         function processStockOfflineProgress() {
@@ -322,10 +343,9 @@
             }, 1000); 
         }
 
-        // 🚨 [요청 반영] 총 평가금액 연산 및 실시간 동기화 바인딩 확장
         function updateAccountUI() {
-            let stockAsset = 0;   // 총 평가금액 (보유 주식수 * 현재 주가)
-            let totalPrincipal = 0; // 총 매입원금
+            let stockAsset = 0;   
+            let totalPrincipal = 0; 
             
             for (let name in gameState.holdings) {
                 let qty = Number(gameState.holdings[name] || 0);
@@ -346,7 +366,7 @@
             const totalAssetEl = document.getElementById('total-asset');
             const availCashEl = document.getElementById('available-cash');
             const totalPrincipalEl = document.getElementById('total-principal');
-            const totalEvaluationEl = document.getElementById('total-evaluation'); // 총 평가금액 엘리먼트
+            const totalEvaluationEl = document.getElementById('total-evaluation'); 
             const totalProfitLossEl = document.getElementById('total-profit-loss');
             const totalProfitRateEl = document.getElementById('total-profit-rate');
             const gameDateEl = document.getElementById('game-date');
@@ -367,7 +387,7 @@
             if (totalAssetEl) totalAssetEl.innerText = Math.floor(totalAsset).toLocaleString() + "원";
             if (availCashEl) availCashEl.innerText = Math.floor(gameState.money).toLocaleString() + "원";
             if (totalPrincipalEl) totalPrincipalEl.innerText = Math.floor(totalPrincipal).toLocaleString() + "원";
-            if (totalEvaluationEl) totalEvaluationEl.innerText = Math.floor(stockAsset).toLocaleString() + "원"; // 실시간 매칭
+            if (totalEvaluationEl) totalEvaluationEl.innerText = Math.floor(stockAsset).toLocaleString() + "원"; 
             
             if (totalProfitLossEl) {
                 totalProfitLossEl.innerText = `${sign}${Math.floor(totalProfitLoss).toLocaleString()}원`;
@@ -483,7 +503,7 @@
             }
         }
 
-        // 🚨 [기능 추가] 요청하신 최근 30일 등락 추이 선그래프 엔진 활성화
+        // 최근 30일 추이 선그래프 엔진 보존
         function openChartModal() {
             if (!currentTarget) return;
             
@@ -494,7 +514,6 @@
             let data = [];
             let tempPrice = currentTarget.price;
             
-            // 현재 가격을 기점으로 30일 전까지 확률구간 기반 역산 백트래킹 수행
             data.unshift(tempPrice);
             labels.unshift("오늘");
             
@@ -506,14 +525,11 @@
                 labels.unshift(`${30 - i}일 전`);
             }
             
-            // 캔버스 그리기 컨텍스트 확보
             const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
-            
             if (chartInstance) {
-                chartInstance.destroy(); // 메모리 누수 방지용 구차트 파괴
+                chartInstance.destroy(); 
             }
             
-            // 토스 스타일 스무스 라인차트 렌더링 세팅
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -523,7 +539,7 @@
                         borderColor: '#0ea5e9',
                         backgroundColor: 'rgba(14, 165, 233, 0.08)',
                         borderWidth: 2.5,
-                        pointRadius: 0, // 선만 깔끔하게 나오도록 점 제거
+                        pointRadius: 0, 
                         lineTension: 0.15,
                         fill: true
                     }]
