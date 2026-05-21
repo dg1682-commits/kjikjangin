@@ -76,6 +76,17 @@
             border: 2px solid var(--neon-purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
         }
         .alert-btn { background: var(--neon-pink); color: #fff; padding: 10px; width: 100%; border-radius: 8px; font-weight: 800; border: none; margin-top: 15px; cursor: pointer; }
+    /* 🚨 [추가] 회원가입 팝업 모달 스타일 */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+    display: none; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-content {
+    width: 90%; max-width: 360px; padding: 30px;
+    background: #1e1538; border: 2px solid var(--neon-purple);
+    border-radius: 20px; text-align: center; color: var(--text-light);
+}
     </style>
 </head>
 <body>
@@ -102,8 +113,27 @@
         </div>
 
 <button class="login-btn" onclick="handleLogin()">출근하기 (로그인)</button>
-<button class="signup-btn" onclick="location.href='signup.html'">아직 계정이 없나요? (회원가입)</button>
+<button class="signup-btn" onclick="openSignupModal()">아직 계정이 없나요? (회원가입)</button>
+
+<div id="signup-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h1>회원가입</h1>
+        <div class="input-group">
+            <label>이메일 (ID)</label>
+            <input type="email" id="signup-email" placeholder="example@email.com">
+        </div>
+        <div class="input-group">
+            <label>비밀번호</label>
+            <input type="password" id="signup-pw" placeholder="••••••••">
+        </div>
+        <div class="input-group">
+            <label>비밀번호 확인</label>
+            <input type="password" id="signup-pw-confirm" placeholder="••••••••">
+        </div>
+        <button class="login-btn" onclick="handleSignup()">가입하기</button>
+        <button class="signup-btn" style="border:none;" onclick="closeSignupModal()">취소</button>
     </div>
+</div>
 
     <div class="alert-modal" id="alert-modal">
         <div style="font-size:14px; line-height:1.5;" id="alert-desc">내용</div>
@@ -189,6 +219,35 @@
             document.getElementById('alert-modal').style.display = 'block';
         }
         function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        // 🚨 [추가] 팝업 열기/닫기 로직
+function openSignupModal() {
+    document.getElementById('signup-modal').style.display = 'flex';
+}
+function closeSignupModal() {
+    document.getElementById('signup-modal').style.display = 'none';
+}
+
+// 🚨 [추가] 회원가입 처리 로직 (기존 signup.html의 기능을 여기로 통합)
+function handleSignup() {
+    const email = document.getElementById("signup-email").value.trim();
+    const pw = document.getElementById("signup-pw").value;
+    const pwConfirm = document.getElementById("signup-pw-confirm").value;
+
+    if(!email || !pw) return showAlert("모든 항목을 입력해 주세요.");
+    if(pw !== pwConfirm) return showAlert("비밀번호가 일치하지 않습니다.");
+    if(pw.length < 6) return showAlert("비밀번호는 최소 6자 이상이어야 합니다.");
+
+    firebase.auth().createUserWithEmailAndPassword(email, pw)
+        .then(() => {
+            alert("가입 성공! 이제 로그인하세요.");
+            closeSignupModal(); // 가입 성공 시 팝업 닫기
+        })
+        .catch((error) => {
+            showAlert("가입 실패: " + error.message);
+        });
+}
+        
     </script>
 </body>
 </html>
