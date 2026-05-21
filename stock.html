@@ -26,10 +26,10 @@
         .header-title { font-size: 18px; font-weight: 800; }
         .empty-space { width: 24px; } 
 
-        /* 🚨 [하단 여백 조정] 메뉴 바가 높아진 만큼 리스트가 가려지지 않게 bottom 패딩을 100px로 확장 */
+        /* 상단 고정으로 인한 하단 여백 최적화 보존 */
         main { padding-top: 60px; padding-bottom: 100px; overflow-y: auto; height: 100%; }
 
-        /* 🚨 [상단 고정 최적화] 스크롤을 내려도 자산 섹션이 헤더 밑에 고정되도록 sticky 배치 및 스크롤 침범 방지 z-index 부여 */
+        /* 나의 총 자산 영역 상단 고정 (Sticky) 레이아웃 보존 */
         .account-section { 
             position: sticky; 
             top: 0; 
@@ -59,7 +59,7 @@
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
         .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
-        /* 🚨 [하단 바 영역 높이 확장] 기존 65px -> 80px로 높이고 하단 모바일 세이프 마진 및 정렬 조정 */
+        /* 하단 메뉴 바 확장(80px) 디자인 보존 */
         .bottom-nav { 
             position: fixed; 
             bottom: 0; 
@@ -71,10 +71,9 @@
             display: flex; 
             justify-content: space-around; 
             align-items: center; 
-            padding-bottom: 10px; /* 스마트폰 하단 스와이프 바 간섭 방지 */
+            padding-bottom: 10px; 
             z-index: 100; 
         }
-        /* 🚨 [터치 타겟 최적화] 클릭 영역을 늘려서 엄지손가락 터치가 편하도록 패딩 및 크기 밸런스 조정 */
         .nav-item { 
             cursor: pointer; 
             font-size: 15px; 
@@ -178,15 +177,27 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
+        // 오프라인/백그라운드 정산 시 '진행 중인 업무 시간'도 함께 계산해 주는 엔진 고도화
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
             
+            let deltaTime = 0;
             if (gameState.lastSaveTime) {
-                let deltaTime = Math.floor((Date.now() - gameState.lastSaveTime) / 1000);
+                deltaTime = Math.floor((Date.now() - gameState.lastSaveTime) / 1000);
                 if (deltaTime > 10) {
                     gameState.gameSeconds += (deltaTime * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * deltaTime; 
+                    
+                    // 🚨 [신설] 백그라운드 공백 시간 동안의 메인 업무/휴식 경과 시간 누적
+                    if (gameState.isWorking && gameState.currentTask) {
+                        if (gameState.currentTask.time) {
+                            let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
+                            gameState.workElapsed = Math.min(actualTime, (gameState.workElapsed || 0) + deltaTime);
+                        } else if (gameState.currentTask.minTime) {
+                            gameState.workElapsed = (gameState.workElapsed || 0) + deltaTime;
+                        }
+                    }
                 }
             }
             gameState.lastSaveTime = Date.now();
@@ -208,6 +219,7 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
+        // 실시간 인게임 루프 내 업무 시간 트래킹 추가
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -223,6 +235,16 @@
 
                     gameState.gameSeconds += (passedSecs * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
+
+                    // 🚨 [신설] 주식 창을 보고 있는 실시간 1초마다 메인 업무/휴식 타이머를 동시 작동시킵니다.
+                    if (gameState.isWorking && gameState.currentTask) {
+                        if (gameState.currentTask.time) {
+                            let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
+                            gameState.workElapsed = Math.min(actualTime, (gameState.workElapsed || 0) + passedSecs);
+                        } else if (gameState.currentTask.minTime) {
+                            gameState.workElapsed = (gameState.workElapsed || 0) + passedSecs;
+                        }
+                    }
 
                     let currentDayIdx = Math.floor(gameState.gameSeconds / 86400);
                     let daysPassed = currentDayIdx - gameState.lastStockDayIdx;
