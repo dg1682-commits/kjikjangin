@@ -205,7 +205,6 @@
             { name: "OK증권", price: 1250, prev: 1250 }
         ];
 
-        // 🚨 [동기화 추가] 주임님의 파이어베이스 발급 키셋 주입 연동
         const firebaseConfig = {
             apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
@@ -215,7 +214,7 @@
             appId: "1:138250223666:web:997b7ed4572f717354fc2b"
         };
         firebase.initializeApp(firebaseConfig);
-        let currentUser = null; // 로그인 유저 추적 홀더
+        let currentUser = null; 
 
         if (!gameState.stocks || gameState.stocks.length !== 15 || !gameState.stockResetV3Done) {
             gameState.stocks = INITIAL_STOCKS.map(s => ({
@@ -225,7 +224,6 @@
             gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
             gameState.stockResetV3Done = true; 
 
-            // 초기 강제 정산 시에도 스탯 유실을 차단하기 위한 하이드레이션 패킹
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...gameState };
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
@@ -306,7 +304,6 @@
             }
         }
 
-        // 🚨 [엔진 업그레이드] 주식 거래 및 시간 루프 시 변동되는 모든 자산을 원격 클라우드 서버에 동시 안전 누적 세이브
         function saveStockStateToStorage() {
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...gameState };
@@ -703,7 +700,7 @@
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
-                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 마감 완료!`);
+                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 마도 완료!`);
                 } else {
                     return showCustomAlert("주문 실패", "보유 수량 부족!");
                 }
@@ -725,18 +722,18 @@
             renderCoreView();
         }
 
+        // 🚨 [버그 해결] 브라우저 세션 컨텍스트 강제 완전 차단 후 즉각 라우팅 전환 처리
         function goBack(e) {
             e.preventDefault();
-            location.href = 'main.html#game';
+            saveStockStateToStorage(); // 뒤로 가기 직전 데이터 실시간 저장 안정망 작동
+            location.replace('main.html'); // 해시(#) 제거 및 렉 없는 리플레이스 전환
         }
 
-        // 🚨 [인증 센서 탑재] 주식 창이 켜지거나 새로고침 될 때 실시간 계정 UID 상태 감지 및 보안 처리
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
-                    currentUser = user; // 계정 고유값 바인딩
+                    currentUser = user; 
 
-                    // 원격 데이터베이스에서 최신 내역 끌고 오기
                     firebase.firestore().collection("users").doc(user.uid).get()
                         .then((doc) => {
                             if (doc.exists) {
@@ -744,7 +741,6 @@
                                 gameState = { ...gameState, ...cloudData };
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
                             }
-                            // 계정 매칭 성공 후 주식 시뮬레이터 루프 활성화
                             processStockOfflineProgress(); 
                             updateAccountUI(); 
                             renderCoreView(); 
@@ -758,7 +754,6 @@
                             startGameLoop(); 
                         });
                 } else {
-                    // 비인가 유저 대문 화면 축출
                     alert("로그인이 필요한 페이지입니다.");
                     location.href = 'index.html';
                 }
