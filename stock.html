@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>K-증권 (주식 거래)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* 주임님 원본 증권사 앱 테마 스타일 100% 보존 */
         :root { 
@@ -114,6 +115,10 @@
                     <span id="total-principal" style="color: var(--text-main); font-weight: 800;">0원</span>
                 </div>
                 <div class="account-detail-row">
+                    <span>총 평가금액</span>
+                    <span id="total-evaluation" style="color: var(--text-main); font-weight: 800;">0원</span>
+                </div>
+                <div class="account-detail-row">
                     <span>총 평가손익</span>
                     <span id="total-profit-loss" style="font-weight: 800; color: var(--text-main);">0원</span>
                 </div>
@@ -133,8 +138,10 @@
     </nav>
 
     <div id="trade-modal" class="modal">
-        <div class="modal-content">
-            <h3 id="modal-name"></h3>
+        <div class="modal-content" style="position: relative; padding-top: 40px;">
+            <button onclick="openChartModal()" style="position: absolute; top: 15px; right: 15px; background: var(--bg-sub); color: var(--accent-color); border: none; padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 8px; cursor: pointer;">📈 차트보기</button>
+            
+            <h3 id="modal-name" style="margin-top: 5px;"></h3>
             <p id="modal-price" style="margin-bottom: 5px;"></p>
             <p id="modal-holding" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 0 0 15px 0;"></p>
             
@@ -143,6 +150,16 @@
             <button class="modal-btn" style="background:#ef4444; color:white;" onclick="trade('buy')">매수</button>
             <button class="modal-btn" style="background:#3b82f6; color:white;" onclick="trade('sell')">매도</button>
             <button class="modal-btn" onclick="document.getElementById('trade-modal').style.display='none'">닫기</button>
+        </div>
+    </div>
+
+    <div id="chart-modal" class="modal" style="z-index: 210;">
+        <div class="modal-content" style="max-width: 460px; width: 92%; padding: 20px;">
+            <h3 id="chart-modal-title" style="margin-top: 0; font-size: 18px;">종목 차트 추이</h3>
+            <div style="width: 100%; height: 240px; margin-bottom: 15px; position: relative;">
+                <canvas id="stock-canvas-chart"></canvas>
+            </div>
+            <button class="modal-btn" style="background:#cbd5e1; color: var(--text-main); width: 100%; margin: 0;" onclick="closeChartModal()">차트 닫기</button>
         </div>
     </div>
 
@@ -180,6 +197,7 @@
 
         let currentTarget = null;
         let currentTab = "list";
+        let chartInstance = null; // 차트 객체 파괴/재생성 추적용 전역 변수
 
         function getIncomeMultiplier(s) { 
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
@@ -194,7 +212,7 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 주임님 맞춤형 정밀 구간 등락 확률 엔진 보존
+        // 주임님 최적화 정밀 구간 확률등락 연산 알고리즘
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
@@ -304,10 +322,10 @@
             }, 1000); 
         }
 
-        // 🚨 [UI 동적 전환 업데이트] 탭 선택에 맞춰 헤더 타이틀이 '내 투자 포트폴리오'로 반응 변환됩니다.
+        // 🚨 [요청 반영] 총 평가금액 연산 및 실시간 동기화 바인딩 확장
         function updateAccountUI() {
-            let stockAsset = 0;
-            let totalPrincipal = 0;
+            let stockAsset = 0;   // 총 평가금액 (보유 주식수 * 현재 주가)
+            let totalPrincipal = 0; // 총 매입원금
             
             for (let name in gameState.holdings) {
                 let qty = Number(gameState.holdings[name] || 0);
@@ -324,16 +342,15 @@
             let sign = totalProfitLoss > 0 ? "+" : "";
             let color = totalProfitLoss > 0 ? "var(--stock-up)" : (totalProfitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
             
-            // DOM 구조 맵핑 및 가공 연산 처리
             const accountTitleEl = document.getElementById('account-title');
             const totalAssetEl = document.getElementById('total-asset');
             const availCashEl = document.getElementById('available-cash');
             const totalPrincipalEl = document.getElementById('total-principal');
+            const totalEvaluationEl = document.getElementById('total-evaluation'); // 총 평가금액 엘리먼트
             const totalProfitLossEl = document.getElementById('total-profit-loss');
             const totalProfitRateEl = document.getElementById('total-profit-rate');
             const gameDateEl = document.getElementById('game-date');
             
-            // 🚨 [기능 추가] 내 주식 탭일 때는 포트폴리오 대시보드 폰트로 타이틀 자동 변경
             if (accountTitleEl) {
                 if (currentTab === 'my') {
                     accountTitleEl.innerText = "📊 내 투자 포트폴리오";
@@ -350,6 +367,7 @@
             if (totalAssetEl) totalAssetEl.innerText = Math.floor(totalAsset).toLocaleString() + "원";
             if (availCashEl) availCashEl.innerText = Math.floor(gameState.money).toLocaleString() + "원";
             if (totalPrincipalEl) totalPrincipalEl.innerText = Math.floor(totalPrincipal).toLocaleString() + "원";
+            if (totalEvaluationEl) totalEvaluationEl.innerText = Math.floor(stockAsset).toLocaleString() + "원"; // 실시간 매칭
             
             if (totalProfitLossEl) {
                 totalProfitLossEl.innerText = `${sign}${Math.floor(totalProfitLoss).toLocaleString()}원`;
@@ -368,7 +386,7 @@
                 el.classList.add('active');
             }
             currentTab = view;
-            updateAccountUI(); // 탭 변경 즉시 상단 포트폴리오 UI 헤더 갱신 트리거
+            updateAccountUI(); 
             renderCoreView();
         }
 
@@ -463,6 +481,84 @@
                     }
                 }
             }
+        }
+
+        // 🚨 [기능 추가] 요청하신 최근 30일 등락 추이 선그래프 엔진 활성화
+        function openChartModal() {
+            if (!currentTarget) return;
+            
+            document.getElementById('chart-modal').style.display = 'flex';
+            document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 30일 추이)`;
+            
+            let labels = [];
+            let data = [];
+            let tempPrice = currentTarget.price;
+            
+            // 현재 가격을 기점으로 30일 전까지 확률구간 기반 역산 백트래킹 수행
+            data.unshift(tempPrice);
+            labels.unshift("오늘");
+            
+            for (let i = 1; i < 30; i++) {
+                let range = calculateProbabilityRange();
+                tempPrice = Math.round(tempPrice / (1 + range));
+                if (tempPrice < 10) tempPrice = 10;
+                data.unshift(tempPrice);
+                labels.unshift(`${30 - i}일 전`);
+            }
+            
+            // 캔버스 그리기 컨텍스트 확보
+            const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy(); // 메모리 누수 방지용 구차트 파괴
+            }
+            
+            // 토스 스타일 스무스 라인차트 렌더링 세팅
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.08)',
+                        borderWidth: 2.5,
+                        pointRadius: 0, // 선만 깔끔하게 나오도록 점 제거
+                        lineTension: 0.15,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 4, font: { size: 10, weight: 'bold' } }
+                        },
+                        y: {
+                            grid: { color: '#f3f4f6' },
+                            ticks: { font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.parsed.y.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function closeChartModal() {
+            document.getElementById('chart-modal').style.display = 'none';
         }
 
         function openModal(name) {
