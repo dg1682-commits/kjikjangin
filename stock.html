@@ -1,17 +1,114 @@
-<script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K-증권 (주식 거래)</title>
+    <style>
+        /* 주임님 원본 증권사 앱 테마 및 레이아웃 스타일 100% 보존 */
+        :root { 
+            --bg-main: #ffffff; 
+            --bg-sub: #f3f4f6; 
+            --text-main: #111827; 
+            --text-sub: #6b7280; 
+            --text-light: #9ca3af; 
+            --stock-up: #ef4444;   /* 상승 (빨강) */
+            --stock-down: #3b82f6; /* 하락 (파랑) */
+            --stock-even: #4b5563; /* 보합 (회색) */
+            --border-light: #f3f4f6; 
+            --accent-color: #0ea5e9; 
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', -apple-system, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); }
+        
+        header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-light); z-index: 100; }
+        .back-btn { font-size: 24px; font-weight: bold; color: var(--text-main); cursor: pointer; text-decoration: none; }
+        .header-title { font-size: 18px; font-weight: 800; }
+        .empty-space { width: 24px; } 
+
+        main { padding-top: 60px; padding-bottom: 80px; overflow-y: auto; height: 100%; }
+
+        .account-section { padding: 30px 20px 20px 20px; background: var(--bg-main); border-bottom: 8px solid var(--bg-sub); }
+        .account-title { font-size: 14px; color: var(--text-sub); font-weight: 600; margin-bottom: 8px; }
+        .account-balance { font-size: 32px; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 15px; }
+        .account-details { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sub); background: var(--bg-sub); padding: 12px 15px; border-radius: 12px; font-weight: 600; }
+        .val-cash { color: var(--text-main); font-weight: 800; }
+        
+        .stock-list { list-style: none; margin: 0; padding: 0; }
+        .stock-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; }
+        .stock-item:active { background: var(--bg-sub); }
+        
+        .stock-info { display: flex; align-items: center; gap: 12px; }
+        .stock-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-sub); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+        .stock-name-box { display: flex; flex-direction: column; gap: 3px; }
+        .stock-name { font-size: 15px; font-weight: 700; color: var(--text-main); }
+        .stock-price-box { display: flex; flex-direction: column; align-items: flex-end; }
+        .stock-price { font-size: 16px; font-weight: 800; }
+
+        /* 모달 스타일 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
+        .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        
+        /* 하단 메뉴 바 */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { cursor: pointer; font-size: 14px; font-weight: bold; color: var(--text-sub); }
+        .nav-item.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
+        <div class="header-title">K-증권</div>
+        <div class="empty-space"></div>
+    </header>
+
+    <main>
+        <section class="account-section">
+            <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
+            <div class="account-title">나의 총 자산</div>
+            <div class="account-balance" id="total-asset">0원</div>
+            <div class="account-details">
+                <span>주문 가능 예수금</span>
+                <span class="val-cash" id="available-cash">0원</span>
+            </div>
+        </section>
+        <ul class="stock-list" id="stock-list"></ul>
+    </main>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="renderView('list', this)">목록</div>
+        <div class="nav-item" onclick="renderView('my', this)">내 주식</div>
+        <div class="nav-item" onclick="renderView('history', this)">거래내역</div>
+    </nav>
+
+    <div id="trade-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-name"></h3>
+            <p id="modal-price" style="margin-bottom: 5px;"></p>
+            <p id="modal-holding" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 0 0 15px 0;"></p>
+            
+            <input type="number" id="trade-qty" placeholder="수량 입력" style="width:100%; padding:10px; margin-bottom:10px;" oninput="calcTotal()">
+            <p>총 거래금액: <span id="total-cost" style="color: var(--stock-up); font-weight: 800;">0</span>원</p>
+            <button class="modal-btn" style="background:#ef4444; color:white;" onclick="trade('buy')">매수</button>
+            <button class="modal-btn" style="background:#3b82f6; color:white;" onclick="trade('sell')">매도</button>
+            <button class="modal-btn" onclick="document.getElementById('trade-modal').style.display='none'">닫기</button>
+        </div>
+    </div>
+
+    <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
-        // 싱글 소스 연동 구조 및 자산 데이터 로드
+        // 데이터 안전 로드 및 누락 키 방어 최적화
         let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
         if (!gameState.holdings) gameState.holdings = {};
         if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; 
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
-        
-        // 🚨 오프라인/백그라운드 주가 정산용 상태 변수 트래킹 공간 신설
         if (gameState.lastStockDayIdx === undefined) gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400);
 
-        // 15개 기업 리스트 마스터 데이터 내부 내장 로드
+        // 이미지 파일 매칭 15개 기업 리스트 세팅 완전 보존
         if (!gameState.stocks || gameState.stocks.length !== 15) {
             gameState.stocks = [
                 { name: "애비디아", price: 353189, prev: 353189 },
@@ -50,40 +147,38 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 🚨 [신설] 화면을 끄거나 나가 있던 동안 밀린 시간 및 주가 변동 복리 계산 엔진
+        // 백그라운드/오프라인 공백 타임 누적 보정 및 주가 복리 연산 엔진
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
             
-            // 1. 메인 화면을 거치지 않고 바로 들어왔거나 background에서 멈췄을 때 흘러간 현실 시간 정산
             if (gameState.lastSaveTime) {
                 let deltaTime = Math.floor((Date.now() - gameState.lastSaveTime) / 1000);
                 if (deltaTime > 10) {
-                    gameState.gameSeconds += (deltaTime * 540); // 메인 배속 동기화
-                    gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * deltaTime; // 패시브 수입 정산
+                    gameState.gameSeconds += (deltaTime * 540); 
+                    gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * deltaTime; 
                 }
             }
             gameState.lastSaveTime = Date.now();
 
-            // 2. 주식이 마지막으로 정산된 날짜와 현재 날짜의 차이를 비교해 밀린 일수만큼 ±30% 변동 반복 적용
             let currentDayIdx = Math.floor(gameState.gameSeconds / 86400);
             let daysPassed = currentDayIdx - gameState.lastStockDayIdx;
             
             if (daysPassed > 0) {
                 for (let i = 0; i < daysPassed; i++) {
                     gameState.stocks.forEach(s => {
-                        s.prev = s.price; // 전일가 마감 처리 고정
-                        let range = (Math.random() * 0.6 - 0.3); // 최대 ±30% 상하한가 기동
+                        s.prev = s.price; 
+                        let range = (Math.random() * 0.6 - 0.3); 
                         s.price = Math.floor(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
                     });
                 }
-                gameState.lastStockDayIdx = currentDayIdx; // 최종 변동일 동기화 고정
+                gameState.lastStockDayIdx = currentDayIdx; 
             }
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
-        // 실시간 인게임 시간 진행 루프 및 백그라운드 복귀 정산 엔진
+        // 실시간 인게임 루프
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -100,7 +195,6 @@
                     gameState.gameSeconds += (passedSecs * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
 
-                    // 🚨 플레이 중 혹은 화면을 켜둔 채로 내려놓았다가 복귀했을 때 밀린 일수만큼 반복 정산
                     let currentDayIdx = Math.floor(gameState.gameSeconds / 86400);
                     let daysPassed = currentDayIdx - gameState.lastStockDayIdx;
                     
@@ -124,6 +218,7 @@
             }, 1000); 
         }
 
+        // 🚨 [오류 원천 봉쇄] Null 방어 코드를 심어 마크업 미매칭 시 발생할 수 있는 크래시 차단
         function updateAccountUI() {
             let stockAsset = 0;
             for (let name in gameState.holdings) {
@@ -131,9 +226,14 @@
                 if (stock) stockAsset += stock.price * Number(gameState.holdings[name] || 0);
             }
             let totalAsset = gameState.money + stockAsset;
-            document.getElementById('total-asset').innerText = Math.floor(totalAsset).toLocaleString() + "원";
-            document.getElementById('available-cash').innerText = Math.floor(gameState.money).toLocaleString() + "원";
-            document.getElementById('game-date').innerText = getGameDateString();
+            
+            const totalAssetEl = document.getElementById('total-asset');
+            const availCashEl = document.getElementById('available-cash');
+            const gameDateEl = document.getElementById('game-date');
+            
+            if (totalAssetEl) totalAssetEl.innerText = Math.floor(totalAsset).toLocaleString() + "원";
+            if (availCashEl) availCashEl.innerText = Math.floor(gameState.money).toLocaleString() + "원";
+            if (gameDateEl) gameDateEl.innerText = getGameDateString();
         }
 
         function renderView(view, el) {
@@ -147,6 +247,7 @@
 
         function renderCoreView() {
             const list = document.getElementById('stock-list');
+            if (!list) return;
             list.innerHTML = "";
 
             if (currentTab === 'list') {
@@ -213,7 +314,7 @@
                 if (!has) list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 주식이 없습니다.</li>`;
             } else {
                 if (gameState.history.length === 0) {
-                    list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">거래 내역이 없습니다.</li>`;
+                    listContainer.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">거래 내역이 없습니다.</li>`;
                 } else {
                     for (let i = gameState.history.length - 1; i >= 0; i--) {
                         let h = gameState.history[i];
@@ -237,22 +338,32 @@
             }
         }
 
+        // 🚨 요소 탐색 시 예외 방지 가공
         function openModal(name) {
             currentTarget = gameState.stocks.find(s => s.name === name);
             let myQty = Number(gameState.holdings[currentTarget.name] || 0);
 
-            document.getElementById('modal-name').innerText = currentTarget.name;
-            document.getElementById('modal-price').innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
-            document.getElementById('modal-holding').innerText = `현재 보유량: ${myQty.toLocaleString()}주`;
-            document.getElementById('trade-qty').value = "";
-            document.getElementById('total-cost').innerText = "0";
-            document.getElementById('trade-modal').style.display = 'flex';
+            const modalNameEl = document.getElementById('modal-name');
+            const modalPriceEl = document.getElementById('modal-price');
+            const modalHoldingEl = document.getElementById('modal-holding');
+            const tradeQtyEl = document.getElementById('trade-qty');
+            const totalCostEl = document.getElementById('total-cost');
+            
+            if (modalNameEl) modalNameEl.innerText = currentTarget.name;
+            if (modalPriceEl) modalPriceEl.innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
+            if (modalHoldingEl) modalHoldingEl.innerText = `현재 보유량: ${myQty.toLocaleString()}주`;
+            if (tradeQtyEl) tradeQtyEl.value = "";
+            if (totalCostEl) totalCostEl.innerText = "0";
+            
+            const tradeModalEl = document.getElementById('trade-modal');
+            if (tradeModalEl) tradeModalEl.style.display = 'flex';
         }
 
         function calcTotal() {
             if (!currentTarget) return;
             let qty = document.getElementById('trade-qty').value;
-            document.getElementById('total-cost').innerText = (currentTarget.price * (qty || 0)).toLocaleString();
+            const totalCostEl = document.getElementById('total-cost');
+            if (totalCostEl) totalCostEl.innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
         function trade(type) {
@@ -294,7 +405,8 @@
             });
 
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-            document.getElementById('trade-modal').style.display = 'none';
+            const tradeModalEl = document.getElementById('trade-modal');
+            if (tradeModalEl) tradeModalEl.style.display = 'none';
             updateAccountUI();
             renderCoreView();
         }
@@ -305,9 +417,11 @@
         }
 
         window.onload = () => { 
-            processStockOfflineProgress(); // 🚨 오프라인 상태 및 밀려있던 주가 정산 먼저 한 방에 수행
+            processStockOfflineProgress(); 
             updateAccountUI(); 
             renderCoreView(); 
             startGameLoop(); 
         };
     </script>
+</body>
+</html>
