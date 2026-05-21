@@ -20,7 +20,7 @@
             --condition-color: #f43f5e;
             --border-color: #e2e8f0;
 
-            /* 오락실 및 네온 연출용 테마 명세 */
+            /* 오락실 및 네온 테마 명세 */
             --neon-pink: #f43f5e;
             --neon-purple: #a855f7;
             --neon-cyan: #06b6d4;
@@ -80,13 +80,6 @@
             font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        .info-btn {
-            background: #e2e8f0; color: #475569; width: 20px; height: 20px; border-radius: 50%;
-            font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
-            transition: background 0.2s;
-        }
-        .info-btn:active { background: var(--accent-color); color: #fff; }
-
         .header-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; width: 43%; flex-grow: 1; overflow: hidden; }
         #game-date { font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; white-space: nowrap; }
         #stat-money { font-size: clamp(22px, 6.5vw, 44px); font-weight: 900; color: #d97706; line-height: 1.1; white-space: nowrap; letter-spacing: -0.5px; }
@@ -133,7 +126,7 @@
         #current-action-label { color: var(--text-main); font-size: 15px; margin-bottom: 5px; font-weight: 800; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 12px; }
         .click-notice { font-size: 12px; color: var(--accent-color); font-weight: 800; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 8px;}
 
-        /* 가로 스크롤 타운 (마을) 뷰 */
+        /* 가로 스크롤 마을 뷰 */
         .town-scroll-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             overflow-x: auto; overflow-y: hidden;
@@ -213,13 +206,9 @@
             background: #f1f5f9; margin-bottom: 10px; padding: 15px; border-radius: 12px;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer;
             border: 1px solid var(--border-color);
-            -webkit-user-select: none; 
-            user-select: none;
         }
         .list-item:active { background: #e2e8f0; }
-        
         .item-info, .item-price-box { pointer-events: none; }
-        
         .item-info { display: flex; flex-direction: column; gap: 4px; width: 58%; }
         .item-name { font-weight: 700; font-size: 14px; color: var(--text-main);}
         .item-sub { font-size: 11px; color: var(--text-sub); font-weight: 600;}
@@ -240,7 +229,7 @@
             border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         .alert-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-wrap: pre-wrap; text-align: left; font-weight: 500;}
+        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap; text-align: left; font-weight: 500;}
         .alert-btn-box { display: flex; gap: 10px; }
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
         .alert-btn.cancel { background: #94a3b8; }
@@ -255,18 +244,15 @@
             font-size: 80px;
             animation: jump 0.4s ease-in-out infinite alternate;
         }
-        .jumping-money {
-            margin-top: 20px; font-size: 18px; font-weight: 800; color: var(--text-main);
-        }
         @keyframes jump {
             0% { transform: translateY(0); }
             100% { transform: translateY(-40px); }
         }
 
-        /* 우측 하단 톱니바퀴 플로팅 단추 화이트 테마 변경 */
+        /* 🚨 [요청 반영] 톱니바퀴 원형 배경 순백색(하얀색) 전면 보정 명세 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
-            background: #ffffff; 
+            background: #ffffff; /* 💡 완전한 하얀색 배경 고정 */
             border: 2px solid var(--border-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 22px; 
@@ -296,7 +282,7 @@
         .settings-item:active { background: rgba(244, 63, 94, 0.2); color: var(--neon-pink); }
         .settings-item.version-border { border-top: 1px solid #3b2d66; }
         
-        /* 일반 중앙 팝업 모달 (버전 정보용) */
+        /* 버전 정보 팝업 모달 */
         .center-info-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(22, 15, 41, 0.98); padding: 20px; border-radius: 16px;
@@ -310,7 +296,7 @@
 
     <div id="loading-screen">
         <div class="jumping-money">💸</div>
-        <div class="loading-text">K-증권 앱 접속 중...</div>
+        <div class="loading-text" style="margin-top: 20px; font-size: 18px; font-weight: 800;">K-증권 앱 접속 중...</div>
     </div>
 
     <div id="game-screen">
@@ -320,35 +306,27 @@
                     <img src="메인배경/사무실.png" class="building-img">
                     <div id="work-disabled-x" class="disabled-overlay">X</div>
                 </div>
-
                 <div class="building-wrapper" onclick="openSheet('rest')">
                     <img src="메인배경/집.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="openSheet('house')">
                     <img src="메인배경/부동산.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="openSheet('buff')">
                     <img src="메인배경/약국.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="openSheet('shop')">
                     <img src="메인배경/쇼핑몰.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="goToStock()">
                     <img src="메인배경/증권사.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="goToCar()">
                     <img src="메인배경/자동차.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="goToArcade()">
                     <img src="메인배경/오락실.png" class="building-img">
                 </div>
-
                 <div class="building-wrapper" onclick="showAlert('오픈 준비', '점심 메뉴를 골라주는 모먹지 식당은 현재 공사 중입니다!')">
                     <img src="메인배경/식당.png" class="building-img">
                 </div>
@@ -438,9 +416,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.0.5-beta<br>
+            • 배포 버전: v1.0.6-stable<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 문자열 버그 및 방치 연산 전면 대수술 완료
+            • 업데이트: 데이터 무결성 인프라 실시간 자동 정제 및 톱니바퀴 화이트 튜닝
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -524,30 +502,60 @@
 
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
+        const firebaseConfig = {
+            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", // 🚨 마스터 고유 Key 검증 완료
+            authDomain: "kkkjikjang.firebaseapp.com",
+            projectId: "kkkjikjang",
+            storageBucket: "kkkjikjang.firebasestorage.app",
+            messagingSenderId: "138250223666",
+            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        let currentUser = null; 
+
+        // 🚨 [데이터 무결성 격벽 시스템] NaN 검출 및 타 변수 오염 원천 배제 클리닝 실행
+        function sanitizeState() {
+            state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
+            state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
+            state.exp = isNaN(Number(state.exp)) ? 0 : Number(state.exp);
+            state.rankIdx = isNaN(Number(state.rankIdx)) ? 0 : Number(state.rankIdx);
+            if (state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
+            state.condition = isNaN(Number(state.condition)) ? 100 : Number(state.condition);
+            state.maxCondition = isNaN(Number(state.maxCondition)) ? 100 : Number(state.maxCondition);
+            if (state.condition > state.maxCondition) state.condition = state.maxCondition;
+            state.houseIdx = isNaN(Number(state.houseIdx)) ? 0 : Number(state.houseIdx);
+            state.carIdx = isNaN(Number(state.carIdx)) ? -1 : Number(state.carIdx);
+            state.gameSeconds = isNaN(Number(state.gameSeconds)) ? 0 : Number(state.gameSeconds);
+            state.rentDayCounter = isNaN(Number(state.rentDayCounter)) ? 0 : Number(state.rentDayCounter);
+            state.debuffTimeLeft = isNaN(Number(state.debuffTimeLeft)) ? 0 : Number(state.debuffTimeLeft);
+            state.timeMult = isNaN(Number(state.timeMult)) ? 1.0 : Number(state.timeMult);
+            state.nicknameChangeCount = isNaN(Number(state.nicknameChangeCount)) ? 0 : Number(state.nicknameChangeCount);
+            
+            let parsedLastSave = Number(state.lastSaveTime);
+            state.lastSaveTime = isNaN(parsedLastSave) || parsedLastSave <= 0 ? Date.now() : parsedLastSave;
+            state.nickname = state.nickname ? String(state.nickname) : "김씨";
+            if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
+        }
+
         function saveGame() { 
             try {
                 state.lastSaveTime = Date.now(); 
+                sanitizeState();
+                
                 let saveState = { ...state };
                 delete saveState.workInterval; 
                 
                 let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
                 let merged = { ...existing, ...saveState }; 
-                
-                // 🚨 강제 숫자 형변환 (String Concat 원천 봉쇄 격벽)
-                merged.money = Number(merged.money);
-                merged.stamina = Number(merged.stamina);
-                merged.exp = Number(merged.exp);
-                merged.rankIdx = Number(merged.rankIdx);
-                merged.gameSeconds = Number(merged.gameSeconds);
 
                 localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
 
                 if (currentUser) {
                     firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                        .catch(e => console.error("클라우드 백업 전송 실패:", e));
+                        .catch(e => console.error("클라우드 전송 실패 무시:", e));
                 }
             } catch (error) {
-                console.error("세이브 예외 우회:", error);
+                console.error("세이브 예외 핸들링 우회:", error);
             }
         }
 
@@ -556,36 +564,18 @@
             if(saved) {
                 try {
                     let parsed = JSON.parse(saved);
-                    // 🚨 안전 장치 적용 주입
-                    if(parsed.money !== undefined) state.money = Number(parsed.money);
-                    if(parsed.stamina !== undefined) state.stamina = Number(parsed.stamina);
-                    if(parsed.exp !== undefined) state.exp = Number(parsed.exp);
-                    if(parsed.rankIdx !== undefined) state.rankIdx = Number(parsed.rankIdx);
-                    if(parsed.condition !== undefined) state.condition = Number(parsed.condition);
-                    if(parsed.maxCondition !== undefined) state.maxCondition = Number(parsed.maxCondition);
-                    if(parsed.houseIdx !== undefined) state.houseIdx = Number(parsed.houseIdx);
-                    if(parsed.carIdx !== undefined) state.carIdx = Number(parsed.carIdx);
-                    if(parsed.gameSeconds !== undefined) state.gameSeconds = Number(parsed.gameSeconds);
-                    if(parsed.rentDayCounter !== undefined) state.rentDayCounter = Number(parsed.rentDayCounter);
-                    if(parsed.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(parsed.debuffTimeLeft);
-                    if(parsed.timeMult !== undefined) state.timeMult = Number(parsed.timeMult);
-                    if(parsed.lastSaveTime !== undefined) state.lastSaveTime = Number(parsed.lastSaveTime);
-                    if(parsed.nickname !== undefined) state.nickname = String(parsed.nickname);
-                    if(parsed.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(parsed.nicknameChangeCount);
-                    if(Array.isArray(parsed.ownedItems)) state.ownedItems = parsed.ownedItems;
+                    state = { ...state, ...parsed };
                 } catch(e) {
-                    console.error("로드 오류:", e);
+                    console.error("로컬 로드 실패 패스:", e);
                 }
             }
+            sanitizeState();
         }
 
         function processOfflineProgress() {
-            if (!state.lastSaveTime || state.lastSaveTime <= 0) {
-                state.lastSaveTime = Date.now();
-                return;
-            }
+            sanitizeState();
             let deltaTime = Math.floor((Date.now() - state.lastSaveTime) / 1000);
-            if (deltaTime <= 10) return;
+            if (isNaN(deltaTime) || deltaTime <= 10) return;
             
             deltaTime = Math.min(deltaTime, 43200);
             state.gameSeconds += deltaTime * 540;
@@ -593,6 +583,7 @@
             
             let mult = getIncomeMultiplier(state.stamina);
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
+            if (isNaN(passiveEarned)) passiveEarned = 0;
             state.money += passiveEarned;
             
             if (state.isWorking) {
@@ -601,15 +592,27 @@
                 state.workElapsed = 0;
             }
             
-            setTimeout(() => {
-                showAlert("💤 오프라인 방치 정산", `자리를 비운 동안 캐릭터가 열심히 살았습니다!\n\n방치 시간: ${formatTextTime(deltaTime)}\n💰 패시브 수익: +${passiveEarned.toLocaleString()}원`);
-            }, 500);
+            if(passiveEarned > 0) {
+                setTimeout(() => {
+                    showAlert("💤 오프라인 방치 정산", `자리를 비운 동안 캐릭터가 열심히 살았습니다!\n\n방치 시간: ${formatTextTime(deltaTime)}\n💰 패시브 수익: +${passiveEarned.toLocaleString()}원`);
+                }, 500);
+            }
         }
+
+        function formatMMSS(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+        function formatWorkTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+        function formatTextTime(seconds) {
+            if(seconds >= 60) { const m = Math.floor(seconds/60); const s = seconds%60; return s > 0 ? `${m}분 ${s}초` : `${m}분`; }
+            return `${seconds}초`;
+        }
+
+        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
 
         function clickCharacter() {
             if(state.debuffTimeLeft > 0) return;
             let earn = (0.5 * getIncomeMultiplier(state.stamina)) * 1.2;
-            state.money = Number(state.money) + earn; // 🚨 강제 수치 정산 구조화
+            if (isNaN(earn)) earn = 0.6;
+            state.money = Number(state.money) + earn; 
             document.getElementById('click-notice').innerText = `+${earn.toFixed(1)}원 획득!`;
             setTimeout(() => { if(!state.isWorking) document.getElementById('click-notice').innerText = "💡 터치해서 돈 벌기!"; }, 800);
             updateDisplay(); saveGame();
@@ -626,21 +629,18 @@
                     lastGameTick += passedSecs * 1000;
                     state.gameSeconds = Number(state.gameSeconds) + (passedSecs * 540);
                     if(state.debuffTimeLeft > 0) state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - passedSecs);
-                    state.money = Number(state.money) + ((0.5 * getIncomeMultiplier(state.stamina)) * passedSecs);
+                    
+                    let mult = getIncomeMultiplier(state.stamina);
+                    let passiveAdd = (0.5 * mult) * passedSecs;
+                    if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
+                    
                     updateDisplay(); saveGame();
                 }
             }, 200); 
         }
 
         function updateDisplay() {
-            // 🚨 [치명적 크래시 해결] NaN 및 유실 보호 인프라 구축
-            if (isNaN(state.gameSeconds)) state.gameSeconds = 0;
-            if (isNaN(state.money)) state.money = 0;
-            if (isNaN(state.condition)) state.condition = 100;
-            if (isNaN(state.maxCondition)) state.maxCondition = 100;
-            if (isNaN(state.stamina)) state.stamina = 0;
-            if (isNaN(state.exp)) state.exp = 0;
-            if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
+            sanitizeState();
 
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
@@ -650,23 +650,25 @@
             
             document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
             document.getElementById('stat-money').innerText = Math.floor(state.money).toLocaleString() + "원";
-            document.getElementById('val-nickname').innerText = state.nickname || "김씨";
+            document.getElementById('val-nickname').innerText = state.nickname;
             document.getElementById('rank-badge-text').innerText = RANKS[state.rankIdx].name;
             
             let mult = getIncomeMultiplier(state.stamina);
             document.getElementById('stat-passive-rate').innerText = `초당 +${(0.5 * mult).toFixed(1)}`;
             document.getElementById('stat-click-rate').innerText = `👆 클릭 +${(0.6 * mult).toFixed(1)}`;
             
-            document.getElementById('condition-fill').style.width = (state.condition / state.maxCondition * 100) + '%';
+            let condPct = (state.condition / state.maxCondition * 100);
+            document.getElementById('condition-fill').style.width = (isNaN(condPct) ? 100 : condPct) + '%';
             document.getElementById('val-condition').innerText = Math.floor(state.condition);
             document.getElementById('val-max-condition').innerText = Math.floor(state.maxCondition);
             
-            document.getElementById('stamina-fill').style.width = Math.min(100, (state.stamina / 10000 * 100)) + '%';
+            let stamPct = (state.stamina / 10000 * 100);
+            document.getElementById('stamina-fill').style.width = Math.min(100, (isNaN(stamPct) ? 0 : stamPct)) + '%';
             document.getElementById('val-stamina').innerText = Math.floor(state.stamina);
 
-            let nextRank = RANKS[state.rankIdx+1];
-            let reqExp = nextRank ? nextRank.req : RANKS[state.rankIdx].req;
-            document.getElementById('exp-fill').style.width = Math.min(100, (state.exp / reqExp * 100)) + '%';
+            let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
+            let expPct = (state.exp / reqExp * 100);
+            document.getElementById('exp-fill').style.width = Math.min(100, (isNaN(expPct) ? 0 : expPct)) + '%';
             document.getElementById('val-exp').innerText = Math.floor(state.exp);
             document.getElementById('val-req-exp').innerText = reqExp;
 
@@ -726,7 +728,7 @@
                         <div class="list-item" onclick="doWork(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name" style="color:var(--danger);">${job.name}</span>
-                                <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 켄디션 소모 무</span>
+                                <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 컨디션 소모 무</span>
                             </div>
                             <div class="item-price-box">
                                 <span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span>
@@ -1103,11 +1105,7 @@
         function toggleSettingsBubble(e) {
             e.stopPropagation(); 
             const bubble = document.getElementById("settings-bubble");
-            if (bubble.style.display === "flex") {
-                bubble.style.display = "none";
-            } else {
-                bubble.style.display = "flex";
-            }
+            bubble.style.display = (bubble.style.display === "flex") ? "none" : "flex";
         }
         
         document.addEventListener("click", () => {
@@ -1133,18 +1131,18 @@
             startGameLoop(); 
         }
 
-        // 🚨 [데이터 정밀 래핑 패치] 클라우드 동기화 덮어쓰기 유실 완벽 차단
+        // 🚨 [데이터 동기화 안정성 결계 구축] 타입별 분리 파싱 및 무결성 보존 로드
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
                     firebase.firestore().collection("users").doc(user.uid).get()
                         .then((doc) => {
-                            loadGame(); // 우선 로컬 캐시 뼈대 확보
+                            loadGame(); 
                             if (doc.exists) {
                                 let cloudData = doc.data();
                                 
-                                // 각 변수별 유효성 검사 및 정밀 숫자 형변환 수혈 (문자열 결합 버그 해결)
+                                // 💡 유효 필드만 선별하여 숫자로 확실히 변환 주입 (데이터 전면 복구)
                                 if(cloudData.money !== undefined) state.money = Number(cloudData.money);
                                 if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
                                 if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
@@ -1168,7 +1166,7 @@
                             launchGameEngine(); 
                         })
                         .catch((err) => {
-                            console.error(err);
+                            console.error("클라우드 연동 실패, 로컬 구동 패스:", err);
                             launchGameEngine();
                         });
                 } else { location.href = 'index.html'; }
