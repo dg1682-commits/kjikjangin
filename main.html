@@ -240,7 +240,7 @@
             border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         .alert-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap; text-align: left; font-weight: 500;}
+        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-wrap: pre-wrap; text-align: left; font-weight: 500;}
         .alert-btn-box { display: flex; gap: 10px; }
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
         .alert-btn.cancel { background: #94a3b8; }
@@ -263,18 +263,16 @@
             100% { transform: translateY(-40px); }
         }
 
-        /* ==========================================================================
-           🚨 [요구사항 반영] 우측 하단 톱니바퀴 플로팅 단추 화이트 테마 변경
-           ========================================================================== */
+        /* 우측 하단 톱니바퀴 플로팅 단추 화이트 테마 변경 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
-            background: #ffffff; /* 🚨 배경을 깔끔한 순백색(하얀색)으로 강제 고정 */
+            background: #ffffff; 
             border: 2px solid var(--border-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 22px; 
-            color: #1e293b; /* 아이콘 톱니바퀴 이모지가 선명하게 보이도록 슬레이트 블랙 반전 */
+            color: #1e293b; 
             cursor: pointer; z-index: 900;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); /* 화이트 테마에 걸맞은 입체적인 투명 그림자 */
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); 
             transition: transform 0.1s, background-color 0.2s;
         }
         .settings-floating-btn:active { transform: scale(0.9); background-color: #f1f5f9; }
@@ -286,7 +284,6 @@
             border-radius: 12px; padding: 6px 0; display: none; flex-direction: column;
             box-shadow: 0 10px 25px rgba(0,0,0,0.65); z-index: 901; backdrop-filter: blur(10px);
         }
-        /* 말풍선 아래쪽 꼬리 각도 연출 */
         .settings-bubble-modal::after {
             content: ''; position: absolute; bottom: -8px; right: 16px;
             border-width: 8px 8px 0; border-style: solid;
@@ -413,23 +410,6 @@
         </div>
     </div>
 
-    <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
-    
-    <div class="settings-bubble-modal" id="settings-bubble">
-        <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
-        <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
-    </div>
-    
-    <div class="center-info-modal" id="version-modal">
-        <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
-        <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.0.5-beta<br>
-            • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 증권사 무한 로딩 해제 완료 및 우측 하단 톱니바퀴 화이트 커스텀 적용 완료
-        </div>
-        <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
-    </div>
-
     <div class="modal-overlay" id="overlay" onclick="closeSheet()"></div>
     <div class="bottom-sheet" id="bottom-sheet">
         <div class="sheet-title">
@@ -446,6 +426,23 @@
         <div class="alert-btn-box" id="alert-btn-box">
             <button class="alert-btn" onclick="closeAlert()">확인</button>
         </div>
+    </div>
+
+    <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
+    
+    <div class="settings-bubble-modal" id="settings-bubble">
+        <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
+        <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
+    </div>
+    
+    <div class="center-info-modal" id="version-modal">
+        <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
+        <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+            • 배포 버전: v1.0.5-beta<br>
+            • 패치 날짜: 2026-05-22<br>
+            • 업데이트: 문자열 버그 및 방치 연산 전면 대수술 완료
+        </div>
+        <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
 
     <script>
@@ -525,6 +522,8 @@
             {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
         ];
 
+        const SAVE_KEY = "k_worker_tycoon_save_data";
+        
         function saveGame() { 
             try {
                 state.lastSaveTime = Date.now(); 
@@ -533,6 +532,14 @@
                 
                 let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
                 let merged = { ...existing, ...saveState }; 
+                
+                // 🚨 강제 숫자 형변환 (String Concat 원천 봉쇄 격벽)
+                merged.money = Number(merged.money);
+                merged.stamina = Number(merged.stamina);
+                merged.exp = Number(merged.exp);
+                merged.rankIdx = Number(merged.rankIdx);
+                merged.gameSeconds = Number(merged.gameSeconds);
+
                 localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
 
                 if (currentUser) {
@@ -540,7 +547,7 @@
                         .catch(e => console.error("클라우드 백업 전송 실패:", e));
                 }
             } catch (error) {
-                console.error("내부 세이브 엔진 예외 우회 처리:", error);
+                console.error("세이브 예외 우회:", error);
             }
         }
 
@@ -549,12 +556,23 @@
             if(saved) {
                 try {
                     let parsed = JSON.parse(saved);
-                    state = { ...state, ...parsed };
-                    if(!state.nickname) state.nickname = "김씨";
-                    if(state.nicknameChangeCount === undefined) state.nicknameChangeCount = 0;
-                    if(state.carIdx === undefined) state.carIdx = -1;
-                    state.maxCondition = 100;
-                    if(state.condition > 100) state.condition = 100;
+                    // 🚨 안전 장치 적용 주입
+                    if(parsed.money !== undefined) state.money = Number(parsed.money);
+                    if(parsed.stamina !== undefined) state.stamina = Number(parsed.stamina);
+                    if(parsed.exp !== undefined) state.exp = Number(parsed.exp);
+                    if(parsed.rankIdx !== undefined) state.rankIdx = Number(parsed.rankIdx);
+                    if(parsed.condition !== undefined) state.condition = Number(parsed.condition);
+                    if(parsed.maxCondition !== undefined) state.maxCondition = Number(parsed.maxCondition);
+                    if(parsed.houseIdx !== undefined) state.houseIdx = Number(parsed.houseIdx);
+                    if(parsed.carIdx !== undefined) state.carIdx = Number(parsed.carIdx);
+                    if(parsed.gameSeconds !== undefined) state.gameSeconds = Number(parsed.gameSeconds);
+                    if(parsed.rentDayCounter !== undefined) state.rentDayCounter = Number(parsed.rentDayCounter);
+                    if(parsed.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(parsed.debuffTimeLeft);
+                    if(parsed.timeMult !== undefined) state.timeMult = Number(parsed.timeMult);
+                    if(parsed.lastSaveTime !== undefined) state.lastSaveTime = Number(parsed.lastSaveTime);
+                    if(parsed.nickname !== undefined) state.nickname = String(parsed.nickname);
+                    if(parsed.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(parsed.nicknameChangeCount);
+                    if(Array.isArray(parsed.ownedItems)) state.ownedItems = parsed.ownedItems;
                 } catch(e) {
                     console.error("로드 오류:", e);
                 }
@@ -562,7 +580,10 @@
         }
 
         function processOfflineProgress() {
-            if (!state.lastSaveTime) return;
+            if (!state.lastSaveTime || state.lastSaveTime <= 0) {
+                state.lastSaveTime = Date.now();
+                return;
+            }
             let deltaTime = Math.floor((Date.now() - state.lastSaveTime) / 1000);
             if (deltaTime <= 10) return;
             
@@ -585,19 +606,10 @@
             }, 500);
         }
 
-        function formatMMSS(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
-        function formatWorkTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
-        function formatTextTime(seconds) {
-            if(seconds >= 60) { const m = Math.floor(seconds/60); const s = seconds%60; return s > 0 ? `${m}분 ${s}초` : `${m}분`; }
-            return `${seconds}초`;
-        }
-
-        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
-
         function clickCharacter() {
             if(state.debuffTimeLeft > 0) return;
             let earn = (0.5 * getIncomeMultiplier(state.stamina)) * 1.2;
-            state.money += earn;
+            state.money = Number(state.money) + earn; // 🚨 강제 수치 정산 구조화
             document.getElementById('click-notice').innerText = `+${earn.toFixed(1)}원 획득!`;
             setTimeout(() => { if(!state.isWorking) document.getElementById('click-notice').innerText = "💡 터치해서 돈 벌기!"; }, 800);
             updateDisplay(); saveGame();
@@ -612,15 +624,24 @@
                 if (delta >= 1) { 
                     let passedSecs = Math.floor(delta);
                     lastGameTick += passedSecs * 1000;
-                    state.gameSeconds += (passedSecs * 540);
+                    state.gameSeconds = Number(state.gameSeconds) + (passedSecs * 540);
                     if(state.debuffTimeLeft > 0) state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - passedSecs);
-                    state.money += (0.5 * getIncomeMultiplier(state.stamina)) * passedSecs;
+                    state.money = Number(state.money) + ((0.5 * getIncomeMultiplier(state.stamina)) * passedSecs);
                     updateDisplay(); saveGame();
                 }
             }, 200); 
         }
 
         function updateDisplay() {
+            // 🚨 [치명적 크래시 해결] NaN 및 유실 보호 인프라 구축
+            if (isNaN(state.gameSeconds)) state.gameSeconds = 0;
+            if (isNaN(state.money)) state.money = 0;
+            if (isNaN(state.condition)) state.condition = 100;
+            if (isNaN(state.maxCondition)) state.maxCondition = 100;
+            if (isNaN(state.stamina)) state.stamina = 0;
+            if (isNaN(state.exp)) state.exp = 0;
+            if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
+
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
             const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
@@ -629,7 +650,7 @@
             
             document.getElementById('game-date').innerText = `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
             document.getElementById('stat-money').innerText = Math.floor(state.money).toLocaleString() + "원";
-            document.getElementById('val-nickname').innerText = state.nickname;
+            document.getElementById('val-nickname').innerText = state.nickname || "김씨";
             document.getElementById('rank-badge-text').innerText = RANKS[state.rankIdx].name;
             
             let mult = getIncomeMultiplier(state.stamina);
@@ -643,7 +664,8 @@
             document.getElementById('stamina-fill').style.width = Math.min(100, (state.stamina / 10000 * 100)) + '%';
             document.getElementById('val-stamina').innerText = Math.floor(state.stamina);
 
-            let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
+            let nextRank = RANKS[state.rankIdx+1];
+            let reqExp = nextRank ? nextRank.req : RANKS[state.rankIdx].req;
             document.getElementById('exp-fill').style.width = Math.min(100, (state.exp / reqExp * 100)) + '%';
             document.getElementById('val-exp').innerText = Math.floor(state.exp);
             document.getElementById('val-req-exp').innerText = reqExp;
@@ -664,23 +686,14 @@
             }
         }
 
-        // 🚨 [무한로딩 해결] 증권 런치 기능에도 예외 격벽 샌드박스를 적용하여 로딩 멈춤 현상 차단
         function goToStock() {
             document.getElementById('loading-screen').style.display = 'flex';
-            try {
-                saveGame(); 
-            } catch (e) {
-                console.error("증권사 이동 세이브 예외 무시 우회:", e);
-            }
+            try { saveGame(); } catch(e){}
             setTimeout(() => { location.href = 'stock.html'; }, 2000); 
         }
 
         function goToArcade() {
-            try {
-                saveGame(); 
-            } catch (e) {
-                console.error("샌드박스 내부 저장 실패 패스 처리:", e);
-            }
+            try { saveGame(); } catch(e){}
             location.href = 'game.html';
         }
 
@@ -713,7 +726,7 @@
                         <div class="list-item" onclick="doWork(${i})" ontouchstart="">
                             <div class="item-info">
                                 <span class="item-name" style="color:var(--danger);">${job.name}</span>
-                                <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 컨디션 소모 무</span>
+                                <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 켄디션 소모 무</span>
                             </div>
                             <div class="item-price-box">
                                 <span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span>
@@ -829,7 +842,7 @@
         }
 
         function buyCar(idx) {
-            let car = CARARS[idx];
+            let car = CARS[idx];
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
             if (state.money < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
 
@@ -931,19 +944,12 @@
                     let rand = Math.random();
                     let pct = 1;
                     
-                    if (rand < 0.70) {
-                        pct = 1; 
-                    } else if (rand < 0.85) {
-                        pct = Math.floor(Math.random() * 9) + 2; 
-                    } else if (rand < 0.94) {
-                        pct = Math.floor(Math.random() * 20) + 11; 
-                    } else if (rand < 0.98) {
-                        pct = Math.floor(Math.random() * 30) + 31; 
-                    } else if (rand < 0.99) {
-                        pct = Math.floor(Math.random() * 39) + 61; 
-                    } else {
-                        pct = 100; 
-                    }
+                    if (rand < 0.70) { pct = 1; } 
+                    else if (rand < 0.85) { pct = Math.floor(Math.random() * 9) + 2; } 
+                    else if (rand < 0.94) { pct = Math.floor(Math.random() * 20) + 11; } 
+                    else if (rand < 0.98) { pct = Math.floor(Math.random() * 30) + 31; } 
+                    else if (rand < 0.99) { pct = Math.floor(Math.random() * 39) + 61; } 
+                    else { pct = 100; }
 
                     let earn = Math.floor(state.money * (pct / 100));
                     if (earn < 100) earn = 100; 
@@ -1111,57 +1117,61 @@
         function handleLogout() {
             localStorage.removeItem("k_worker_auto_login");
             firebase.auth().signOut()
-                .then(() => {
-                    location.replace("index.html"); 
-                })
-                .catch(err => {
-                    console.error("로그아웃 도중 장해 발생:", err);
-                    location.replace("index.html");
-                });
+                .then(() => { location.replace("index.html"); })
+                .catch(err => { console.error(err); location.replace("index.html"); });
         }
         
-        function showVersionModal() {
-            document.getElementById("version-modal").style.display = "block";
-        }
-        
-        function closeVersionModal() {
-            document.getElementById("version-modal").style.display = "none";
-        }
+        function showVersionModal() { document.getElementById("version-modal").style.display = "block"; }
+        function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
         function launchGameEngine() {
             loadGame(); 
             processOfflineProgress(); 
             updateDisplay(); 
-            if (state.isWorking && state.currentTask) {
-                startTaskInterval();
-            } else {
-                resetUI();
-            }
+            if (state.isWorking && state.currentTask) { startTaskInterval(); } 
+            else { resetUI(); }
             startGameLoop(); 
         }
 
+        // 🚨 [데이터 정밀 래핑 패치] 클라우드 동기화 덮어쓰기 유실 완벽 차단
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
                     firebase.firestore().collection("users").doc(user.uid).get()
                         .then((doc) => {
+                            loadGame(); // 우선 로컬 캐시 뼈대 확보
                             if (doc.exists) {
                                 let cloudData = doc.data();
-                                // 데이터 증발 원천 차단: 기존 로컬 뼈대 상태를 보존하며 파이어베이스에서 로드한 체력/업무력을 안전하게 병합
-                                state = { ...state, ...cloudData };
+                                
+                                // 각 변수별 유효성 검사 및 정밀 숫자 형변환 수혈 (문자열 결합 버그 해결)
+                                if(cloudData.money !== undefined) state.money = Number(cloudData.money);
+                                if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
+                                if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
+                                if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
+                                if(cloudData.condition !== undefined) state.condition = Number(cloudData.condition);
+                                if(cloudData.maxCondition !== undefined) state.maxCondition = Number(cloudData.maxCondition);
+                                if(cloudData.houseIdx !== undefined) state.houseIdx = Number(cloudData.houseIdx);
+                                if(cloudData.carIdx !== undefined) state.carIdx = Number(cloudData.carIdx);
+                                if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
+                                if(cloudData.rentDayCounter !== undefined) state.rentDayCounter = Number(cloudData.rentDayCounter);
+                                if(cloudData.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(cloudData.debuffTimeLeft);
+                                if(cloudData.timeMult !== undefined) state.timeMult = Number(cloudData.timeMult);
+                                if(cloudData.lastSaveTime !== undefined) state.lastSaveTime = Number(cloudData.lastSaveTime);
+                                if(cloudData.nickname !== undefined) state.nickname = String(cloudData.nickname);
+                                if(cloudData.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(cloudData.nicknameChangeCount);
+                                if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
+                                if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
+
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(state));
                             }
                             launchGameEngine(); 
                         })
                         .catch((err) => {
-                            console.error("클라우드 로드 실패, 로컬 캐시로 백업 구동:", err);
+                            console.error(err);
                             launchGameEngine();
                         });
-                } else {
-                    alert("로그인 세션이 만료되었거나 비정상적인 접근입니다. 다시 로그인 해주세요.");
-                    location.href = 'index.html';
-                }
+                } else { location.href = 'index.html'; }
             });
         };
     </script>
