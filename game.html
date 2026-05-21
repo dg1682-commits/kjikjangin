@@ -123,23 +123,24 @@
         .alert-title { font-size: 17px; font-weight: 800; margin-bottom: 12px; color: var(--neon-cyan); }
         .alert-desc { font-size: 14px; color: var(--text-light); margin-bottom: 22px; line-height: 1.5; font-weight: 500; }
         .alert-btn { background: var(--neon-pink); color: #fff; padding: 12px; width: 100%; border-radius: 10px; font-weight: 800; }
-/* 오락기 위에 점수 배지 */
-#best-score-display {
-    position: absolute; 
-    top: -40px; /* 위치를 좀 더 위로 조정 */
-    left: 50%; 
-    transform: translateX(-50%);
-    background: rgba(244, 63, 94, 0.9); 
-    color: #fff; 
-    padding: 5px 12px; 
-    border-radius: 20px;
-    font-size: 14px; 
-    font-weight: 800; 
-    white-space: nowrap;
-    box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
-    z-index: 99; 
-    display: none; /* 일단 숨김 */
-}
+
+        /* 오락기 위에 점수 배지 스타일 */
+        #best-score-display {
+            position: absolute; 
+            top: -40px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            background: rgba(244, 63, 94, 0.9); 
+            color: #fff; 
+            padding: 5px 12px; 
+            border-radius: 20px;
+            font-size: 14px; 
+            font-weight: 800; 
+            white-space: nowrap;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+            z-index: 99; 
+            display: none; 
+        }
     </style>
 </head>
 <body>
@@ -165,8 +166,8 @@
         <section class="carousel-container">
             <div class="carousel-track" id="carousel-track" onscroll="trackScrollHandler()">
                 <div class="arcade-card active" data-index="0" onclick="clickTargetGame(0)">
-                <div id="best-score-display">BEST: 0</div> 
-                <img src="arcade/game1.png" class="arcade-img" alt="game1">
+                    <div id="best-score-display">BEST: 0</div> 
+                    <img src="arcade/game1.png" class="arcade-img" alt="game1">
                 </div>
                 <div class="arcade-card" data-index="1" onclick="clickTargetGame(1)">
                     <img src="arcade/game2.png" class="arcade-img" alt="game2">
@@ -210,7 +211,7 @@
         };
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
+            apiKey: "AIzaSyDr6T_3TCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
             projectId: "kkkjikjang",
             storageBucket: "kkkjikjang.firebasestorage.app",
@@ -222,7 +223,6 @@
         let activeIndex = 0; 
         let isAutoScrolling = false; 
 
-        // 🚨 [데이터 패치] 1번 게임명 "니꺼내꺼", 코인 가격 "100원" 메타데이터 적용 완료
         const ARCADE_GAMES = [
             { id: "LR", title: "니꺼내꺼", cost: 100, desc: "좌우 순발력 폭발! 성공 시 스코어 비례 두둑한 보너스 자금이 입금됩니다." },
             { id: "fight", title: "스트리트 직장인 파이터", cost: 1000, desc: "부장님 아바타를 타격하여 일주일 치 스트레스를 전액 해소합니다." },
@@ -283,35 +283,33 @@
             }
         }
 
-// 🚨 [수정] 게임 선택 시 BEST 점수 노출 로직 강화
-function syncArcadeSelection(index) {
-    activeIndex = index;
-    const cards = document.querySelectorAll('.arcade-card');
-    const dots = document.querySelectorAll('.dot');
-    const bestScoreEl = document.getElementById('best-score-display');
-    
-    cards.forEach((c, i) => {
-        if (i === activeIndex) c.classList.add('active');
-        else c.classList.remove('active');
-    });
-    
-    dots.forEach((d, i) => {
-        if (i === activeIndex) d.classList.add('active');
-        else d.classList.remove('active');
-    });
+        function syncArcadeSelection(index) {
+            activeIndex = index;
+            const cards = document.querySelectorAll('.arcade-card');
+            const dots = document.querySelectorAll('.dot');
+            const bestScoreEl = document.getElementById('best-score-display');
+            
+            cards.forEach((c, i) => {
+                if (i === activeIndex) c.classList.add('active');
+                else c.classList.remove('active');
+            });
+            
+            dots.forEach((d, i) => {
+                if (i === activeIndex) d.classList.add('active');
+                else d.classList.remove('active');
+            });
 
-    // 🚨 0번 게임(니꺼내꺼)일 때만 BEST 점수 보여주기
-    if (index === 0) {
-        bestScoreEl.style.display = 'block';
-    } else {
-        bestScoreEl.style.display = 'none';
-    }
-    
-    document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
-    document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
-}
+            // 0번 게임(니꺼내꺼)일 때만 BEST 점수 보여주기
+            if (index === 0) {
+                bestScoreEl.style.display = 'block';
+            } else {
+                bestScoreEl.style.display = 'none';
+            }
+            
+            document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
+            document.getElementById('display-cost').innerText = `1회 플레이: ${ARCADE_GAMES[activeIndex].cost.toLocaleString()}원`;
+        }
 
-        // 🚨 [중요 엔진 결합] 1번 게임(니꺼내꺼)은 실제 자금 100원 차감 후 바로 LR.html로 네이티브 진입 처리
         function insertCoinToPlay() {
             let game = ARCADE_GAMES[activeIndex];
             
@@ -320,14 +318,10 @@ function syncArcadeSelection(index) {
             }
 
             if (game.id === "LR") {
-                // 1번 게임 니꺼내꺼인 경우 정식 런치 파이프라인 기동
                 state.money -= game.cost;
-                saveGame(); // 클라우드에 100원 차감 자산 강제 주입
-                
-                // 렉 없이 즉각 LR.html 게임 공간으로 리플레이스 전환
+                saveGame(); 
                 location.replace('LR.html');
             } else {
-                // 2, 3, 4번 기기는 철저하게 방어막 유지
                 showAlert("🚧 기기 점검 중 (공사 중)", `[${game.title}] 기기는 현재 기기 고유 연동 시스템 공사 중입니다!\n\n실제 미니게임이 가동되는 다음 패치 버전부터 코인이 정상 차감되오니 안심하고 구경해 주세요!`);
             }
         }
@@ -351,25 +345,34 @@ function syncArcadeSelection(index) {
             e.preventDefault();
             location.replace('main.html'); 
         }
-        
 
-        
-window.onload = () => {
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
-                if (doc.exists) {
-                    state.money = doc.data().money || 0;
-                    state.highScore = doc.data().highScore || 0;
-                    
-                    // 🚨 데이터 불러온 후 UI에 즉시 반영
-                    document.getElementById('best-score-display').innerText = "BEST: " + state.highScore;
-                }
+        window.onload = () => {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user;
+                    firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
+                        if (doc.exists) {
+                            // 로드 데이터 병합 연동
+                            state.money = doc.data().money || 0;
+                            state.highScore = doc.data().highScore || 0;
+                            state.gameSeconds = doc.data().gameSeconds || 0;
+                            state.stamina = doc.data().stamina || 0;
+                            
+                            // 데이터 불러온 후 UI에 즉시 반영
+                            document.getElementById('best-score-display').innerText = "BEST: " + state.highScore;
+                        }
+                        // 🚨 [해결] 로드가 끝난 직후 화면을 즉시 새로고침하고 0번 인덱스 UI 정렬 및 루프 엔진 작동 가동
+                        updateDisplay();
+                        syncArcadeSelection(0); 
+                        startGameLoop();
+                    }).catch((err) => {
+                        console.error("오락실 정보 로드 장해:", err);
+                        updateDisplay();
+                        startGameLoop();
+                    });
+                } else { location.href = 'index.html'; }
             });
-        } else { location.href = 'index.html'; }
-    });
-};
+        };
     </script>
 </body>
 </html>
