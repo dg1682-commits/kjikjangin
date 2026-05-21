@@ -12,9 +12,9 @@
             --text-main: #111827; 
             --text-sub: #6b7280; 
             --text-light: #9ca3af; 
-            --stock-up: #ef4444;   
-            --stock-down: #3b82f6; 
-            --stock-even: #4b5563; 
+            --stock-up: #ef4444;   /* 상승 (빨강) */
+            --stock-down: #3b82f6; /* 하락 (파랑) */
+            --stock-even: #4b5563; /* 보합 (회색) */
             --border-light: #f3f4f6; 
             --accent-color: #0ea5e9; 
         }
@@ -45,10 +45,12 @@
         .stock-price-box { display: flex; flex-direction: column; align-items: flex-end; }
         .stock-price { font-size: 16px; font-weight: 800; }
 
+        /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
         .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
+        /* 하단 메뉴 바 */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { cursor: pointer; font-size: 14px; font-weight: bold; color: var(--text-sub); }
         .nav-item.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); }
@@ -231,8 +233,8 @@
                         let sign = profitLoss > 0 ? "+" : "";
                         let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
 
-                        // 🚨 매입 평단가 계산
-                        let avgPrice = Math.floor(principal / qty);
+                        // 🚨 [수정 반영] 주임님 요청 방식의 평단가 반올림(Math.round) 연산 처리
+                        let avgPrice = Math.round(principal / qty);
 
                         list.innerHTML += `
                             <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
@@ -250,7 +252,7 @@
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 10px 12px; border-radius: 8px; font-weight: 600;">
                                     <div style="display: flex; justify-content: space-between;">
-                                        <div>매입 평단가: <span style="color:var(--text-main);">${avgPrice.toLocaleString()}원</span></div>
+                                        <div>평단가: <span style="color:var(--text-main);">${avgPrice.toLocaleString()}원</span></div>
                                         <div>총 매입원금: <span style="color:var(--text-main);">${Math.floor(principal).toLocaleString()}원</span></div>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-top: 1px dashed #e5e7eb; padding-top: 4px; margin-top: 2px;">
@@ -295,6 +297,11 @@
             document.getElementById('trade-qty').value = "";
             document.getElementById('total-cost').innerText = "0";
             document.getElementById('trade-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('trade-modal').style.display = 'none';
+            currentTarget = null;
         }
 
         function calcTotal() {
