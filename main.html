@@ -245,7 +245,7 @@
             font-size: 80px;
             animation: jump 0.4s ease-in-out infinite alternate;
         }
-        .loading-text {
+        .jumping-money {
             margin-top: 20px; font-size: 18px; font-weight: 800; color: var(--text-main);
         }
         @keyframes jump {
@@ -467,6 +467,9 @@
                     state = {...state, ...JSON.parse(saved)};
                     if(!state.nickname) state.nickname = "김씨";
                     if(state.nicknameChangeCount === undefined) state.nicknameChangeCount = 0;
+                    // 🚨 구세이브 파일의 컨디션 최대치 한도 보정 연산 고정
+                    state.maxCondition = 100;
+                    if(state.condition > 100) state.condition = 100;
                 } catch(e) {
                     console.error("로드 오류:", e);
                 }
@@ -632,6 +635,7 @@
             } else if(type === 'rest') {
                 header.innerText = "휴식 및 컨디션 관리";
                 RESTS.forEach((rest, i) => {
+                    // 🚨 [UI 갱신] 컨디션 최대치 상향 영구 누적 텍스트 안내 삭제 후 풀 회복 안내로 교체
                     content.innerHTML += `
                         <div class="list-item" onclick="startRest(${i})" ontouchstart="">
                             <div class="item-info">
@@ -639,7 +643,7 @@
                                 <span class="item-sub">최소 이행: ${formatTextTime(rest.minTime)} (완치)</span>
                             </div>
                             <div class="item-price-box">
-                                <span class="item-price" style="font-size:11px; line-height:1.4;">분당 체력 +${rest.rate}<br><span style="color:var(--condition-color);">완료 시 최대컨디션 +${rest.conditionBonus}</span></span>
+                                <span class="item-price" style="font-size:11px; line-height:1.4;">분당 체력 +${rest.rate}<br><span style="color:var(--condition-color);">완료 시 현재 컨디션 100% 완치</span></span>
                                 ${rest.id === 'sleep' ? `<span class="item-bonus">(현재 집 x${HOUSES[state.houseIdx].mult}배 적용)</span>` : ''}
                             </div>
                         </div>`;
@@ -841,12 +845,12 @@
                 let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
                 let msg = `총 ${formatWorkTime(state.workElapsed)} 동안 휴식했습니다.\n체력 +${Math.floor(gainedStamina)} 상승`;
                 
+                // 🚨 [로직 수정] 최소 이행 시간 도달 시 최대 한도 증가 연산 삭제 및 100% 풀 완치 회복 적용
                 if (state.workElapsed >= rest.minTime) {
-                    state.maxCondition += rest.conditionBonus;
-                    state.condition = state.maxCondition; 
-                    msg += `\n최대 컨디션 +${rest.conditionBonus} 영구 누적!\n\n💡 [보너스] 최소 이행 시간 달성으로 현재 컨디션이 최대치(${Math.floor(state.maxCondition)})로 전액 완치되었습니다!`;
+                    state.condition = 100; 
+                    msg += `\n\n💡 [보너스] 최소 이행 시간 달성으로 현재 컨디션이 최대 한도(100)로 전액 완치되었습니다!`;
                 } else {
-                    msg += `\n\n⚠️ 최소 시간(${formatTextTime(rest.minTime)})을 채우지 못해 최대 컨디션 보너스 획득 및 컨디션 회복에 실패했습니다.`;
+                    msg += `\n\n⚠️ 최소 시간(${formatTextTime(rest.minTime)})을 채우지 못해 컨디션 회복에 실패했습니다.`;
                 }
                 state.stamina += gainedStamina;
                 resetUI(); showAlert("휴식 정산", msg); updateDisplay(); saveGame(); return;
@@ -928,7 +932,7 @@
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; 
         }
         function showConfirm(title, desc, onConfirm) {
-            document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = d;
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`;
             document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); };
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block';
