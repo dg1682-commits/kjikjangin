@@ -167,6 +167,14 @@
         </div>
     </div>
 
+    <div id="custom-alert-modal" class="modal" style="z-index: 300;">
+        <div class="modal-content" style="max-width: 320px; width: 85%; padding: 25px; border-radius: 16px;">
+            <h4 id="custom-alert-title" style="margin-top: 0; margin-bottom: 12px; font-size: 16px; font-weight: 800; color: var(--text-main);">알림</h4>
+            <p id="custom-alert-message" style="font-size: 14px; color: var(--text-sub); margin: 0 0 24px 0; font-weight: 600; line-height: 1.5; white-space: pre-wrap;"></p>
+            <button class="modal-btn" style="background: var(--accent-color); color: white; width: 100%; margin: 0; padding: 12px; border-radius: 8px;" onclick="closeCustomAlert()">확인</button>
+        </div>
+    </div>
+
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
@@ -175,39 +183,52 @@
         if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; 
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
-        if (gameState.lastStockDayIdx === undefined) gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400);
 
-        if (!gameState.stocks || gameState.stocks.length !== 15) {
-            gameState.stocks = [
-                { name: "애비디아", price: 353189, prev: 353189 },
-                { name: "파인애플", price: 446539, prev: 446539 },
-                { name: "테슐라", price: 664130, prev: 664130 },
-                { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
-                { name: "NBR", price: 8510000, prev: 8510000 },
-                { name: "시바보드", price: 7050000, prev: 7050000 },
-                { name: "효도중공업", price: 4600000, prev: 4600000 },
-                { name: "SK바이닉스", price: 1864000, prev: 1864000 },
-                { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
-                { name: "사성전기", price: 982000, prev: 982000 },
-                { name: "미래차", price: 756000, prev: 756000 },
-                { name: "한미중반도체", price: 409500, prev: 409500 },
-                { name: "오성전자", price: 277000, prev: 277000 },
-                { name: "코코아", price: 92400, prev: 92400 },
-                { name: "OK증권", price: 1250, prev: 1250 }
-            ];
-        }
+        // 🚨 [요청 반영] 너무 많이 떨어진 주가를 복구하기 위한 최초 주가 마스터 데이터 강제 재주입 로직
+        const INITIAL_STOCKS = [
+            { name: "애비디아", price: 353189, prev: 353189 },
+            { name: "파인애플", price: 446539, prev: 446539 },
+            { name: "테슐라", price: 664130, prev: 664130 },
+            { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
+            { name: "NBR", price: 8510000, prev: 8510000 },
+            { name: "시바보드", price: 7050000, prev: 7050000 },
+            { name: "효도중공업", price: 4600000, prev: 4600000 },
+            { name: "SK바이닉스", price: 1864000, prev: 1864000 },
+            { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
+            { name: "사성전기", price: 982000, prev: 982000 },
+            { name: "미래차", price: 756000, prev: 756000 },
+            { name: "한미중반도체", price: 409500, prev: 409500 },
+            { name: "오성전자", price: 277000, prev: 277000 },
+            { name: "코코아", price: 92400, prev: 92400 },
+            { name: "OK증권", price: 1250, prev: 1250 }
+        ];
 
-        // 실제 역사 기록(history) 배열 초기 구성 메커니즘 안전 정착
-        gameState.stocks.forEach(s => { 
-            if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
-            if(!s.history || !Array.isArray(s.history)) {
-                s.history = [s.price]; // 게임을 켠 첫 시점의 주가 하나로 순수하게 스타트
-            }
-        });
+        // 초기 주가 및 리얼 역사 데이터 배열을 강제로 밀어 넣어 주가 정산 리셋
+        gameState.stocks = INITIAL_STOCKS.map(s => ({
+            ...s,
+            history: [s.price]
+        }));
+        gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
+        localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
 
         let currentTarget = null;
         let currentTab = "list";
         let chartInstance = null; 
+
+        // 🚨 [기능 추가] 커스텀 모달 팝업 출력을 위한 시스템 유틸 제어 함수
+        function showCustomAlert(title, message) {
+            const titleEl = document.getElementById('custom-alert-title');
+            const msgEl = document.getElementById('custom-alert-message');
+            const modalEl = document.getElementById('custom-alert-modal');
+            if (titleEl) titleEl.innerText = title;
+            if (msgEl) msgEl.innerText = message;
+            if (modalEl) modalEl.style.display = 'flex';
+        }
+        
+        function closeCustomAlert() {
+            const modalEl = document.getElementById('custom-alert-modal');
+            if (modalEl) modalEl.style.display = 'none';
+        }
 
         function getIncomeMultiplier(s) { 
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
@@ -222,7 +243,6 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 주임님 최적화 정밀 구간 확률등락 연산 알고리즘
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
@@ -433,11 +453,21 @@
                     let rate = (((s.price - s.prev) / s.prev) * 100).toFixed(2);
                     let sign = rate > 0 ? "+" : "";
                     let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
+                    
+                    // 🚨 [요청 반영] 보유 수량 1주 이상 판단 후 실시간 배지 마크업 구성
+                    let myQty = Number(gameState.holdings[s.name] || 0);
+                    let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유중</span>` : '';
+
                     list.innerHTML += `
                         <li class="stock-item" onclick="openModal('${s.name}')">
                             <div class="stock-info">
                                 <div class="stock-icon">${s.name.charAt(0)}</div>
-                                <div class="stock-name-box"><span class="stock-name">${s.name}</span></div>
+                                <div class="stock-name-box">
+                                    <div style="display:flex; align-items:center; gap:2px;">
+                                        <span class="stock-name">${s.name}</span>
+                                        ${ownedBadge}
+                                    </div>
+                                </div>
                             </div>
                             <div class="stock-price-box">
                                 <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
@@ -516,22 +546,18 @@
             }
         }
 
-        // 🚨 [패치 핵심] 임의의 가짜 백트래킹 코드를 전면 삭제하고 실제 누적 데이터 배열 크기에 유연하게 연동
         function openChartModal() {
             if (!currentTarget) return;
             
             document.getElementById('chart-modal').style.display = 'flex';
             
-            // 🚨 가짜 메꿈 연산을 걷어내고 순수 히스토리 배열(history)을 있는 그대로 복사해서 바인딩
             let data = [...(currentTarget.history || [])];
             if (data.length === 0) {
-                data.push(currentTarget.price); // 데이터가 없는 특수 상황 방어용
+                data.push(currentTarget.price);
             }
             
-            // 누적된 실제 일수에 맞춰 차트 제목 갱신
             document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 ${data.length}일 기록)`;
             
-            // 🚨 기록된 데이터 개수(N)만큼만 정확하게 타임라인 라벨 분할 구성
             let labels = [];
             for (let i = data.length - 1; i >= 0; i--) {
                 if (i === 0) labels.push("오늘");
@@ -552,7 +578,7 @@
                         borderColor: '#0ea5e9',
                         backgroundColor: 'rgba(14, 165, 233, 0.08)',
                         borderWidth: 2.5,
-                        pointRadius: data.length === 1 ? 4 : 0, // 데이터가 1개일 때는 점으로 식별되도록 조건부 반지름 부여
+                        pointRadius: data.length === 1 ? 4 : 0, 
                         lineTension: 0.15,
                         fill: true
                     }]
@@ -617,10 +643,11 @@
             if (totalCostEl) totalCostEl.innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
+        // 🚨 [요청 반영] 모든 브라우저 native alert() 함수를 주임님 맞춤식 showCustomAlert 모달창으로 일체 마이그레이션 교체
         function trade(type) {
             if (!currentTarget) return;
             let qty = parseInt(document.getElementById('trade-qty').value);
-            if (!qty || qty <= 0) return alert("수량을 입력하세요");
+            if (!qty || qty <= 0) return showCustomAlert("경고", "수량을 입력하세요");
 
             let totalCost = currentTarget.price * qty;
 
@@ -629,9 +656,9 @@
                     gameState.money -= totalCost;
                     gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
                     gameState.buyPrinciples[currentTarget.name] = Number(gameState.buyPrinciples[currentTarget.name] || 0) + totalCost;
-                    alert(`${currentTarget.name} ${qty}주 매수 완료!`);
+                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매수 완료!`);
                 } else {
-                    return alert("예수금 부족!");
+                    return showCustomAlert("주문 실패", "예수금 부족!");
                 }
             } else {
                 let currentQty = Number(gameState.holdings[currentTarget.name] || 0);
@@ -640,9 +667,9 @@
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
-                    alert(`${currentTarget.name} ${qty}주 매도 완료!`);
+                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
-                    return alert("보유 수량 부족!");
+                    return showCustomAlert("주문 실패", "보유 수량 부족!");
                 }
             }
 
