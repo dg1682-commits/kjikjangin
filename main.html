@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>K-직장인 키우기 - 게임</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --bg-color: #f8fafc;
@@ -454,13 +457,32 @@
         ];
 
         const SAVE_KEY = "k_worker_tycoon_save_data";
+        
+        // 🚨 [인프라 세팅] 주임님의 파이어베이스 발급 키셋 전면 동기화 배치
+        const firebaseConfig = {
+            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
+            authDomain: "kkkjikjang.firebaseapp.com",
+            projectId: "kkkjikjang",
+            storageBucket: "kkkjikjang.firebasestorage.app",
+            messagingSenderId: "138250223666",
+            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        
+        let currentUser = null; // 🚨 로그인된 실제 계정 정보 트래킹용 객체
 
-        // 🚨 [데이터 증발 방지] 로컬 스토리지에 기저장된 주식 자산 등 데이터를 상호 보존하며 결합 저장
+        // 🚨 [연동 엔진 개조] 계정 스탯 데이터 세이브 시 파이어베이스 Firestore 클라우드 원격지에 실시간 자동 백업
         function saveGame() { 
             state.lastSaveTime = Date.now(); 
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...state }; 
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
+
+            // 로그인된 정보가 실시간으로 매칭되어 있다면 원격지에 강제 주입형 업로드
+            if (currentUser) {
+                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
+                    .catch(e => console.error("클라우드 백업 전송 실패:", e));
+            }
         }
 
         function loadGame() {
@@ -598,7 +620,7 @@
             
             content.innerHTML = "";
             sheet.classList.add('active');
-            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('overlay').style.display = 'none';
 
             let mult = getIncomeMultiplier(state.stamina);
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
@@ -1004,8 +1026,33 @@
             startGameLoop(); 
         }
 
-        window.onload = () => { 
-            launchGameEngine();
+        // 🚨 [코어 업그레이드] 페이지가 실행되자마자 파이어베이스 인증 체크 후 계정별 실시간 원격 바인딩 분할 유도
+        window.onload = () => {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user; // 계정 고유식별자 획득
+                    
+                    // Firestore 클라우드에서 로그인된 고유 UID 문서 땡겨오기
+                    firebase.firestore().collection("users").doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                // 가져온 고유 계정 자산으로 로컬 공용 데이터를 전면 지우고 복구 병합
+                                let cloudData = doc.data();
+                                state = { ...state, ...cloudData };
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+                            }
+                            launchGameEngine(); // 게임 엔진 구동
+                        })
+                        .catch((err) => {
+                            console.error("클라우드 로드 실패, 로컬 캐시로 백업 구동:", err);
+                            launchGameEngine();
+                        });
+                } else {
+                    // 비인가(로그아웃) 상태 차단 및 무조건 가입/로그인 대문 화면으로 축출 처리
+                    alert("로그인 세션이 만료되었거나 비정상적인 접근입니다. 다시 로그인 해주세요.");
+                    location.href = 'index.html';
+                }
+            });
         };
     </script>
 </body>
