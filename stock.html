@@ -26,7 +26,6 @@
         .header-title { font-size: 18px; font-weight: 800; }
         .empty-space { width: 24px; } 
 
-        /* 상단 고정으로 인한 하단 여백 최적화 보존 */
         main { padding-top: 60px; padding-bottom: 100px; overflow-y: auto; height: 100%; }
 
         /* 나의 총 자산 영역 상단 고정 (Sticky) 레이아웃 보존 */
@@ -177,7 +176,7 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 오프라인/백그라운드 정산 시 '진행 중인 업무 시간'도 함께 계산해 주는 엔진 고도화
+        // 백그라운드 오프라인 주가 변동 정산 루프 (밸런스 패치 버전)
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -189,7 +188,6 @@
                     gameState.gameSeconds += (deltaTime * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * deltaTime; 
                     
-                    // 🚨 [신설] 백그라운드 공백 시간 동안의 메인 업무/휴식 경과 시간 누적
                     if (gameState.isWorking && gameState.currentTask) {
                         if (gameState.currentTask.time) {
                             let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
@@ -209,8 +207,9 @@
                 for (let i = 0; i < daysPassed; i++) {
                     gameState.stocks.forEach(s => {
                         s.prev = s.price; 
-                        let range = (Math.random() * 0.6 - 0.3); 
-                        s.price = Math.floor(s.price * (1 + range));
+                        // 🚨 [밸런스 패치] 변동폭 ±15% 압축 + 장기 우상향 Drift +2% 보정 부여 및 반올림 연산 적용
+                        let range = (Math.random() * 0.30 - 0.15) + 0.02; 
+                        s.price = Math.round(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
                     });
                 }
@@ -219,7 +218,7 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
-        // 실시간 인게임 루프 내 업무 시간 트래킹 추가
+        // 실시간 인게임 루프 (밸런스 패치 버전)
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -236,7 +235,6 @@
                     gameState.gameSeconds += (passedSecs * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
 
-                    // 🚨 [신설] 주식 창을 보고 있는 실시간 1초마다 메인 업무/휴식 타이머를 동시 작동시킵니다.
                     if (gameState.isWorking && gameState.currentTask) {
                         if (gameState.currentTask.time) {
                             let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
@@ -253,8 +251,9 @@
                         for (let i = 0; i < daysPassed; i++) {
                             gameState.stocks.forEach(s => {
                                 s.prev = s.price; 
-                                let range = (Math.random() * 0.6 - 0.3); 
-                                s.price = Math.floor(s.price * (1 + range));
+                                // 🚨 [밸런스 패치] 변동폭 ±15% 압축 + 장기 우상향 Drift +2% 보정 부여 및 반올림 연산 적용
+                                let range = (Math.random() * 0.30 - 0.15) + 0.02; 
+                                s.price = Math.round(s.price * (1 + range));
                                 if (s.price < 10) s.price = 10;
                             });
                         }
