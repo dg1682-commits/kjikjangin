@@ -123,14 +123,22 @@
         .alert-title { font-size: 17px; font-weight: 800; margin-bottom: 12px; color: var(--neon-cyan); }
         .alert-desc { font-size: 14px; color: var(--text-light); margin-bottom: 22px; line-height: 1.5; font-weight: 500; }
         .alert-btn { background: var(--neon-pink); color: #fff; padding: 12px; width: 100%; border-radius: 10px; font-weight: 800; }
-        /* 🚨 [추가] BEST 점수 배지 스타일 */
+/* 오락기 위에 점수 배지 */
 #best-score-display {
-    position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
-    background: rgba(244, 63, 94, 0.9); /* 네온 핑크 배경 */
-    color: #fff; padding: 4px 10px; border-radius: 20px;
-    font-size: 13px; font-weight: 800; white-space: nowrap;
+    position: absolute; 
+    top: -40px; /* 위치를 좀 더 위로 조정 */
+    left: 50%; 
+    transform: translateX(-50%);
+    background: rgba(244, 63, 94, 0.9); 
+    color: #fff; 
+    padding: 5px 12px; 
+    border-radius: 20px;
+    font-size: 14px; 
+    font-weight: 800; 
+    white-space: nowrap;
     box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
-    z-index: 10; display: none; /* 기본값은 숨김 */
+    z-index: 99; 
+    display: none; /* 일단 숨김 */
 }
     </style>
 </head>
@@ -275,10 +283,12 @@
             }
         }
 
+// 🚨 [수정] 게임 선택 시 BEST 점수 노출 로직 강화
 function syncArcadeSelection(index) {
     activeIndex = index;
     const cards = document.querySelectorAll('.arcade-card');
     const dots = document.querySelectorAll('.dot');
+    const bestScoreEl = document.getElementById('best-score-display');
     
     cards.forEach((c, i) => {
         if (i === activeIndex) c.classList.add('active');
@@ -290,8 +300,7 @@ function syncArcadeSelection(index) {
         else d.classList.remove('active');
     });
 
-    // 🚨 [조건부 노출] index 0(니꺼내꺼)일 때만 BEST 점수 보여주기
-    const bestScoreEl = document.getElementById('best-score-display');
+    // 🚨 0번 게임(니꺼내꺼)일 때만 BEST 점수 보여주기
     if (index === 0) {
         bestScoreEl.style.display = 'block';
     } else {
@@ -352,9 +361,10 @@ window.onload = () => {
             firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
                 if (doc.exists) {
                     state.money = doc.data().money || 0;
-                    // 🚨 데이터 로드 후 최고기록 텍스트에 삽입
-                    const highScore = doc.data().highScore || 0;
-                    document.getElementById('best-score-display').innerText = "BEST: " + highScore;
+                    state.highScore = doc.data().highScore || 0;
+                    
+                    // 🚨 데이터 불러온 후 UI에 즉시 반영
+                    document.getElementById('best-score-display').innerText = "BEST: " + state.highScore;
                 }
             });
         } else { location.href = 'index.html'; }
