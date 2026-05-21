@@ -86,7 +86,9 @@
     <div id="trade-modal" class="modal">
         <div class="modal-content">
             <h3 id="modal-name"></h3>
-            <p id="modal-price"></p>
+            <p id="modal-price" style="margin-bottom: 5px;"></p>
+            <p id="modal-holding" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 0 0 15px 0;"></p>
+            
             <input type="number" id="trade-qty" placeholder="수량 입력" style="width:100%; padding:10px; margin-bottom:10px;" oninput="calcTotal()">
             <p>총 거래금액: <span id="total-cost" style="color: var(--stock-up); font-weight: 800;">0</span>원</p>
             <button class="modal-btn" style="background:#ef4444; color:white;" onclick="trade('buy')">매수</button>
@@ -233,7 +235,6 @@
                         let sign = profitLoss > 0 ? "+" : "";
                         let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
 
-                        // 🚨 [수정 반영] 주임님 요청 방식의 평단가 반올림(Math.round) 연산 처리
                         let avgPrice = Math.round(principal / qty);
 
                         list.innerHTML += `
@@ -290,18 +291,17 @@
             }
         }
 
+        // 🚨 [수정 반영] 모달을 열었을 때 해당 종목의 실시간 보유 수량을 체크하여 바인딩
         function openModal(name) {
             currentTarget = gameState.stocks.find(s => s.name === name);
+            let myQty = Number(gameState.holdings[currentTarget.name] || 0); // 전역 동기화 데이터 매칭
+
             document.getElementById('modal-name').innerText = currentTarget.name;
             document.getElementById('modal-price').innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
+            document.getElementById('modal-holding').innerText = `현재 보유량: ${myQty.toLocaleString()}주`; // 텍스트 매칭
             document.getElementById('trade-qty').value = "";
             document.getElementById('total-cost').innerText = "0";
             document.getElementById('trade-modal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('trade-modal').style.display = 'none';
-            currentTarget = null;
         }
 
         function calcTotal() {
