@@ -12,9 +12,9 @@
             --text-main: #111827; 
             --text-sub: #6b7280; 
             --text-light: #9ca3af; 
-            --stock-up: #ef4444;   /* 상승 (빨강) */
-            --stock-down: #3b82f6; /* 하락 (파랑) */
-            --stock-even: #4b5563; /* 보합 (회색) */
+            --stock-up: #ef4444;   
+            --stock-down: #3b82f6; 
+            --stock-even: #4b5563; 
             --border-light: #f3f4f6; 
             --accent-color: #0ea5e9; 
         }
@@ -45,12 +45,10 @@
         .stock-price-box { display: flex; flex-direction: column; align-items: flex-end; }
         .stock-price { font-size: 16px; font-weight: 800; }
 
-        /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
         .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
-        /* 하단 메뉴 바 */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { cursor: pointer; font-size: 14px; font-weight: bold; color: var(--text-sub); }
         .nav-item.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); }
@@ -98,14 +96,12 @@
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
-        // 싱글 소스 연동 구조 구축
         let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
         if (!gameState.holdings) gameState.holdings = {};
         if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; 
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-        // 마스터 주가 데이터를 gameState 내부로 완전 종속 분리
         if (!gameState.stocks || gameState.stocks.length !== 15) {
             gameState.stocks = [
                 { name: "애비디아", price: 353189, prev: 353189 },
@@ -126,7 +122,6 @@
             ];
         }
 
-        // 혹시 모를 누락 데이터 자동 보정 로직
         gameState.stocks.forEach(s => { if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; });
 
         let currentTarget = null;
@@ -136,7 +131,6 @@
             return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
         }
 
-        // 인게임 시간 규격화 변환 함수 (거래 내역 및 UI 연동용)
         function getGameDateString() {
             const totalMin = Math.floor(Number(gameState.gameSeconds || 0) / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
@@ -146,7 +140,6 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // [핵심] 인게임 시간 1일 주기 정산 및 렌더링 동기화 엔진 루프
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -157,23 +150,18 @@
                     let passedSecs = Math.floor(delta);
                     lastGameTick += passedSecs * 1000;
 
-                    // 강제 형변환 처리로 안정성 확보
                     gameState.gameSeconds = Number(gameState.gameSeconds || 0);
                     gameState.money = Number(gameState.money || 0);
 
                     let oldDayIdx = Math.floor(gameState.gameSeconds / 86400);
-                    
-                    // 시간 진행 및 패시브 머니 누적 연산 동기화
                     gameState.gameSeconds += (passedSecs * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
-                    
                     let newDayIdx = Math.floor(gameState.gameSeconds / 86400);
 
-                    // 🚨 [버그 박멸] 인게임 시간이 딱 하루(24시간) 바뀔 때 정확히 ±30% 변동 발동
                     if (newDayIdx > oldDayIdx) {
                         gameState.stocks.forEach(s => {
-                            s.prev = s.price; // 전일가 종가 확정 마감
-                            let range = (Math.random() * 0.6 - 0.3); // 최대 -30% ~ +30% 변동
+                            s.prev = s.price; 
+                            let range = (Math.random() * 0.6 - 0.3); 
                             s.price = Math.floor(s.price * (1 + range));
                             if (s.price < 10) s.price = 10;
                         });
@@ -236,13 +224,15 @@
                         let s = gameState.stocks.find(x => x.name === name);
                         if (!s) continue;
                         
-                        // 🚨 [버그 박멸] 실시간 주가 유동에 반응하여 평가액과 원금, 수익률이 완벽 매칭 연동됩니다.
                         let principal = Number(gameState.buyPrinciples[name] || 0);
                         let evaluation = s.price * qty;
                         let profitLoss = evaluation - principal;
                         let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
                         let sign = profitLoss > 0 ? "+" : "";
                         let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
+
+                        // 🚨 매입 평단가 계산
+                        let avgPrice = Math.floor(principal / qty);
 
                         list.innerHTML += `
                             <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
@@ -258,9 +248,14 @@
                                         <span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Number(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span>
                                     </div>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 8px 12px; border-radius: 8px; font-weight: 600;">
-                                    <div>매입원금: <span style="color:var(--text-main);">${Math.floor(principal).toLocaleString()}원</span></div>
-                                    <div>평가금액: <span style="color:var(--text-main);">${Math.floor(evaluation).toLocaleString()}원</span></div>
+                                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 10px 12px; border-radius: 8px; font-weight: 600;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <div>매입 평단가: <span style="color:var(--text-main);">${avgPrice.toLocaleString()}원</span></div>
+                                        <div>총 매입원금: <span style="color:var(--text-main);">${Math.floor(principal).toLocaleString()}원</span></div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed #e5e7eb; padding-top: 4px; margin-top: 2px;">
+                                        <div>평가금액: <span style="color:var(--text-main);">${Math.floor(evaluation).toLocaleString()}원</span></div>
+                                    </div>
                                 </div>
                             </li>`;
                         has = true;
@@ -319,7 +314,6 @@
                 if (gameState.money >= totalCost) {
                     gameState.money -= totalCost;
                     gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
-                    // 실제 구매했던 당시 시점 금액 그대로 매입원금에 정확하게 가산 합산 처리
                     gameState.buyPrinciples[currentTarget.name] = Number(gameState.buyPrinciples[currentTarget.name] || 0) + totalCost;
                     alert(`${currentTarget.name} ${qty}주 매수 완료!`);
                 } else {
@@ -331,7 +325,6 @@
                     let currentAvgPrice = Number(gameState.buyPrinciples[currentTarget.name] || 0) / currentQty;
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
-                    // 분할 매도 시 보유 원금 비례 차감 정산 로직 고정
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                     alert(`${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
@@ -339,7 +332,6 @@
                 }
             }
 
-            // 🚨 [요청 반영] 거래내역 생성 시 인게임 시간 'X년 X월 X일 XX:00' 포맷 전면 이식
             gameState.history.push({
                 name: currentTarget.name,
                 type: type === 'buy' ? '매수' : '매도',
