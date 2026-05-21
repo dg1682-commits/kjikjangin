@@ -184,38 +184,46 @@
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-        // 🚨 [요청 반영] 너무 많이 떨어진 주가를 복구하기 위한 최초 주가 마스터 데이터 강제 재주입 로직
-        const INITIAL_STOCKS = [
-            { name: "애비디아", price: 353189, prev: 353189 },
-            { name: "파인애플", price: 446539, prev: 446539 },
-            { name: "테슐라", price: 664130, prev: 664130 },
-            { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
-            { name: "NBR", price: 8510000, prev: 8510000 },
-            { name: "시바보드", price: 7050000, prev: 7050000 },
-            { name: "효도중공업", price: 4600000, prev: 4600000 },
-            { name: "SK바이닉스", price: 1864000, prev: 1864000 },
-            { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
-            { name: "사성전기", price: 982000, prev: 982000 },
-            { name: "미래차", price: 756000, prev: 756000 },
-            { name: "한미중반도체", price: 409500, prev: 409500 },
-            { name: "오성전자", price: 277000, prev: 277000 },
-            { name: "코코아", price: 92400, prev: 92400 },
-            { name: "OK증권", price: 1250, prev: 1250 }
-        ];
+        // 🚨 [버그 원천 봉쇄] 주식 데이터나 lastStockDayIdx가 없을 때만 '최초 1회만' 마스터 단가 셋업
+        if (!gameState.stocks || gameState.stocks.length !== 15 || gameState.lastStockDayIdx === undefined) {
+            const INITIAL_STOCKS = [
+                { name: "애비디아", price: 353189, prev: 353189 },
+                { name: "파인애플", price: 446539, prev: 446539 },
+                { name: "테슐라", price: 664130, prev: 664130 },
+                { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
+                { name: "NBR", price: 8510000, prev: 8510000 },
+                { name: "시바보드", price: 7050000, prev: 7050000 },
+                { name: "효도중공업", price: 4600000, prev: 4600000 },
+                { name: "SK바이닉스", price: 1864000, prev: 1864000 },
+                { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
+                { name: "사성전기", price: 982000, prev: 982000 },
+                { name: "미래차", price: 756000, prev: 756000 },
+                { name: "한미중반도체", price: 409500, prev: 409500 },
+                { name: "오성전자", price: 277000, prev: 277000 },
+                { name: "코코아", price: 92400, prev: 92400 },
+                { name: "OK증권", price: 1250, prev: 1250 }
+            ];
 
-        // 초기 주가 및 리얼 역사 데이터 배열을 강제로 밀어 넣어 주가 정산 리셋
-        gameState.stocks = INITIAL_STOCKS.map(s => ({
-            ...s,
-            history: [s.price]
-        }));
-        gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
-        localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            gameState.stocks = INITIAL_STOCKS.map(s => ({
+                ...s,
+                history: [s.price]
+            }));
+            gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
+            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+        }
+
+        // 혹시 히스토리 메모리 배열 누락 시 방어 처리 보존
+        gameState.stocks.forEach(s => { 
+            if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
+            if(!s.history || !Array.isArray(s.history)) {
+                s.history = [s.price]; 
+            }
+        });
 
         let currentTarget = null;
         let currentTab = "list";
         let chartInstance = null; 
 
-        // 🚨 [기능 추가] 커스텀 모달 팝업 출력을 위한 시스템 유틸 제어 함수
         function showCustomAlert(title, message) {
             const titleEl = document.getElementById('custom-alert-title');
             const msgEl = document.getElementById('custom-alert-message');
@@ -454,7 +462,6 @@
                     let sign = rate > 0 ? "+" : "";
                     let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
                     
-                    // 🚨 [요청 반영] 보유 수량 1주 이상 판단 후 실시간 배지 마크업 구성
                     let myQty = Number(gameState.holdings[s.name] || 0);
                     let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유중</span>` : '';
 
@@ -643,7 +650,6 @@
             if (totalCostEl) totalCostEl.innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
-        // 🚨 [요청 반영] 모든 브라우저 native alert() 함수를 주임님 맞춤식 showCustomAlert 모달창으로 일체 마이그레이션 교체
         function trade(type) {
             if (!currentTarget) return;
             let qty = parseInt(document.getElementById('trade-qty').value);
@@ -669,7 +675,7 @@
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                     showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
-                    return showCustomAlert("주문 실패", "보유 수량 부족!");
+                    return alert("보유 수량 부족!");
                 }
             }
 
