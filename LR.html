@@ -811,26 +811,34 @@ function terminateMiniGame() {
     isGameRunning = false;
     clearInterval(gameTimerInterval);
 
-    // 🚨 최고기록 갱신 확인
+    // 🚨 최고기록 갱신 로직
     let isNewRecord = score > (state.highScore || 0);
-    let rewardMoney = isNewRecord ? (score * 2) : Math.floor(score * 1.2);
-    
     if (isNewRecord) {
         state.highScore = score;
+        document.getElementById('best-val').innerText = state.highScore; // 화면 갱신
     }
 
+    // 보상 지급 (기존 기록보다 높으면 2배, 아니면 1.2배)
+    let rewardMoney = isNewRecord ? Math.floor(score * 2) : Math.floor(score * 1.2);
     state.money = Number(state.money || 0) + rewardMoney;
 
-    // 데이터 저장
+    // 🚨 저장 객체 명확화 (money와 highScore를 모두 포함)
+    let updateData = { 
+        money: state.money, 
+        highScore: state.highScore 
+    };
+    
+    // 로컬 저장
     let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
-    let merged = { ...existing, money: state.money, highScore: state.highScore };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ ...existing, ...updateData }));
 
+    // 파이어베이스 저장
     if (currentUser) {
-        firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true });
+        firebase.firestore().collection("users").doc(currentUser.uid).set(updateData, { merge: true })
+            .catch(e => console.error("기록 저장 실패:", e));
     }
 
-    // 결과 화면
+    // 결과창
     document.getElementById('start-curtain').innerHTML = `
         <div class="curtain-box">
             <div class="curtain-title" style="color:${isNewRecord ? '#facc15' : '#4ade80'};">
@@ -838,7 +846,7 @@ function terminateMiniGame() {
             </div>
             <div class="curtain-desc">
                 최종 스코어: <b>${score}점</b><br>
-                ${isNewRecord ? '최고기록 갱신! 보너스 2배!' : ''}<br>
+                ${isNewRecord ? '최고기록 갱신! 보너스 2배!<br>' : ''}
                 업무 성과급: <span style="color:#facc15; font-size:18px;">+${rewardMoney.toLocaleString()}원</span>
             </div>
             <button class="curtain-start-btn" onclick="location.reload()">한판 더 (100원)</button>
@@ -850,28 +858,21 @@ function terminateMiniGame() {
 
 
 
-        window.onload = () => {
-
-            firebase.auth().onAuthStateChanged((user) => {
-
-                if (user) {
-
-                    currentUser = user;
-
-                    firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
-
-                        if (doc.exists) {
-                        state.money = doc.data().money || 0;
-                        state.highScore = doc.data().highScore || 0;
-                        }
-
-                    });
-
-                } else { location.href = 'index.html'; }
-
+window.onload = () => {
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
+                if (doc.exists) {
+                    state.money = doc.data().money || 0;
+                    state.highScore = doc.data().highScore || 0;
+                    // 🚨 [수정] 데이터 로드 후 화면에 바로 반영
+                    document.getElementById('best-val').innerText = state.highScore;
+                }
             });
-
-        };
+        } else { location.href = 'index.html'; }
+    });
+};
         // [추가] 캐릭터 배치 섞기 함수
         function shuffleTargets() {
             let all = [1, 2, 3, 4, 5, 6];
