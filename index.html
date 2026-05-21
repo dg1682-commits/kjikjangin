@@ -35,7 +35,6 @@
         .logo { font-size: 34px; font-weight: 800; color: var(--accent-color); margin-bottom: 10px; letter-spacing: -0.5px; }
         .slogan { font-size: 14px; color: var(--text-sub); margin-bottom: 35px; font-weight: 600; }
         
-        /* 토스사 스타일의 깔끔하고 슬림한 입력창 영역 컴포넌트 */
         .input-container {
             width: 100%;
             max-width: 320px;
@@ -60,7 +59,6 @@
             border-color: var(--accent-color);
         }
 
-        /* 상태 알림용 에러 메시지 라벨 */
         #error-msg {
             font-size: 12px;
             color: var(--danger);
@@ -78,7 +76,6 @@
         }
         #start-btn:active { transform: scale(0.97); }
 
-        /* 회원가입으로 토글하는 슬림 서브 링크 버튼 */
         .switch-mode-text {
             font-size: 13px;
             color: var(--text-sub);
@@ -109,7 +106,6 @@
         const SAVE_KEY = "k_worker_tycoon_save_data";
         let isSignUpMode = false; 
 
-        // 🚨 [연동 완료] 주임님이 발급받으신 파이어베이스 실제 클라우드 키값 세팅
         const firebaseConfig = {
             apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
@@ -119,7 +115,6 @@
             appId: "1:138250223666:web:997b7ed4572f717354fc2b"
         };
 
-        // 파이어베이스 엔진 초기 가동
         if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("🚨")) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -134,7 +129,6 @@
             };
         };
 
-        // 로그인 모드 ↔ 회원가입 모드 UI 동적 스위칭 트랜지션 함수
         function toggleAuthMode() {
             isSignUpMode = !isSignUpMode;
             const startBtn = document.getElementById('start-btn');
@@ -152,7 +146,6 @@
             }
         }
 
-        // 파이어베이스 계정 연동 및 클라우드 세이브 바인딩 실행 함수
         function handleAuthAction() {
             const email = document.getElementById('user-email').value.trim();
             const password = document.getElementById('user-password').value;
@@ -163,7 +156,7 @@
                 return;
             }
             if (password.length < 6) {
-                errorLabel.innerText = "보안을 위해 비밀번호는 6자리 이상 입력해 주세요.";
+                errorLabel.innerText = "비밀번호는 6자리 이상 입력해 주세요.";
                 return;
             }
 
@@ -174,15 +167,42 @@
                 firebase.auth().createUserWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         let user = userCredential.user;
-                        let localData = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000, gameSeconds: 0 };
                         
-                        // Firestore 클라우드 원격지에 회원 정보 문서 저장
-                        firebase.firestore().collection("users").doc(user.uid).set(localData)
+                        // 🚨 [밸런스 변경] 신규 회원가입 초기 자금을 천만 원에서 100,000원으로 전면 압축 밸런싱 패치
+                        const DEFAULT_START_STATE = {
+                            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100,
+                            houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false,
+                            currentTask: null, workElapsed: 0, debuffTimeLeft: 0,
+                            timeMult: 1.0, ownedItems: [], nickname: "신입", nicknameChangeCount: 0,
+                            holdings: {}, buyPrinciples: {}, history: [], stockResetV3Done: true,
+                            stocks: [
+                                { name: "애비디아", price: 353189, prev: 353189, history: [353189] },
+                                { name: "파인애플", price: 446539, prev: 446539, history: [446539] },
+                                { name: "테슐라", price: 664130, prev: 664130, history: [664130] },
+                                { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000, history: [1089420000] },
+                                { name: "NBR", price: 8510000, prev: 8510000, history: [8510000] },
+                                { name: "시바보드", price: 7050000, prev: 7050000, history: [7050000] },
+                                { name: "효도중공업", price: 4600000, prev: 4600000, history: [4600000] },
+                                { name: "SK바이닉스", price: 1864000, prev: 1864000, history: [1864000] },
+                                { name: "하놔에어로스페이스", price: 1315000, prev: 1315000, history: [1315000] },
+                                { name: "사성전기", price: 982000, prev: 982000, history: [982000] },
+                                { name: "미래차", price: 756000, prev: 756000, history: [756000] },
+                                { name: "한미중반도체", price: 409500, prev: 409500, history: [409500] },
+                                { name: "오성전자", price: 277000, prev: 277000, history: [277000] },
+                                { name: "코코아", price: 92400, prev: 92400, history: [92400] },
+                                { name: "OK증권", price: 1250, prev: 1250, history: [1250] }
+                            ]
+                        };
+                        
+                        // Firestore 클라우드 원격지에 10만 원이 세팅된 진짜 세 가입 문서 등록
+                        firebase.firestore().collection("users").doc(user.uid).set(DEFAULT_START_STATE)
                             .then(() => {
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(localData));
+                                localStorage.removeItem(SAVE_KEY);
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(DEFAULT_START_STATE));
                                 location.href = 'main.html';
                             })
                             .catch(() => {
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(DEFAULT_START_STATE));
                                 location.href = 'main.html'; 
                             });
                     })
@@ -195,10 +215,10 @@
                     .then((userCredential) => {
                         let user = userCredential.user;
                         
-                        // 원격 서버 클라우드에 있던 이전 데이터 호출 원본 복구
                         firebase.firestore().collection("users").doc(user.uid).get()
                             .then((doc) => {
                                 if (doc.exists) {
+                                    localStorage.removeItem(SAVE_KEY);
                                     localStorage.setItem(SAVE_KEY, JSON.stringify(doc.data()));
                                 }
                                 location.href = 'main.html';
@@ -213,7 +233,6 @@
             }
         }
 
-        // 파이어베이스 에러 코드 한글 변환 번역기 유틸
         function getFirebaseErrorMessage(code) {
             switch (code) {
                 case 'auth/invalid-email': return '유효하지 않은 이메일 형식입니다.';
