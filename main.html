@@ -255,6 +255,46 @@
             0% { transform: translateY(0); }
             100% { transform: translateY(-40px); }
         }
+        /* ==========================================================================
+           🚨 [추가] 우측 하단 톱니바퀴 설정 및 말풍선 모달 스타일
+           ========================================================================== */
+        .settings-floating-btn {
+            position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px;
+            background: rgba(30, 21, 56, 0.9); border: 2px solid var(--border-neon);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: var(--neon-cyan); cursor: pointer; z-index: 900;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.2s;
+        }
+        .settings-floating-btn:active { transform: scale(0.9); }
+        
+        /* 말풍선 스타일 모달창 */
+        .settings-bubble-modal {
+            position: fixed; bottom: 72px; right: 20px; width: 140px;
+            background: rgba(22, 15, 41, 0.95); border: 2px solid var(--neon-purple);
+            border-radius: 12px; padding: 6px 0; display: none; flex-direction: column;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); z-index: 901; backdrop-filter: blur(8px);
+        }
+        /* 말풍선 아래쪽 꼬리 각도 연출 */
+        .settings-bubble-modal::after {
+            content: ''; position: absolute; bottom: -8px; right: 16px;
+            border-width: 8px 8px 0; border-style: solid;
+            border-color: var(--neon-purple) transparent; display: block; width: 0;
+        }
+        .settings-item {
+            padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--text-light);
+            cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;
+        }
+        .settings-item:active { background: rgba(244, 63, 94, 0.15); color: var(--neon-pink); }
+        .settings-item.version-border { border-top: 1px solid #3b2d66; }
+        
+        /* 일반 중앙 팝업 모달 (버전 정보용) */
+        .center-info-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(30, 21, 56, 0.95); padding: 20px; border-radius: 16px;
+            width: 80%; max-width: 280px; z-index: 1000; display: none; text-align: center;
+            border: 2px solid var(--neon-pink); box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+        }
+        .center-info-btn { background: var(--neon-purple); color: #fff; padding: 10px; width: 100%; border-radius: 8px; font-weight: 800; border: none; margin-top: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -1051,6 +1091,60 @@
                 }
             });
         };
+        // 🚨 [추가] 설정 말풍선 토글 및 로그아웃/버전 정보 비즈니스 로직
+
+        function toggleSettingsBubble(e) {
+            e.stopPropagation(); // 버튼 클릭 시 이벤트 전파 차단
+            const bubble = document.getElementById("settings-bubble");
+            if (bubble.style.display === "flex") {
+                bubble.style.display = "none";
+            } else {
+                bubble.style.display = "flex";
+            }
+        }
+        
+        // 화면 다른 곳 아무 데나 누르면 말풍선 자동으로 닫히도록 예외 처리
+        document.addEventListener("click", () => {
+            document.getElementById("settings-bubble").style.display = "none";
+        });
+        
+        function handleLogout() {
+            // 자동 로그인 설정 플래그 완전 파괴 차단 처리
+            localStorage.removeItem("k_worker_auto_login");
+            
+            firebase.auth().signOut()
+                .then(() => {
+                    location.replace("index.html"); // 계정 재입력 화면으로 안전하게 리다이렉트
+                })
+                .catch(err => {
+                    console.error("로그아웃 도중 장해 발생:", err);
+                    location.replace("index.html");
+                });
+        }
+        
+        function showVersionModal() {
+            document.getElementById("version-modal").style.display = "block";
+        }
+        
+        function closeVersionModal() {
+            document.getElementById("version-modal").style.display = "none";
+        }
     </script>
+        <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
+        
+        <div class="settings-bubble-modal" id="settings-bubble">
+            <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
+            <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
+        </div>
+        
+        <div class="center-info-modal" id="version-modal">
+            <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
+            <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+                • 배포 버전: v1.0.4-beta<br>
+                • 패치 날짜: 2026-05-21<br>
+                • 업데이트: 오락실 네온 정밀 교정 및 원터치 견인 시스템 탑재 완료
+            </div>
+            <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
+        </div>
 </body>
 </html>
