@@ -296,7 +296,7 @@
                     <img src="메인배경/자동차.png" class="building-img">
                 </div>
 
-                <div class="building-wrapper" onclick="showAlert('오픈 준비', '미니게임 오락실은 현재 공사 중입니다!')">
+                <div class="building-wrapper" onclick="goToArcade()">
                     <img src="메인배경/오락실.png" class="building-img">
                 </div>
 
@@ -608,6 +608,10 @@
             setTimeout(() => { location.href = 'stock.html'; }, 2000); 
         }
 
+        function goToArcade() {
+            saveGame(); 
+            location.href = 'game.html';
+        }
         function openSheet(type) {
             if(state.debuffTimeLeft > 0 && type === 'work') return showAlert("업무 불가", "혼나는 중이라 일을 지시받을 수 없습니다!");
 
