@@ -348,25 +348,20 @@ body, html {
 
     <main>
 
-        <section class="dashboard-layer">
-
-            <div class="dash-card">
-
-                <span class="dash-lbl">TIME</span>
-
-                <span class="dash-val" id="timer-val">60.0</span>
-
-            </div>
-
-            <div class="dash-card" style="border-left: 1px solid rgba(255,255,255,0.2);">
-
-                <span class="dash-lbl">SCORE</span>
-
-                <span class="dash-val" id="score-val">0</span>
-
-            </div>
-
-        </section>
+<section class="dashboard-layer">
+    <div class="dash-card">
+        <span class="dash-lbl">TIME</span>
+        <span class="dash-val" id="timer-val">60.0</span>
+    </div>
+    <div class="dash-card" style="border-left: 1px solid rgba(255,255,255,0.2);">
+        <span class="dash-lbl">SCORE</span>
+        <span class="dash-val" id="score-val">0</span>
+    </div>
+    <div class="dash-card" style="border-left: 1px solid rgba(255,255,255,0.2);">
+        <span class="dash-lbl">BEST</span>
+        <span class="dash-val" id="best-val">0</span>
+    </div>
+</section>
 
 
 
@@ -812,63 +807,46 @@ function enterFeverMode() {
         }
 
 
-        function terminateMiniGame() {
+function terminateMiniGame() {
+    isGameRunning = false;
+    clearInterval(gameTimerInterval);
 
-            isGameRunning = false;
+    // 🚨 최고기록 갱신 확인
+    let isNewRecord = score > (state.highScore || 0);
+    let rewardMoney = isNewRecord ? (score * 2) : Math.floor(score * 1.2);
+    
+    if (isNewRecord) {
+        state.highScore = score;
+    }
 
-            clearInterval(gameTimerInterval);
+    state.money = Number(state.money || 0) + rewardMoney;
 
-            
+    // 데이터 저장
+    let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+    let merged = { ...existing, money: state.money, highScore: state.highScore };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
 
-            // 🚨 [정산 로직 변경] 점수 * 1.2
+    if (currentUser) {
+        firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true });
+    }
 
-            let rewardMoney = Math.floor(score * 1.2);
-
-            state.money = Number(state.money || 0) + rewardMoney;
-
-
-
-            let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
-
-            let merged = { ...existing, money: state.money };
-
-            localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
-
-
-
-            if (currentUser) {
-
-                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true });
-
-            }
-
-
-
-            document.getElementById('start-curtain').innerHTML = `
-
-                <div class="curtain-box">
-
-                    <div class="curtain-title" style="color:#4ade80;">퇴근 시간!</div>
-
-                    <div class="curtain-desc">
-
-                        최종 스코어: <b>${score}점</b><br><br>
-
-                        업무 성과급: <span style="color:#facc15; font-size:18px;">+${rewardMoney.toLocaleString()}원</span>
-
-                    </div>
-
-                    <button class="curtain-start-btn" onclick="location.reload()">한판 더 (100원)</button>
-
-                    <button class="curtain-start-btn" style="background:#475569; margin-top:10px;" onclick="location.replace('game.html')">오락실 나가기</button>
-
-                </div>
-
-            `;
-
-            document.getElementById('start-curtain').style.display = 'flex';
-
-        }
+    // 결과 화면
+    document.getElementById('start-curtain').innerHTML = `
+        <div class="curtain-box">
+            <div class="curtain-title" style="color:${isNewRecord ? '#facc15' : '#4ade80'};">
+                ${isNewRecord ? '🎉 신기록 달성!' : '퇴근 시간!'}
+            </div>
+            <div class="curtain-desc">
+                최종 스코어: <b>${score}점</b><br>
+                ${isNewRecord ? '최고기록 갱신! 보너스 2배!' : ''}<br>
+                업무 성과급: <span style="color:#facc15; font-size:18px;">+${rewardMoney.toLocaleString()}원</span>
+            </div>
+            <button class="curtain-start-btn" onclick="location.reload()">한판 더 (100원)</button>
+            <button class="curtain-start-btn" style="background:#475569; margin-top:10px;" onclick="location.replace('game.html')">오락실 나가기</button>
+        </div>
+    `;
+    document.getElementById('start-curtain').style.display = 'flex';
+}
 
 
 
