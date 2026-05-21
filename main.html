@@ -19,6 +19,13 @@
             --warning: #f59e0b;
             --condition-color: #f43f5e;
             --border-color: #e2e8f0;
+
+            /* 🚨 [긴급 패치] 누락되었던 오락실/설정단 전용 네온 테마 컬러 세트 전격 수혈 */
+            --neon-pink: #f43f5e;
+            --neon-purple: #a855f7;
+            --neon-cyan: #06b6d4;
+            --text-light: #f1f5f9;
+            --border-neon: #3b2d66;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -255,24 +262,29 @@
             0% { transform: translateY(0); }
             100% { transform: translateY(-40px); }
         }
+
         /* ==========================================================================
-           🚨 [추가] 우측 하단 톱니바퀴 설정 및 말풍선 모달 스타일
+           🚨 [색상 가독성 패치] 우측 하단 톱니바퀴 설정 및 말풍선 디자인 정밀 대조 보정
            ========================================================================== */
         .settings-floating-btn {
-            position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px;
-            background: rgba(30, 21, 56, 0.9); border: 2px solid var(--border-neon);
+            position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
+            background: var(--neon-cyan); /* 배경을 아주 밝은 형광 네온 블루 색상으로 전개 */
+            border: 2px solid var(--border-neon);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; color: var(--neon-cyan); cursor: pointer; z-index: 900;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.2s;
+            font-size: 22px; 
+            color: #0f0a1c; /* 💡 [핵심] 글씨(이모지 아이콘) 색상을 칠흑같은 다크 네이비로 강제 반전 */
+            cursor: pointer; z-index: 900;
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.6); 
+            transition: transform 0.1s, background-color 0.2s;
         }
-        .settings-floating-btn:active { transform: scale(0.9); }
+        .settings-floating-btn:active { transform: scale(0.9); background-color: var(--neon-purple); color: #fff; }
         
         /* 말풍선 스타일 모달창 */
         .settings-bubble-modal {
-            position: fixed; bottom: 72px; right: 20px; width: 140px;
-            background: rgba(22, 15, 41, 0.95); border: 2px solid var(--neon-purple);
+            position: fixed; bottom: 76px; right: 20px; width: 140px;
+            background: rgba(22, 15, 41, 0.98); border: 2px solid var(--neon-purple);
             border-radius: 12px; padding: 6px 0; display: none; flex-direction: column;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5); z-index: 901; backdrop-filter: blur(8px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.65); z-index: 901; backdrop-filter: blur(10px);
         }
         /* 말풍선 아래쪽 꼬리 각도 연출 */
         .settings-bubble-modal::after {
@@ -281,18 +293,18 @@
             border-color: var(--neon-purple) transparent; display: block; width: 0;
         }
         .settings-item {
-            padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--text-light);
+            padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--text-light);
             cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;
         }
-        .settings-item:active { background: rgba(244, 63, 94, 0.15); color: var(--neon-pink); }
+        .settings-item:active { background: rgba(244, 63, 94, 0.2); color: var(--neon-pink); }
         .settings-item.version-border { border-top: 1px solid #3b2d66; }
         
         /* 일반 중앙 팝업 모달 (버전 정보용) */
         .center-info-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(30, 21, 56, 0.95); padding: 20px; border-radius: 16px;
+            background: rgba(22, 15, 41, 0.98); padding: 20px; border-radius: 16px;
             width: 80%; max-width: 280px; z-index: 1000; display: none; text-align: center;
-            border: 2px solid var(--neon-pink); box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+            border: 2px solid var(--neon-pink); box-shadow: 0 0 25px rgba(244, 63, 94, 0.5);
         }
         .center-info-btn { background: var(--neon-purple); color: #fff; padding: 10px; width: 100%; border-radius: 8px; font-weight: 800; border: none; margin-top: 15px; cursor: pointer; }
     </style>
@@ -332,7 +344,7 @@
                     <img src="메인배경/증권사.png" class="building-img">
                 </div>
 
-                <div class="building-wrapper" onclick="openSheet('car')">
+                <div class="building-wrapper" onclick="goToCar()">
                     <img src="메인배경/자동차.png" class="building-img">
                 </div>
 
@@ -399,6 +411,23 @@
             <div id="current-action-label">대기 중...</div>
             <div class="click-notice" id="click-notice">💡 터치해서 돈 벌기!</div>
         </div>
+    </div>
+
+    <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
+    
+    <div class="settings-bubble-modal" id="settings-bubble">
+        <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
+        <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
+    </div>
+    
+    <div class="center-info-modal" id="version-modal">
+        <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
+        <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
+            • 배포 버전: v1.0.4-beta<br>
+            • 패치 날짜: 2026-05-21<br>
+            • 업데이트: 오락실 네온 정밀 교정 및 원터치 견인 시스템 탑재 완료
+        </div>
+        <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
 
     <div class="modal-overlay" id="overlay" onclick="closeSheet()"></div>
@@ -495,20 +524,6 @@
             {id: 'mid_car', name: "중형 SUV (쏘렌토)", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "업무 시간 18% 단축 | 업무 보상 25% 증가"},
             {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
         ];
-
-        const SAVE_KEY = "k_worker_tycoon_save_data";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
-            authDomain: "kkkjikjang.firebaseapp.com",
-            projectId: "kkkjikjang",
-            storageBucket: "kkkjikjang.firebasestorage.app",
-            messagingSenderId: "138250223666",
-            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
-        };
-        firebase.initializeApp(firebaseConfig);
-        
-        let currentUser = null; 
 
         function saveGame() { 
             state.lastSaveTime = Date.now(); 
@@ -652,6 +667,12 @@
             saveGame(); 
             location.href = 'game.html';
         }
+
+        function goToCar() {
+            // 주임님 기존 자동차 바텀시트 기능 유지용 임시 런처 (혹시 바텀 시트 대신 단독이동 시)
+            openSheet('car');
+        }
+
         function openSheet(type) {
             if(state.debuffTimeLeft > 0 && type === 'work') return showAlert("업무 불가", "혼나는 중이라 일을 지시받을 수 없습니다!");
 
@@ -661,7 +682,7 @@
             
             content.innerHTML = "";
             sheet.classList.add('active');
-            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('overlay').style.display = 'block';
 
             let mult = getIncomeMultiplier(state.stamina);
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
@@ -831,7 +852,7 @@
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
             document.getElementById('progress-wrapper').style.display = 'flex';
-            document.getElementById('click-notice').style.display = 'none';
+            document.getElementById('coin-container').style.display = 'none';
             let lastWorkTick = Date.now();
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
 
@@ -979,7 +1000,7 @@
             state.isWorking = false; state.currentTask = null;
             document.getElementById('progress-wrapper').style.display = 'none';
             document.getElementById('current-action-label').innerText = "대기 중...";
-            document.getElementById('click-notice').style.display = 'block';
+            document.getElementById('coin-container').style.display = 'flex';
         }
 
         function buyBuff(i) {
@@ -1055,6 +1076,40 @@
         }
         function closeAlert() { document.getElementById('alert-overlay').style.display = 'none'; document.getElementById('alert-modal').style.display = 'none'; }
 
+        function toggleSettingsBubble(e) {
+            e.stopPropagation(); 
+            const bubble = document.getElementById("settings-bubble");
+            if (bubble.style.display === "flex") {
+                bubble.style.display = "none";
+            } else {
+                bubble.style.display = "flex";
+            }
+        }
+        
+        document.addEventListener("click", () => {
+            document.getElementById("settings-bubble").style.display = "none";
+        });
+        
+        function handleLogout() {
+            localStorage.removeItem("k_worker_auto_login");
+            firebase.auth().signOut()
+                .then(() => {
+                    location.replace("index.html"); 
+                })
+                .catch(err => {
+                    console.error("로그아웃 도중 장해 발생:", err);
+                    location.replace("index.html");
+                });
+        }
+        
+        function showVersionModal() {
+            document.getElementById("version-modal").style.display = "block";
+        }
+        
+        function closeVersionModal() {
+            document.getElementById("version-modal").style.display = "none";
+        }
+
         function launchGameEngine() {
             loadGame(); 
             processOfflineProgress(); 
@@ -1071,7 +1126,6 @@
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    
                     firebase.firestore().collection("users").doc(user.uid).get()
                         .then((doc) => {
                             if (doc.exists) {
@@ -1091,60 +1145,6 @@
                 }
             });
         };
-        // 🚨 [추가] 설정 말풍선 토글 및 로그아웃/버전 정보 비즈니스 로직
-
-        function toggleSettingsBubble(e) {
-            e.stopPropagation(); // 버튼 클릭 시 이벤트 전파 차단
-            const bubble = document.getElementById("settings-bubble");
-            if (bubble.style.display === "flex") {
-                bubble.style.display = "none";
-            } else {
-                bubble.style.display = "flex";
-            }
-        }
-        
-        // 화면 다른 곳 아무 데나 누르면 말풍선 자동으로 닫히도록 예외 처리
-        document.addEventListener("click", () => {
-            document.getElementById("settings-bubble").style.display = "none";
-        });
-        
-        function handleLogout() {
-            // 자동 로그인 설정 플래그 완전 파괴 차단 처리
-            localStorage.removeItem("k_worker_auto_login");
-            
-            firebase.auth().signOut()
-                .then(() => {
-                    location.replace("index.html"); // 계정 재입력 화면으로 안전하게 리다이렉트
-                })
-                .catch(err => {
-                    console.error("로그아웃 도중 장해 발생:", err);
-                    location.replace("index.html");
-                });
-        }
-        
-        function showVersionModal() {
-            document.getElementById("version-modal").style.display = "block";
-        }
-        
-        function closeVersionModal() {
-            document.getElementById("version-modal").style.display = "none";
-        }
     </script>
-        <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
-        
-        <div class="settings-bubble-modal" id="settings-bubble">
-            <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
-            <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
-        </div>
-        
-        <div class="center-info-modal" id="version-modal">
-            <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
-            <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-                • 배포 버전: v1.0.4-beta<br>
-                • 패치 날짜: 2026-05-21<br>
-                • 업데이트: 오락실 네온 정밀 교정 및 원터치 견인 시스템 탑재 완료
-            </div>
-            <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
-        </div>
 </body>
 </html>
