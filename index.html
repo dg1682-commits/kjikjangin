@@ -3,109 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>K-직장인 키우기</title>
+    <title>K-직장인 키우기 - 로그인</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --accent-color: #0ea5e9;
-            --text-main: #1e293b;
-            --text-sub: #64748b;
-            --border-color: #e2e8f0;
-            --danger: #ef4444;
+            --neon-pink: #f43f5e;
+            --neon-purple: #a855f7;
+            --neon-cyan: #06b6d4;
+            --bg-dark: #0f0a1c;
+            --text-light: #f1f5f9;
         }
-
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            font-family: 'Pretendard', -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            overflow: hidden;
-            touch-action: manipulation;
+            font-family: 'Pretendard', sans-serif;
+            background: linear-gradient(135deg, #0f0a1c, #1e1538);
+            color: var(--text-light); display: flex; justify-content: center; align-items: center;
         }
-
-        #login-screen {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; padding: 30px; text-align: center;
+        .login-container {
+            width: 90%; max-width: 360px; padding: 30px 24px;
+            background: rgba(30, 21, 56, 0.6); border: 2px solid #3b2d66;
+            border-radius: 20px; backdrop-filter: blur(10px); text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
         }
-        .logo { font-size: 34px; font-weight: 800; color: var(--accent-color); margin-bottom: 10px; letter-spacing: -0.5px; }
-        .slogan { font-size: 14px; color: var(--text-sub); margin-bottom: 35px; font-weight: 600; }
+        h1 { font-size: 24px; font-weight: 900; margin-bottom: 25px; color: var(--text-light); }
+        h1 span { color: var(--neon-pink); }
         
-        .input-container {
-            width: 100%;
-            max-width: 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-        .login-input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            outline: none;
-            background: #ffffff;
-            color: var(--text-main);
+        .input-group { position: relative; margin-bottom: 15px; text-align: left; }
+        .input-group label { font-size: 11px; color: var(--neon-cyan); font-weight: bold; display: block; margin-bottom: 5px; }
+        .input-group input {
+            width: 100%; padding: 12px 14px; background: rgba(15, 10, 28, 0.8);
+            border: 1.5px solid #3b2d66; border-radius: 10px; color: #fff; font-size: 14px;
             transition: border-color 0.2s;
         }
-        .login-input:focus {
-            border-color: var(--accent-color);
+        .input-group input:focus { border-color: var(--neon-purple); outline: none; }
+        
+        /* 🚨 [추가된 레이아웃] ID/PW 저장 및 자동로그인 체크박스 영역 */
+        .check-options {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 5px 0 20px 0; padding: 0 2px;
+        }
+        .check-label {
+            display: flex; align-items: center; gap: 6px; font-size: 12px;
+            color: #94a3b8; cursor: pointer; user-select: none;
+        }
+        .check-label input {
+            width: 15px; height: 15px; accent-color: var(--neon-pink); cursor: pointer;
         }
 
-        #error-msg {
-            font-size: 12px;
-            color: var(--danger);
-            font-weight: 700;
-            margin-bottom: 15px;
-            height: 18px;
+        .login-btn {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+            color: white; font-size: 15px; font-weight: 800; border-radius: 12px; border: none;
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3); cursor: pointer; transition: transform 0.1s;
         }
-
-        #start-btn {
-            width: 100%; max-width: 320px; padding: 16px; border: none; border-radius: 12px;
-            font-weight: 700; background: var(--accent-color); color: #fff;
-            font-size: 16px; cursor: pointer; transition: transform 0.1s;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
-            margin-bottom: 12px;
+        .login-btn:active { transform: scale(0.97); }
+        
+        .alert-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(30, 21, 56, 0.95); padding: 20px; border-radius: 15px;
+            width: 80%; max-width: 300px; z-index: 200; display: none; text-align: center;
+            border: 2px solid var(--neon-purple); box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
         }
-        #start-btn:active { transform: scale(0.97); }
-
-        .switch-mode-text {
-            font-size: 13px;
-            color: var(--text-sub);
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: underline;
-        }
+        .alert-btn { background: var(--neon-pink); color: #fff; padding: 10px; width: 100%; border-radius: 8px; font-weight: 800; border: none; margin-top: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="logo">K-직장인 키우기</div>
-        <div class="slogan">여기선 부자가 되어보자!</div>
+    <div class="login-container">
+        <h1>💼 K-직장인 키우기<span>.</span></h1>
         
-        <div class="input-container">
-            <input type="email" id="user-email" class="login-input" placeholder="이메일 주소 입력">
-            <input type="password" id="user-password" class="login-input" placeholder="비밀번호 입력 (6자리 이상)">
+        <div class="input-group">
+            <label>이메일 계정 (ID)</label>
+            <input type="email" id="login-email" placeholder="example@email.com">
+        </div>
+        <div class="input-group">
+            <label>비밀번호 (PW)</label>
+            <input type="password" id="login-pw" placeholder="••••••••">
         </div>
 
-        <div id="error-msg"></div>
+        <div class="check-options">
+            <label class="check-label">
+                <input type="checkbox" id="chk-save-creds"> 계정 정보 저장
+            </label>
+            <label class="check-label">
+                <input type="checkbox" id="chk-auto-login"> 자동 로그인
+            </label>
+        </div>
 
-        <button id="start-btn">로그인 및 시작</button>
-        <span class="switch-mode-text" id="mode-switch-btn" onclick="toggleAuthMode()">계정이 없으신가요? 회원가입하기</span>
+        <button class="login-btn" onclick="handleLogin()">출근하기 (로그인)</button>
+    </div>
+
+    <div class="alert-modal" id="alert-modal">
+        <div style="font-size:14px; line-height:1.5;" id="alert-desc">내용</div>
+        <button class="alert-btn" onclick="closeAlert()">확인</button>
     </div>
 
     <script>
-        const SAVE_KEY = "k_worker_tycoon_save_data";
-        let isSignUpMode = false; 
-
         const firebaseConfig = {
             apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
@@ -114,136 +108,76 @@
             messagingSenderId: "138250223666",
             appId: "1:138250223666:web:997b7ed4572f717354fc2b"
         };
-
-        if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("🚨")) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        firebase.initializeApp(firebaseConfig);
 
         window.onload = () => {
-            if (localStorage.getItem(SAVE_KEY)) {
-                document.getElementById('start-btn').innerText = "내 계정으로 이어하기";
+            const savedEmail = localStorage.getItem("k_worker_saved_email");
+            const savedPw = localStorage.getItem("k_worker_saved_pw");
+            const autoLogin = localStorage.getItem("k_worker_auto_login") === "true";
+
+            // 1. 계정 정보 저장 기록이 있다면 주입
+            if (savedEmail && savedPw) {
+                document.getElementById("login-email").value = savedEmail;
+                document.getElementById("login-pw").value = savedPw;
+                document.getElementById("chk-save-creds").checked = true;
             }
 
-            document.getElementById('start-btn').onclick = () => {
-                handleAuthAction();
-            };
+            if (autoLogin) {
+                document.getElementById("chk-auto-login").checked = true;
+                
+                // 2. [자동 로그인] 활성화 상태 시, 인증 상태 감지 후 즉시 메인 리다이렉트
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        location.replace("main.html");
+                    }
+                });
+            }
         };
 
-        function toggleAuthMode() {
-            isSignUpMode = !isSignUpMode;
-            const startBtn = document.getElementById('start-btn');
-            const switchBtn = document.getElementById('mode-switch-btn');
-            const errorLabel = document.getElementById('error-msg');
-            
-            errorLabel.innerText = ""; 
-            
-            if (isSignUpMode) {
-                startBtn.innerText = "새 계정으로 회원가입 및 시작";
-                switchBtn.innerText = "이미 계정이 있으신가요? 로그인하기";
-            } else {
-                startBtn.innerText = localStorage.getItem(SAVE_KEY) ? "내 계정으로 이어하기" : "로그인 및 시작";
-                switchBtn.innerText = "계정이 없으신가요? 회원가입하기";
-            }
+        function handleLogin() {
+            const email = document.getElementById("login-email").value.trim();
+            const pw = document.getElementById("login-pw").value;
+            const chkSave = document.getElementById("chk-save-creds").checked;
+            const chkAuto = document.getElementById("chk-auto-login").checked;
+
+            if(!email || !pw) return showAlert("이메일과 비밀번호를 모두 입력해 주세요.");
+
+            // 🚨 파이어베이스 로그인 세션 유지 정책 조정 (자동로그인 체크 유무에 따름)
+            const persistence = chkAuto ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+
+            firebase.auth().setPersistence(persistence)
+                .then(() => {
+                    return firebase.auth().signInWithEmailAndPassword(email, pw);
+                })
+                .then((userCredential) => {
+                    // 로그인 성공 시 로컬 세팅 동기화
+                    if (chkSave) {
+                        localStorage.setItem("k_worker_saved_email", email);
+                        localStorage.setItem("k_worker_saved_pw", pw);
+                    } else {
+                        localStorage.removeItem("k_worker_saved_email");
+                        localStorage.removeItem("k_worker_saved_pw");
+                    }
+
+                    if (chkAuto) {
+                        localStorage.setItem("k_worker_auto_login", "true");
+                    } else {
+                        localStorage.removeItem("k_worker_auto_login");
+                    }
+
+                    location.replace("main.html");
+                })
+                .catch((error) => {
+                    console.error(error);
+                    showAlert("로그인 실패: 계정 정보가 일치하지 않거나 서버 오류입니다.");
+                });
         }
 
-        function handleAuthAction() {
-            const email = document.getElementById('user-email').value.trim();
-            const password = document.getElementById('user-password').value;
-            const errorLabel = document.getElementById('error-msg');
-
-            if (!email || !password) {
-                errorLabel.innerText = "이메일과 비밀번호를 모두 입력해 주세요.";
-                return;
-            }
-            if (password.length < 6) {
-                errorLabel.innerText = "비밀번호는 6자리 이상 입력해 주세요.";
-                return;
-            }
-
-            errorLabel.innerText = "서버 통신 중...";
-
-            if (isSignUpMode) {
-                // 1. 회원가입 프로세스 작동
-                firebase.auth().createUserWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        let user = userCredential.user;
-                        
-                        // 🚨 [밸런스 변경] 신규 회원가입 초기 자금을 천만 원에서 100,000원으로 전면 압축 밸런싱 패치
-                        const DEFAULT_START_STATE = {
-                            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100,
-                            houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false,
-                            currentTask: null, workElapsed: 0, debuffTimeLeft: 0,
-                            timeMult: 1.0, ownedItems: [], nickname: "신입", nicknameChangeCount: 0,
-                            holdings: {}, buyPrinciples: {}, history: [], stockResetV3Done: true,
-                            stocks: [
-                                { name: "애비디아", price: 353189, prev: 353189, history: [353189] },
-                                { name: "파인애플", price: 446539, prev: 446539, history: [446539] },
-                                { name: "테슐라", price: 664130, prev: 664130, history: [664130] },
-                                { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000, history: [1089420000] },
-                                { name: "NBR", price: 8510000, prev: 8510000, history: [8510000] },
-                                { name: "시바보드", price: 7050000, prev: 7050000, history: [7050000] },
-                                { name: "효도중공업", price: 4600000, prev: 4600000, history: [4600000] },
-                                { name: "SK바이닉스", price: 1864000, prev: 1864000, history: [1864000] },
-                                { name: "하놔에어로스페이스", price: 1315000, prev: 1315000, history: [1315000] },
-                                { name: "사성전기", price: 982000, prev: 982000, history: [982000] },
-                                { name: "미래차", price: 756000, prev: 756000, history: [756000] },
-                                { name: "한미중반도체", price: 409500, prev: 409500, history: [409500] },
-                                { name: "오성전자", price: 277000, prev: 277000, history: [277000] },
-                                { name: "코코아", price: 92400, prev: 92400, history: [92400] },
-                                { name: "OK증권", price: 1250, prev: 1250, history: [1250] }
-                            ]
-                        };
-                        
-                        // Firestore 클라우드 원격지에 10만 원이 세팅된 진짜 세 가입 문서 등록
-                        firebase.firestore().collection("users").doc(user.uid).set(DEFAULT_START_STATE)
-                            .then(() => {
-                                localStorage.removeItem(SAVE_KEY);
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(DEFAULT_START_STATE));
-                                location.href = 'main.html';
-                            })
-                            .catch(() => {
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(DEFAULT_START_STATE));
-                                location.href = 'main.html'; 
-                            });
-                    })
-                    .catch((error) => {
-                        errorLabel.innerText = getFirebaseErrorMessage(error.code);
-                    });
-            } else {
-                // 2. 로그인 및 데이터 동기화 클라우드 로드 작동
-                firebase.auth().signInWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        let user = userCredential.user;
-                        
-                        firebase.firestore().collection("users").doc(user.uid).get()
-                            .then((doc) => {
-                                if (doc.exists) {
-                                    localStorage.removeItem(SAVE_KEY);
-                                    localStorage.setItem(SAVE_KEY, JSON.stringify(doc.data()));
-                                }
-                                location.href = 'main.html';
-                            })
-                            .catch(() => {
-                                location.href = 'main.html';
-                            });
-                    })
-                    .catch((error) => {
-                        errorLabel.innerText = getFirebaseErrorMessage(error.code);
-                    });
-            }
+        function showAlert(desc) {
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'block';
         }
-
-        function getFirebaseErrorMessage(code) {
-            switch (code) {
-                case 'auth/invalid-email': return '유효하지 않은 이메일 형식입니다.';
-                case 'auth/user-disabled': return '정지된 계정입니다. 관리자에게 문의하세요.';
-                case 'auth/user-not-found': return '등록되지 않은 계정입니다. 회원가입을 해주세요.';
-                case 'auth/wrong-password': return '비밀번호가 올바르지 않습니다.';
-                case 'auth/email-already-in-use': return '이미 사용 중인 이메일 주소입니다.';
-                case 'auth/weak-password': return '비밀번호 강도가 너무 약합니다.';
-                default: return '계정 통신 오류가 발생했습니다. 다시 시도해 주세요.';
-            }
-        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
     </script>
 </body>
 </html>
