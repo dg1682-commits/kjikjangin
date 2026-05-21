@@ -197,7 +197,13 @@
             ];
         }
 
-        gameState.stocks.forEach(s => { if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; });
+        // 🚨 [방어 세팅] 역사 기록(history) 배열이 누락되어 있다면 현재가로 초기 채워 넣음
+        gameState.stocks.forEach(s => { 
+            if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
+            if(!s.history || !Array.isArray(s.history)) {
+                s.history = [s.price]; // 최초 실행 시 현재 주가로 메모리 생성
+            }
+        });
 
         let currentTarget = null;
         let currentTab = "list";
@@ -216,7 +222,7 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        // 주임님이 정교하게 설계해주신 구간 확률형 연산 보존
+        // 주임님 맞춤형 정교 구간 확률등락 연산 알고리즘
         function calculateProbabilityRange() {
             let rand = Math.random();
             let magnitude = 0;
@@ -238,7 +244,6 @@
             return (Math.random() < 0.53) ? magnitude : -magnitude;
         }
 
-        // 🚨 [기능 추가] 자산 카드 상세 영역을 접고 펴는 토글 제어 함수
         function togglePortfolioLayout() {
             const detailsBox = document.getElementById('account-details');
             const arrowIcon = document.getElementById('toggle-arrow');
@@ -255,6 +260,7 @@
             }
         }
 
+        // 백그라운드 오프라인 주가 실제 역사 데이터 누적 정산 루프
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -288,6 +294,11 @@
                         let range = calculateProbabilityRange(); 
                         s.price = Math.round(s.price * (1 + range));
                         if (s.price < 10) s.price = 10;
+                        
+                        // 🚨 [역사 기록 추가] 지나간 하루하루의 주가를 스토리지 배열에 고스란히 누적 (최근 30일 최대 한도 유지)
+                        if (!s.history) s.history = [];
+                        s.history.push(s.price);
+                        if (s.history.length > 30) s.history.shift();
                     });
                 }
                 gameState.lastStockDayIdx = currentDayIdx; 
@@ -295,6 +306,7 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
         }
 
+        // 실시간 게임 타이머 작동 시 실제 역사 데이터 동시 누적 루프
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -330,6 +342,11 @@
                                 let range = calculateProbabilityRange(); 
                                 s.price = Math.round(s.price * (1 + range));
                                 if (s.price < 10) s.price = 10;
+                                
+                                // 🚨 [역사 기록 추가] 인게임 실시간 진행 중 날짜 변경 시에도 리얼 주가를 히스토리에 누적
+                                if (!s.history) s.history = [];
+                                s.history.push(s.price);
+                                if (s.history.length > 30) s.history.shift();
                             });
                         }
                         gameState.lastStockDayIdx = currentDayIdx;
@@ -503,7 +520,7 @@
             }
         }
 
-        // 최근 30일 추이 선그래프 엔진 보존
+        // 🚨 [엔진 전면 고도화] 실제 저장된 히스토리 데이터를 1순위로 바인딩하여 차트 렌더링
         function openChartModal() {
             if (!currentTarget) return;
             
@@ -511,18 +528,25 @@
             document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 30일 추이)`;
             
             let labels = [];
-            let data = [];
-            let tempPrice = currentTarget.price;
+            // 세이브된 실제 인게임 주가 데이터 로그 로드
+            let data = [...(currentTarget.history || [])];
             
-            data.unshift(tempPrice);
-            labels.unshift("오늘");
+            // 🚨 [방어 연산 메커니즘] 만약 게임 시작 초기라서 실제 목격 데이터가 30일보다 적은 경우,
+            // 텅 비어 보이지 않도록 부족한 과거 부분만 자연스럽게 백트래킹(역산) 메꿈 처리 발동
+            if (data.length < 30) {
+                let tempPrice = data[0] || currentTarget.price;
+                while (data.length < 30) {
+                    let range = calculateProbabilityRange();
+                    tempPrice = Math.round(tempPrice / (1 + range));
+                    if (tempPrice < 10) tempPrice = 10;
+                    data.unshift(tempPrice); 
+                }
+            }
             
-            for (let i = 1; i < 30; i++) {
-                let range = calculateProbabilityRange();
-                tempPrice = Math.round(tempPrice / (1 + range));
-                if (tempPrice < 10) tempPrice = 10;
-                data.unshift(tempPrice);
-                labels.unshift(`${30 - i}일 전`);
+            // 30일 타임라인 라벨 세팅
+            for (let i = 29; i >= 0; i--) {
+                if (i === 0) labels.push("오늘");
+                else labels.push(`${i}일 전`);
             }
             
             const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
