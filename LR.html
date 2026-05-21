@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>K-직장인 키우기 - 좌우지간</title>
+    <title>K-직장인 키우기 - 니꺼내꺼 v1.1</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --sky-blue: #38bdf8;
-            --fever-bg: #1e1b4b; /* 피버타임 진입 시 우주 느낌의 딥 퍼플 전환용 */
+            --fever-bg: #1e1b4b;
             --neon-pink: #f43f5e;
-            --neon-cyan: #06b6d4;
+            --neon-yellow: #facc15;
             --text-light: #ffffff;
-            --card-dark: rgba(15, 10, 28, 0.4);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        /* 🚨 [기획 사항] 기본 시원한 하늘색 테마 배경 및 애니메이션 트랜지션 탑재 */
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            font-family: 'Pretendard', -apple-system, sans-serif;
+            font-family: 'Pretendard', sans-serif;
             background-color: var(--sky-blue);
             color: var(--text-light);
             overflow: hidden;
@@ -30,14 +28,15 @@
             transition: background-color 0.3s;
         }
 
-        /* 피버타임 가동 시 배경 전체를 클럽 사이키델릭 네온 우주로 변강 */
+        /* 🚨 [추가] 피버타임 화면 테두리 노란색 네온 효과 */
         body.fever-active {
             background-color: var(--fever-bg);
-            animation: pulse-fever 1.5s infinite alternate;
+            box-shadow: inset 0 0 40px var(--neon-yellow), inset 0 0 100px rgba(250, 204, 21, 0.3);
+            animation: fever-glow 0.5s infinite alternate;
         }
-        @keyframes pulse-fever {
-            0% { background-color: #1e1b4b; }
-            100% { background-color: #311042; }
+        @keyframes fever-glow {
+            from { box-shadow: inset 0 0 20px var(--neon-yellow); }
+            to { box-shadow: inset 0 0 60px var(--neon-yellow); }
         }
 
         header {
@@ -47,112 +46,107 @@
             backdrop-filter: blur(5px); border-bottom: 1px solid rgba(255,255,255,0.1);
             z-index: 100;
         }
-        .back-btn { font-size: 22px; font-weight: bold; color: var(--text-light); cursor: pointer; text-decoration: none; }
-        .header-title { font-size: 16px; font-weight: 800; }
-        .empty-space { width: 22px; }
+        .back-btn { font-size: 22px; font-weight: bold; color: var(--text-light); text-decoration: none; }
 
-        main { padding-top: 50px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; position: relative; }
+        main { padding-top: 50px; height: 100%; display: flex; flex-direction: column; align-items: center; position: relative; }
 
-        /* 대시보드 스펙트럼 */
+        /* 대시보드 */
         .dashboard-layer {
             width: 90%; max-width: 360px; display: flex; justify-content: space-between;
-            margin-top: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
+            margin-top: 10px; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 10px;
         }
         .dash-card { display: flex; flex-direction: column; align-items: center; width: 48%; }
-        .dash-lbl { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: bold; margin-bottom: 2px; }
-        .dash-val { font-size: 20px; font-weight: 900; }
-        #timer-val { color: #fef08a; } /* 시간 노란색으로 강조 */
+        .dash-lbl { font-size: 10px; color: rgba(255,255,255,0.7); font-weight: bold; }
+        .dash-val { font-size: 18px; font-weight: 900; }
 
-        /* 💥 피버타임 긴급 노출 배너 */
         #fever-banner {
-            font-size: 28px; font-weight: 900; color: #facc15;
-            text-shadow: 0 0 12px var(--neon-pink), 0 0 4px #fff;
+            font-size: 32px; font-weight: 900; color: var(--neon-yellow);
+            text-shadow: 0 0 15px var(--neon-pink);
             display: none; animation: bounce 0.3s infinite alternate;
-            position: absolute; top: 85px; z-index: 80;
+            position: absolute; top: 80px; z-index: 80;
         }
-        @keyframes bounce { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+        @keyframes bounce { 0% { transform: scale(1); } 100% { transform: scale(1.2); } }
 
-        /* 🚨 콤보 카운터 디스플레이 */
-        #combo-box {
-            font-size: 20px; font-weight: 800; color: #fff;
-            text-shadow: 1px 2px 4px rgba(0,0,0,0.4);
-            margin-top: 5px; height: 26px; opacity: 0; transition: opacity 0.1s;
-        }
-
-        /* 🎰 [핵심 연출 부근] 중앙 타워 구조식 스택 보드 */
+        /* 중앙 게임판 */
         .game-conveyor-belt {
-            width: 100%; max-width: 320px; flex-grow: 1;
+            width: 100%; max-width: 400px; flex-grow: 1;
             display: flex; justify-content: center; align-items: flex-end;
-            position: relative; margin-bottom: 20px; padding-bottom: 10px;
+            position: relative; margin-bottom: 15px;
         }
-        /* 중앙 궤도 가이드 타워 레일 */
-        .center-rail-tower {
-            position: absolute; bottom: 0; width: 90px; height: 100%;
-            background: rgba(255,255,255,0.1); border-left: 2px dashed rgba(255,255,255,0.2);
-            border-right: 2px dashed rgba(255,255,255,0.2); pointer-events: none;
-        }
-        /* 오브젝트가 쌓여서 나오는 스택 컨테이너 */
+
         #object-stack-pool {
             position: relative; width: 100%; display: flex; flex-direction: column-reverse;
-            align-items: center; z-index: 20;
+            align-items: center; z-index: 20; padding-bottom: 20px;
         }
-        /* 개별 대기 유닛 스타일 */
+
         .obj-unit {
-            width: 66px; height: 66px; object-fit: contain;
-            margin-bottom: 12px; transition: transform 0.1s, opacity 0.1s;
-        }
-        /* 맨 아래 현재 타겟 유닛 링 강조 스케일 */
-        .obj-unit.current-target {
-            transform: scale(1.22);
-            filter: drop-shadow(0 0 6px rgba(255,255,255,0.8));
+            width: 70px; height: 70px; object-fit: contain;
+            margin-bottom: 10px; transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* 🆚 좌/우 가이드 기둥 타겟 매핑 카드 패널 */
+        /* 🚨 [추가] 맞췄을 때 팡! 터지는 효과 */
+        .hit-effect {
+            animation: hit-pop 0.3s forwards;
+        }
+        @keyframes hit-pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.8) translateY(-50px); opacity: 0; }
+        }
+
+        /* 🚨 [추가] 틀렸을 때 띵~ 좌우 흔들림 효과 */
+        .fail-shake {
+            filter: grayscale(1) brightness(0.5) sepia(1) saturate(10000%) hue-rotate(-50deg);
+            animation: shake 0.1s 3;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* 가이드 패널 (현재 활성화된 캐릭터만 표시) */
         .side-guide-panel {
-            position: absolute; bottom: 15px; width: 75px; height: 110px;
-            background: rgba(255,255,255,0.25); border: 2px solid #fff;
+            position: absolute; bottom: 20px; width: 85px; min-height: 120px;
+            background: rgba(255,255,255,0.2); border: 2.5px solid #fff;
             border-radius: 16px; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 6px; z-index: 15;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            align-items: center; padding: 10px 5px; gap: 5px; z-index: 15;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        .side-guide-panel.left-wing { left: 15px; }
-        .side-guide-panel.right-wing { right: 15px; }
-        .guide-lbl { font-size: 12px; font-weight: 800; background: #fff; color: #334155; padding: 2px 8px; border-radius: 6px; }
-        .guide-thumb { width: 50px; height: 50px; object-fit: contain; }
+        .side-guide-panel.left-wing { left: 10px; }
+        .side-guide-panel.right-wing { right: 10px; }
+        .guide-lbl { font-size: 11px; font-weight: 800; color: #fff; margin-bottom: 5px; }
+        .guide-thumb { width: 35px; height: 35px; object-fit: contain; }
 
-        /* 🎮 하단 액션 타격 패드 제어단 */
+        /* 하단 버튼 */
         .action-pad-layer {
-            width: 100%; display: flex; background: rgba(0, 0, 0, 0.2);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 20px; gap: 15px;
-            padding-bottom: calc(15px + env(safe-area-inset-bottom));
+            width: 100%; display: flex; background: rgba(0, 0, 0, 0.3);
+            padding: 15px; gap: 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom));
         }
         .pad-trigger-btn {
-            flex: 1; padding: 18px; font-size: 20px; font-weight: 900; color: #fff;
-            border-radius: 16px; border: none; cursor: pointer; transition: transform 0.05s;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2); text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            flex: 1; padding: 22px; font-size: 22px; font-weight: 900; color: #fff;
+            border-radius: 18px; border: none; cursor: pointer;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.3);
         }
-        .pad-trigger-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
         .pad-trigger-btn.btn-left { background: linear-gradient(135deg, #f43f5e, #e11d48); }
         .pad-trigger-btn.btn-right { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+        .pad-trigger-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
 
-        /* 게임 오버/스타트 스타터 오버레이 */
+        /* 오버레이 */
         .game-curtain-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 10, 28, 0.9); z-index: 500;
+            background: rgba(15, 10, 28, 0.95); z-index: 500;
             display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px;
         }
         .curtain-box {
             width: 100%; max-width: 320px; background: #1e1538; border: 2px solid var(--neon-purple);
-            border-radius: 20px; padding: 25px 20px; text-align: center;
-            box-shadow: 0 0 20px rgba(168,85,247,0.4);
+            border-radius: 20px; padding: 25px; text-align: center;
         }
-        .curtain-title { font-size: 24px; font-weight: 900; margin-bottom: 12px; color: var(--neon-cyan); }
-        .curtain-desc { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 25px; font-weight: 500; }
+        .curtain-title { font-size: 22px; font-weight: 900; margin-bottom: 10px; color: var(--neon-yellow); }
+        .curtain-desc { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; }
         .curtain-start-btn {
-            width: 100%; padding: 15px; background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
-            color: #fff; font-size: 16px; font-weight: 800; border-radius: 12px; border: none; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(244,63,94,0.3);
+            width: 100%; padding: 15px; background: linear-gradient(135deg, var(--neon-pink), #a855f7);
+            color: #fff; font-size: 16px; font-weight: 800; border-radius: 12px; border: none;
         }
     </style>
 </head>
@@ -160,69 +154,60 @@
 
     <div class="game-curtain-overlay" id="start-curtain">
         <div class="curtain-box">
-            <div class="curtain-title">🎯 순발력 검증: 좌우지간</div>
+            <div class="curtain-title">🎯 니꺼내꺼 : v1.1</div>
             <div class="curtain-desc">
-                매판 좌측과 우측의 기준 캐릭터가 랜덤하게 매핑됩니다!<br><br>
-                가장 아래에 있는 캐릭터를 보고 알맞은 방향의 패드를 격파해 주세요.<br><br>
-                • 시간: 기본 60초<br>
-                • 💥틀릴 때마다: <span style="color:var(--neon-pink); font-weight:bold;">시간 5초 감소!</span><br>
-                • 🔥20연속 콤보 시: <span style="color:#facc15; font-weight:bold;">피버타임 돌입!</span>
+                좌우 버튼을 눌러 캐릭터를 분류하세요!<br><br>
+                • 💥틀리면: <span style="color:var(--neon-pink);">시간 -5초</span><br>
+                • 🔥20콤보: <span style="color:var(--neon-yellow);">피버타임 (맞출 때마다 +1초)</span><br>
+                • ⏰1분마다: <span style="color:#4ade80;">새로운 캐릭터 등장 (난이도 UP!)</span>
             </div>
-            <button class="curtain-start-btn" onclick="launchMiniGame()">🕹️ 챌린지 시작</button>
+            <button class="curtain-start-btn" onclick="launchMiniGame()">🕹️ 게임 시작 (100원)</button>
         </div>
     </div>
 
     <header>
-        <a href="game.html" class="back-btn" onclick="goBack(event)">←</a>
-        <div class="header-title">⚡ 미니게임 구역</div>
+        <a href="game.html" class="back-btn" onclick="location.replace('game.html')">←</a>
+        <div class="header-title" id="difficulty-lbl">Lv.1 (진행: 00:00)</div>
         <div class="empty-space"></div>
     </header>
 
     <main>
         <section class="dashboard-layer">
             <div class="dash-card">
-                <span class="dash-lbl">남은 제한 시간</span>
-                <span class="dash-val" id="timer-val">60.0초</span>
+                <span class="dash-lbl">TIME</span>
+                <span class="dash-val" id="timer-val">60.0</span>
             </div>
-            <div class="dash-card" style="border-left: 1px solid rgba(255,255,255,0.15);">
-                <span class="dash-lbl">현재 도출 스코어</span>
-                <span class="dash-val" id="score-val" style="color: #4ade80;">0점</span>
+            <div class="dash-card" style="border-left: 1px solid rgba(255,255,255,0.2);">
+                <span class="dash-lbl">SCORE</span>
+                <span class="dash-val" id="score-val">0</span>
             </div>
         </section>
 
-        <div id="fever-banner">🔥 FEVER TIME 🔥</div>
-
-        <div id="combo-box">0 COMBO</div>
+        <div id="fever-banner">FEVER TIME</div>
 
         <section class="game-conveyor-belt">
-            <div class="center-rail-tower"></div>
-            
-            <div class="side-guide-panel left-wing">
+            <div class="side-guide-panel left-wing" id="left-guide">
                 <span class="guide-lbl">LEFT</span>
-                <img id="img-guide-left" class="guide-thumb" src="" alt="L">
             </div>
 
             <div id="object-stack-pool"></div>
 
-            <div class="side-guide-panel right-wing">
+            <div class="side-guide-panel right-wing" id="right-guide">
                 <span class="guide-lbl">RIGHT</span>
-                <img id="img-guide-right" class="guide-thumb" src="" alt="R">
             </div>
         </section>
 
         <section class="action-pad-layer">
-            <button class="pad-trigger-btn btn-left" onclick="hitDirection('L')">◀ LEFT</button>
-            <button class="pad-trigger-btn btn-right" onclick="hitDirection('R')">RIGHT ▶</button>
+            <button class="pad-trigger-btn btn-left" onmousedown="hitDirection('L')" ontouchstart="hitDirection('L')">◀ LEFT</button>
+            <button class="pad-trigger-btn btn-right" onmousedown="hitDirection('R')" ontouchstart="hitDirection('R')">RIGHT ▶</button>
         </section>
     </main>
 
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
-        
-        let state = { money: 100000, gameSeconds: 0 }; // 파이어베이스 바인딩용 기초 뼈대 스켈레톤
+        let state = { money: 100000 };
         let currentUser = null;
 
-        // 파이어베이스 마스터 인프라 보존
         const firebaseConfig = {
             apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
@@ -233,92 +218,96 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        // 🚨 인게임 코어 연산 변수 컴포넌트
         let timeLeft = 60.0;
         let score = 0;
         let combo = 0;
+        let gameElapsedSec = 0;
         let isGameRunning = false;
         let gameTimerInterval = null;
 
-        let leftTargetId = 1;  // 이번 게임의 왼쪽 타겟 오행 기호 ID
-        let rightTargetId = 2; // 이번 게임의 오른쪽 타겟 오행 기호 ID
+        let leftTargets = [1]; 
+        let rightTargets = [2];
+        let objectQueue = [];
         
-        let objectQueue = []; // 대기 중인 오브제 라인업 큐 [id, id, id...]
-        
-        // 피버타임 스케줄 매니저 변수
         let isFeverMode = false;
-        let feverRemainingCount = 0; // 피버타임 지정 누적 카운트 (30개 타겟팅)
+        let feverRemainingCount = 0;
 
-        // 🚨 [기획 지정 자산 매핑] 영문 변환 처리 완료 폴더 베이스 매칭
         const OBJ_ASSETS = {
-            1: "arcade/LR/ob1.png",
-            2: "arcade/LR/ob2.png",
-            3: "arcade/LR/ob3.png",
-            4: "arcade/LR/ob4.png",
-            5: "arcade/LR/ob5.png",
-            6: "arcade/LR/ob6.png"
+            1: "arcade/LR/ob1.png", 2: "arcade/LR/ob2.png", 3: "arcade/LR/ob3.png",
+            4: "arcade/LR/ob4.png", 5: "arcade/LR/ob5.png", 6: "arcade/LR/ob6.png"
         };
 
-        // 🚨 [메커니즘 1] 게임 기동 시 마다 좌/우 타겟 랜덤 셔플러 배정기
-        function setupRandomTargets() {
-            let pool = [1, 2, 3, 4, 5, 6];
-            // 무작위 스와핑 셔플
-            pool.sort(() => Math.random() - 0.5);
+        // 🚨 [난이도 시스템] 시간에 따라 캐릭터 추가
+        function updateDifficulty() {
+            gameElapsedSec++;
+            const minute = Math.floor(gameElapsedSec / 60);
             
-            leftTargetId = pool[0];
-            rightTargetId = pool[1];
+            // 1분: 왼쪽 추가(3), 2분: 오른쪽 추가(4), 3분: 왼쪽 추가(5), 4분: 오른쪽 추가(6)
+            if (minute === 1 && leftTargets.length === 1) leftTargets.push(3);
+            if (minute === 2 && rightTargets.length === 1) rightTargets.push(4);
+            if (minute === 3 && leftTargets.length === 2) leftTargets.push(5);
+            if (minute === 4 && rightTargets.length === 2) rightTargets.push(6);
 
-            document.getElementById('img-guide-left').src = OBJ_ASSETS[leftTargetId];
-            document.getElementById('img-guide-right').src = OBJ_ASSETS[rightTargetId];
+            const m = String(Math.floor(gameElapsedSec / 60)).padStart(2, '0');
+            const s = String(gameElapsedSec % 60).padStart(2, '0');
+            document.getElementById('difficulty-lbl').innerText = `Lv.${minute+1} (진행: ${m}:${s})`;
+            
+            renderGuides();
         }
 
-        // 🚨 [메커니즘 2] 큐에 무작위 오브제 적재 레이아웃 공급기
+        function renderGuides() {
+            const lBox = document.getElementById('left-guide');
+            const rBox = document.getElementById('right-guide');
+            
+            lBox.innerHTML = '<span class="guide-lbl">LEFT</span>';
+            rBox.innerHTML = '<span class="guide-lbl">RIGHT</span>';
+            
+            leftTargets.forEach(id => {
+                const img = document.createElement('img');
+                img.src = OBJ_ASSETS[id]; img.className = 'guide-thumb';
+                lBox.appendChild(img);
+            });
+            rightTargets.forEach(id => {
+                const img = document.createElement('img');
+                img.src = OBJ_ASSETS[id]; img.className = 'guide-thumb';
+                rBox.appendChild(img);
+            });
+        }
+
         function refillObjects(count) {
             for(let i=0; i<count; i++) {
                 if(isFeverMode) {
-                    // 피버타임일 경우 무조건 왼쪽 타겟 아이템으로만 도배 처리 기획 적용
-                    objectQueue.push(leftTargetId);
+                    objectQueue.push(leftTargets[0]); // 피버때는 무조건 첫번째 캐릭만
                 } else {
-                    // 평시 상태면 50:50 확률 바이너리 랜덤 배정
-                    let randType = (Math.random() < 0.5) ? leftTargetId : rightTargetId;
-                    objectQueue.push(randType);
+                    const allCurrent = [...leftTargets, ...rightTargets];
+                    const rand = allCurrent[Math.floor(Math.random() * allCurrent.length)];
+                    objectQueue.push(rand);
                 }
             }
         }
 
-        // 🎰 [메커니즘 3] 화면 단에 세로 적재 타워 빌드 렌더러
         function drawStackDisplay() {
             const pool = document.getElementById('object-stack-pool');
             pool.innerHTML = "";
-
-            // 화면 가독성과 모바일 리소스 최적화를 위해 상위 6개까지만 노출
             let visibleCount = Math.min(objectQueue.length, 6);
             for(let i = 0; i < visibleCount; i++) {
                 let img = document.createElement('img');
                 img.src = OBJ_ASSETS[objectQueue[i]];
                 img.className = "obj-unit";
-                if(i === 0) img.classList.add('current-target'); // 맨 앞(아래) 노드 식별 태그 주입
+                if(i === 0) img.id = "current-obj";
                 pool.appendChild(img);
             }
         }
 
         function launchMiniGame() {
             document.getElementById('start-curtain').style.display = 'none';
-            setupRandomTargets();
-            
-            // 데이터 초기 청소
-            timeLeft = 60.0;
-            score = 0;
-            combo = 0;
+            timeLeft = 60.0; score = 0; combo = 0; gameElapsedSec = 0;
+            leftTargets = [1]; rightTargets = [2]; objectQueue = [];
             isFeverMode = false;
-            feverRemainingCount = 0;
-            objectQueue = [];
             
+            updateDifficulty();
             refillObjects(15);
             drawStackDisplay();
-            
-            document.getElementById('score-val').innerText = "0점";
-            document.getElementById('timer-val').innerText = "60.0초";
             
             isGameRunning = true;
             startTimerClock();
@@ -332,156 +321,110 @@
                 lastTick = now;
 
                 timeLeft = Math.max(0, timeLeft - delta);
-                document.getElementById('timer-val').innerText = timeLeft.toFixed(1) + "초";
+                document.getElementById('timer-val').innerText = timeLeft.toFixed(1);
 
-                if(timeLeft <= 0) {
-                    terminateMiniGame();
-                }
+                if(timeLeft % 1 < 0.1) updateDifficulty(); // 매 초마다 난이도 체크
+
+                if(timeLeft <= 0) terminateMiniGame();
             }, 100);
         }
 
-        // 💥 [핵심 판정 연산 엔진] 클릭 터치 인풋 들어왔을 때 트리거 판정
-        function hitDirection(direction) {
+        function hitDirection(dir) {
             if(!isGameRunning || objectQueue.length === 0) return;
 
-            let currentObjId = objectQueue[0];
-            let correctId = (direction === 'L') ? leftTargetId : rightTargetId;
+            const currentId = objectQueue[0];
+            const isLeftCorrect = dir === 'L' && leftTargets.includes(currentId);
+            const isRightCorrect = dir === 'R' && rightTargets.includes(currentId);
 
-            if(currentObjId === correctId) {
-                // ■■■■■■ 정답 처리 파이프라인 ■■■■■■
-                objectQueue.shift(); // 큐에서 삭제
-                score += 10;
-                document.getElementById('score-val').innerText = score.toLocaleString() + "점";
-
-                if(isFeverMode) {
-                    // 기획안: 피버타임 도중엔 콤보 적립 무효, 대신 맞출 때마다 1초 시간 보너스 누적
-                    timeLeft += 1.0;
-                    feverRemainingCount--;
-                    if(feverRemainingCount <= 0) {
-                        exitFeverMode();
-                    }
-                } else {
-                    combo++;
-                    showComboUI();
-                    
-                    // 기획안: 20연속 콤보 달성 시 피버타임 발동
-                    if(combo >= 20) {
-                        enterFeverMode();
-                    }
-                }
-            } else {
-                // ■■■■■■ 오답 꽝 처리 파이프라인 ■■■■■■
-                combo = 0; // 콤보 브레이크 박살
-                hideComboUI();
+            if(isLeftCorrect || isRightCorrect) {
+                // ✅ [성공] 팡! 애니메이션 처리
+                const objEl = document.getElementById('current-obj');
+                objEl.classList.add('hit-effect');
                 
-                timeLeft = Math.max(0, timeLeft - 5.0); // 기획안: 오답 시 즉시 5초 강제 소거 페널티
-                document.getElementById('timer-val').innerText = timeLeft.toFixed(1) + "초";
+                setTimeout(() => {
+                    objectQueue.shift();
+                    score += 10;
+                    document.getElementById('score-val').innerText = score;
 
-                if(isFeverMode) {
-                    // 기획안: 피버타임 도중 틀리면 그 즉시 피버타임 브레이크 해제 및 강제 축출
-                    exitFeverMode();
-                }
+                    if(isFeverMode) {
+                        timeLeft += 1.0;
+                        feverRemainingCount--;
+                        if(feverRemainingCount <= 0) exitFeverMode();
+                    } else {
+                        combo++;
+                        if(combo >= 20) enterFeverMode();
+                    }
+                    if(objectQueue.length < 10) refillObjects(10);
+                    drawStackDisplay();
+                }, 50);
+            } else {
+                // ❌ [실패] 띵~ 흔들림 효과
+                const objEl = document.getElementById('current-obj');
+                objEl.classList.add('fail-shake');
+                
+                timeLeft = Math.max(0, timeLeft - 5.0);
+                combo = 0;
+                if(isFeverMode) exitFeverMode();
+                
+                setTimeout(() => {
+                    objEl.classList.remove('fail-shake');
+                }, 300);
             }
-
-            // 탄창이 떨어지지 않게 상시 리필 유지
-            if(objectQueue.length < 10) {
-                refillObjects(10);
-            }
-            drawStackDisplay();
         }
 
-        // 🔥 피버타임 상태 돌입 연산자
         function enterFeverMode() {
-            isFeverMode = true;
-            combo = 0;
-            hideComboUI();
-            feverRemainingCount = 30; // 30개 한정 보너스 트랙 공급
-
-            // 큐 전면 물갈이 (피버 전용 폭탄 드롭 준비)
-            objectQueue = [];
-            refillObjects(35);
-
+            isFeverMode = true; combo = 0; feverRemainingCount = 30;
+            objectQueue = []; refillObjects(35);
             document.body.classList.add('fever-active');
             document.getElementById('fever-banner').style.display = 'block';
         }
 
-        // ❄️ 피버타임 해제 복구 연산자
         function exitFeverMode() {
             isFeverMode = false;
-            feverRemainingCount = 0;
             document.body.classList.remove('fever-active');
             document.getElementById('fever-banner').style.display = 'none';
-            
-            // 다시 일반 무작위 비율로 대기열 재편성 복구
-            objectQueue = [];
-            refillObjects(15);
+            objectQueue = []; refillObjects(15);
+            drawStackDisplay();
         }
 
-        function showComboUI() {
-            const box = document.getElementById('combo-box');
-            box.innerText = `${combo} COMBO!`;
-            box.style.opacity = "1";
-        }
-        function hideComboUI() { document.getElementById('combo-box').style.opacity = "0"; }
-
-        // 🏁 게임 종료 정산 및 자산 환원 연동 처리
         function terminateMiniGame() {
             isGameRunning = false;
             clearInterval(gameTimerInterval);
-            exitFeverMode();
-
-            // 이번 스코어 비례 소정의 위로금 보상 지급 밸런싱 (10점당 50원 배당율 연동)
-            let rewardMoney = Math.floor(score * 5); 
+            
+            // 🚨 [정산 로직 변경] 점수 * 1.2
+            let rewardMoney = Math.floor(score * 1.2);
             state.money = Number(state.money || 0) + rewardMoney;
 
-            // 로컬 스토리지 및 파이어베이스 클라우드 계정에 누적 자산 병합 자동 업로드
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
-            let merged = { ...existing, ...state };
+            let merged = { ...existing, money: state.money };
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
 
             if (currentUser) {
-                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                    .catch(e => console.error("미니게임 정산 원격지 전송 장해:", e));
+                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true });
             }
 
-            // 정산창 소환
             document.getElementById('start-curtain').innerHTML = `
                 <div class="curtain-box">
-                    <div class="curtain-title" style="color:#4ade80;">TIME OUT!</div>
-                    <div class="curtain-desc" style="text-align:center;">
-                        최종 스코어: <span style="color:#facc15; font-size:20px; font-weight:bold;">${score.toLocaleString()}점</span><br><br>
-                        직장인의 초인적인 집중력 보상으로<br>
-                        자금 <span style="color:#4ade80; font-weight:bold;">+${rewardMoney.toLocaleString()}원</span>이 통장에 즉시 입금되었습니다!
+                    <div class="curtain-title" style="color:#4ade80;">퇴근 시간!</div>
+                    <div class="curtain-desc">
+                        최종 스코어: <b>${score}점</b><br><br>
+                        업무 성과급: <span style="color:#facc15; font-size:18px;">+${rewardMoney.toLocaleString()}원</span>
                     </div>
-                    <button class="curtain-start-btn" onclick="launchMiniGame()">🔄 다시 한판 더</button>
-                    <button class="curtain-start-btn" style="background:#cbd5e1; color:#1e1538; margin-top:8px;" onclick="location.replace('game.html')">🚪 오락실로 나가기</button>
+                    <button class="curtain-start-btn" onclick="location.reload()">한판 더 (100원)</button>
+                    <button class="curtain-start-btn" style="background:#475569; margin-top:10px;" onclick="location.replace('game.html')">오락실 나가기</button>
                 </div>
             `;
             document.getElementById('start-curtain').style.display = 'flex';
         }
 
-        function goBack(e) {
-            e.preventDefault();
-            location.replace('game.html');
-        }
-
-        // 인증 홀더 바인딩 및 기존 자산 연동 스케줄
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user;
-                    firebase.firestore().collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                let cloudData = doc.data();
-                                state.money = cloudData.money || 100000;
-                                state.gameSeconds = cloudData.gameSeconds || 0;
-                            }
-                        })
-                        .catch(err => console.error("미니게임 유저 세션 로드 장해:", err));
-                } else {
-                    location.href = 'index.html';
-                }
+                    firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
+                        if (doc.exists) state.money = doc.data().money || 0;
+                    });
+                } else { location.href = 'index.html'; }
             });
         };
     </script>
