@@ -20,11 +20,11 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        /* 🚨 [정밀 경로 교정] 현재 폴더를 뜻하는 './'를 명시적으로 붙여 보안 문제 우회 시도 */
+        /* 🚨 [경로 완벽 개조] 한글 인식 오류 차단형 영문 백드롭 주소 바인딩 */
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             font-family: 'Pretendard', -apple-system, sans-serif;
-            background: url('./오락실/오락실배경.png') no-repeat center center / cover;
+            background: url('arcade/bg.png') no-repeat center center / cover;
             color: var(--text-light);
             overflow: hidden;
             touch-action: manipulation;
@@ -121,7 +121,7 @@
         .alert-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(30, 21, 56, 0.95); padding: 25px; border-radius: 20px;
-            width: 85%; max-width: 320px; z-index: 200; display: none; text-align: center;
+            width: 85%; max-width: 330px; z-index: 200; display: none; text-align: center;
             border: 2px solid var(--neon-purple); box-shadow: 0 0 25px rgba(168, 85, 247, 0.5);
             backdrop-filter: blur(10px);
         }
@@ -153,16 +153,16 @@
         <section class="carousel-container">
             <div class="carousel-track" id="carousel-track" onscroll="trackScrollHandler()">
                 <div class="arcade-card active" data-index="0">
-                    <img src="./오락실/게임1.png" class="arcade-img" alt="게임1">
+                    <img src="arcade/game1.png" class="arcade-img" alt="game1">
                 </div>
                 <div class="arcade-card" data-index="1">
-                    <img src="./오락실/게임2.png" class="arcade-img" alt="게임2">
+                    <img src="arcade/game2.png" class="arcade-img" alt="game2">
                 </div>
                 <div class="arcade-card" data-index="2">
-                    <img src="./오락실/게임3.png" class="arcade-img" alt="게임3">
+                    <img src="arcade/game3.png" class="arcade-img" alt="game3">
                 </div>
                 <div class="arcade-card" data-index="3">
-                    <img src="./오락실/게임4.png" class="arcade-img" alt="게임4">
+                    <img src="arcade/game4.png" class="arcade-img" alt="game4">
                 </div>
             </div>
         </section>
