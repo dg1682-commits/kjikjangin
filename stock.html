@@ -184,35 +184,39 @@
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
 
-        // 🚨 [버그 원천 봉쇄] 주식 데이터나 lastStockDayIdx가 없을 때만 '최초 1회만' 마스터 단가 셋업
-        if (!gameState.stocks || gameState.stocks.length !== 15 || gameState.lastStockDayIdx === undefined) {
-            const INITIAL_STOCKS = [
-                { name: "애비디아", price: 353189, prev: 353189 },
-                { name: "파인애플", price: 446539, prev: 446539 },
-                { name: "테슐라", price: 664130, prev: 664130 },
-                { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
-                { name: "NBR", price: 8510000, prev: 8510000 },
-                { name: "시바보드", price: 7050000, prev: 7050000 },
-                { name: "효도중공업", price: 4600000, prev: 4600000 },
-                { name: "SK바이닉스", price: 1864000, prev: 1864000 },
-                { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
-                { name: "사성전기", price: 982000, prev: 982000 },
-                { name: "미래차", price: 756000, prev: 756000 },
-                { name: "한미중반도체", price: 409500, prev: 409500 },
-                { name: "오성전자", price: 277000, prev: 277000 },
-                { name: "코코아", price: 92400, prev: 92400 },
-                { name: "OK증권", price: 1250, prev: 1250 }
-            ];
+        const INITIAL_STOCKS = [
+            { name: "애비디아", price: 353189, prev: 353189 },
+            { name: "파인애플", price: 446539, prev: 446539 },
+            { name: "테슐라", price: 664130, prev: 664130 },
+            { name: "요크셔 했어웨이", price: 1089420000, prev: 1089420000 },
+            { name: "NBR", price: 8510000, prev: 8510000 },
+            { name: "시바보드", price: 7050000, prev: 7050000 },
+            { name: "효도중공업", price: 4600000, prev: 4600000 },
+            { name: "SK바이닉스", price: 1864000, prev: 1864000 },
+            { name: "하놔에어로스페이스", price: 1315000, prev: 1315000 },
+            { name: "사성전기", price: 982000, prev: 982000 },
+            { name: "미래차", price: 756000, prev: 756000 },
+            { name: "한미중반도체", price: 409500, prev: 409500 },
+            { name: "오성전자", price: 277000, prev: 277000 },
+            { name: "코코아", price: 92400, prev: 92400 },
+            { name: "OK증권", price: 1250, prev: 1250 }
+        ];
 
+        // 🚨 [새로고침 무한 초기화 방지] 딱 최초 1회만 마스터 주가로 리셋시키고 다음엔 유동 기록 보존하도록 플래그 이중 처리
+        if (!gameState.stocks || gameState.stocks.length !== 15 || !gameState.stockResetV3Done) {
             gameState.stocks = INITIAL_STOCKS.map(s => ({
                 ...s,
                 history: [s.price]
             }));
             gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
-            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            gameState.stockResetV3Done = true; // 유니크 제어 키 삽입
+
+            // 메인 데이터 손실 방지용 하이드레이션 머지 저장
+            let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+            let merged = { ...existing, ...gameState };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
         }
 
-        // 혹시 히스토리 메모리 배열 누락 시 방어 처리 보존
         gameState.stocks.forEach(s => { 
             if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
             if(!s.history || !Array.isArray(s.history)) {
@@ -288,6 +292,13 @@
             }
         }
 
+        // 🚨 [데이터 보호] 주식 측 세이브 시에도 무조건 기존 스탯 데이터 구조와 안전 병합(Merge)하여 세이브 수행
+        function saveStockStateToStorage() {
+            let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+            let merged = { ...existing, ...gameState };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
+        }
+
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -329,7 +340,7 @@
                 }
                 gameState.lastStockDayIdx = currentDayIdx; 
             }
-            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            saveStockStateToStorage();
         }
 
         let lastGameTick = Date.now();
@@ -377,7 +388,7 @@
                     }
 
                     gameState.lastSaveTime = Date.now(); 
-                    localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                    saveStockStateToStorage();
                     updateAccountUI();
                     renderCoreView();
                 }
@@ -675,7 +686,7 @@
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                     showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
-                    return alert("보유 수량 부족!");
+                    return showCustomAlert("주문 실패", "보유 수량 부족!");
                 }
             }
 
@@ -688,7 +699,7 @@
                 date: getGameDateString()
             });
 
-            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            saveStockStateToStorage();
             const tradeModalEl = document.getElementById('trade-modal');
             if (tradeModalEl) tradeModalEl.style.display = 'none';
             updateAccountUI();
