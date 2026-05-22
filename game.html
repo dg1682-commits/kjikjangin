@@ -285,7 +285,7 @@ const ARCADE_GAMES = [
             if (activeIndex === idx) return; 
             isAutoScrolling = true;
             const track = document.getElementById('carousel-track');
-            const cardWidth = 280; 
+            const cardWidth = 250; // 🚨 250으로 변경 (240px + 마진 10px)
             
             track.scrollLeft = idx * cardWidth;
             syncArcadeSelection(idx);
@@ -296,7 +296,7 @@ const ARCADE_GAMES = [
         function trackScrollHandler() {
             if (isAutoScrolling) return; 
             const track = document.getElementById('carousel-track');
-            let cardWidth = 280; 
+            let cardWidth = 250; // 🚨 여기도 똑같이 250으로 변경!
             let scrollLeft = track.scrollLeft;
             
             let index = Math.round(scrollLeft / cardWidth);
