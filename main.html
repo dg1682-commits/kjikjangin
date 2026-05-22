@@ -184,10 +184,10 @@
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--card-bg); padding: 25px; border-radius: 16px;
             width: 85%; max-width: 330px; z-index: 200; display: none; text-align: center;
-            border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.155);
         }
         .alert-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap; text-align: left; font-weight: 500;}
+        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-wrap: pre-wrap; text-align: left; font-weight: 500;}
         .alert-btn-box { display: flex; gap: 10px; }
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
         .alert-btn.cancel { background: #94a3b8; }
@@ -397,7 +397,6 @@
                 
                 let saveState = { ...state };
                 delete saveState.workInterval; 
-                // 🚨 [수정] 강제로 진행 상태 데이터를 날리던 로직 제거하여 유지되도록 패치
 
                 localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
 
@@ -429,7 +428,6 @@
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
             if (!isNaN(passiveEarned)) state.money = Number(state.money) + passiveEarned;
             
-            // 🚨 [수정] 오프라인 도중 켜둔 일반 업무 진행 시간 자동 정산 및 연장 반영 로직
             if (state.isWorking && state.currentTask) {
                 let task = state.currentTask;
                 if (task.time) {
@@ -624,14 +622,15 @@
                     content.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub); font-weight: bold;">도착한 우편이 없습니다.</div>`;
                 } else {
                     state.inbox.forEach((mail, i) => {
+                        // 🚨 [패치 핵심] 전역 .item-price-box의 pointer-events: none을 무력화하기 위해 style="pointer-events: auto;" 인라인 주입
                         content.innerHTML += `
-                        <div class="list-item">
+                        <div class="list-item" style="cursor: default;">
                             <div class="item-info">
                                 <span class="item-name">${mail.title}</span>
                                 <span class="item-sub" style="color: var(--accent-color); font-weight:800;">${mail.rewardText}</span>
                             </div>
-                            <div class="item-price-box">
-                                <button class="alert-btn" style="padding: 8px 12px; font-size: 12px;" onclick="claimMail(${i})">수령</button>
+                            <div class="item-price-box" style="pointer-events: auto;">
+                                <button class="alert-btn" style="padding: 8px 12px; font-size: 12px; cursor: pointer;" onclick="claimMail(${i})">수령</button>
                             </div>
                         </div>`;
                     });
@@ -639,13 +638,11 @@
             }
         }
 
-        // 🚨 [수정 및 통합] 우편함 실시간 수령 및 즉각적인 스탯/재화 처리 모듈 완비
         function claimMail(idx) {
             let item = state.inbox[idx];
             if (!item) return;
 
             if (item.item === 'nickname') {
-                // 닉네임 변경권 처리 -> 수령 시 즉시 닉변 유도 모달(Prompt) 활성화
                 let n = prompt("새로운 사원증 이름을 입력해주세요 (8자 이내):", state.nickname);
                 if (n && n.trim() !== "") {
                     if (n.trim().length > 8) {
@@ -656,10 +653,9 @@
                     state.nicknameChangeCount++;
                     showAlert("변경 완료", `황금 명찰이 [${state.nickname}] 이름으로 새롭게 교체되었습니다!`);
                 } else {
-                    return; // 취소 시 우편함에서 제거하지 않고 보존
+                    return; 
                 }
             } else if (item.item === 'money' || (item.rewardText && item.rewardText.includes('원'))) {
-                // 돈(재화) 즉시 가산
                 let amt = Number(item.amount);
                 if(isNaN(amt) || !amt) {
                     amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
@@ -667,7 +663,6 @@
                 state.money = Number(state.money) + amt;
                 showAlert("수령 완료", `${amt.toLocaleString()}원이 정상 입금되었습니다.`);
             } else if (item.item === 'stamina' || item.item === 'condition' || (item.rewardText && (item.rewardText.includes('체력') || item.rewardText.includes('컨디션')))) {
-                // 체력 스탯 수치 즉시 상승
                 let amt = Number(item.amount);
                 if(isNaN(amt) || !amt) {
                     amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
@@ -678,7 +673,6 @@
                 showAlert("수령 완료", "아이템 수령이 완료되었습니다.");
             }
 
-            // 우편 목록에서 제외 및 세이브 데이터 즉시 파이어베이스 동기화 반영
             state.inbox.splice(idx, 1);
             saveGame(true); 
             updateDisplay();
@@ -709,7 +703,7 @@
         function executeWorkStart(job) {
             state.isWorking = true; state.currentTask = job; state.workElapsed = 0;
             closeSheet(); startTaskInterval();
-            saveGame(true); // 🚨 상태 보존을 위한 즉시 동기화 세이브
+            saveGame(true); 
         }
 
         function startTaskInterval() {
@@ -732,7 +726,6 @@
                         document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / actualTime) * 100) + "%";
                         document.getElementById('time-left').innerText = `${formatMMSS(remain)} 남음`;
                         
-                        // 1초 단위 마다 주기적 중간 세이브로 새로고침 변수 소실 완전 차단
                         if (state.workElapsed % 3 === 0) { saveGame(); }
 
                         if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
@@ -939,7 +932,6 @@
                             state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
                             state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
 
-                            // 🚨 [수정] 데이터 동기화 시 진행 중인 업무 정보 바인딩 누락 방지 패치
                             if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
                             if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
                             if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
