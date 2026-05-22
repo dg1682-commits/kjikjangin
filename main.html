@@ -58,7 +58,10 @@
             background: rgba(255, 255, 255, 0.95);
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .header-left { display: flex; flex-direction: column; gap: 5px; width: 55%; justify-content: center; flex-shrink: 0; }
+        
+        /* 🚨 [패치] 조 단위 금액 짤림 방지를 위한 헤더 좌우 비율 조정 */
+        .header-left { display: flex; flex-direction: column; gap: 5px; width: 42%; justify-content: center; flex-shrink: 0; }
+        .header-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; width: 56%; flex-grow: 1; overflow: visible; }
         
         .rank-badge {
             background: var(--accent-color); color: #fff;
@@ -79,9 +82,11 @@
             font-size: 11px; font-weight: 800; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        .header-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; width: 43%; flex-grow: 1; overflow: hidden; }
         #game-date { font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; white-space: nowrap; }
-        #stat-money { font-size: clamp(22px, 6.5vw, 44px); font-weight: 900; color: #d97706; line-height: 1.1; white-space: nowrap; letter-spacing: -0.5px; }
+        
+        /* 🚨 [패치] 조 단위 금액이 넘어가면 폰트 사이즈를 안전하게 억제 */
+        #stat-money { font-size: clamp(16px, 4.8vw, 32px); font-weight: 900; color: #d97706; line-height: 1.1; white-space: nowrap; letter-spacing: -1px; }
+        
         .income-rates { font-size: 11px; font-weight: 700; margin-top: 4px; display: flex; gap: 5px; }
         #stat-passive-rate { font-size: 12px; font-weight: 700; color: var(--success); }
         #stat-click-rate { font-size: 11px; font-weight: 700; color: var(--accent-color); }
@@ -108,7 +113,6 @@
             pointer-events: none;
         }
         
-        /* 🚨 캐릭터 크기 정확히 2배 확대한 220px 규격 고정 (업무시 안사라짐) */
         #char-display { 
             height: 220px; 
             object-fit: contain;
@@ -219,7 +223,6 @@
         .jumping-money { font-size: 80px; animation: jump 0.4s ease-in-out infinite alternate; }
         @keyframes jump { 0% { transform: translateY(0); } 100% { transform: translateY(-40px); } }
 
-        /* 🚨 설정 버튼 순백색(하얀색) 완벽 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
             background: #ffffff; 
@@ -330,6 +333,14 @@
         <div class="alert-btn-box" id="alert-btn-box"><button class="alert-btn" onclick="closeAlert()">확인</button></div>
     </div>
 
+    <div class="modal-overlay" id="nickname-overlay" style="z-index: 9998; display: none;"></div>
+    <div class="alert-modal" id="nickname-modal" style="z-index: 9999; display: none;">
+        <div class="alert-title" style="color: var(--accent-color);">✨ 입사를 환영합니다!</div>
+        <div class="alert-desc" style="text-align: center; font-weight: 700;">사용하실 사원증 이름(닉네임)을<br>입력해주세요.</div>
+        <input type="text" id="initial-nickname-input" placeholder="예: 김주임" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid var(--accent-color); border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box;">
+        <button class="alert-btn" style="width: 100%;" onclick="submitInitialNickname()">내 자리로 가기 (입사)</button>
+    </div>
+
     <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
     
     <div class="settings-bubble-modal" id="settings-bubble">
@@ -340,9 +351,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.0.9-Rescue<br>
+            • 배포 버전: v1.1.0-Stabilized<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 로컬 오염 캐시 파괴 및 Firebase 서버 100% 단독 강제 복구 모듈 가동
+            • 업데이트: 1조 이상 금액 UI 짤림 방어 적용, 초기 가입자 사원증(닉네임) 의무 발급 모듈 가동
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -371,7 +382,6 @@
         let workIntervalRef = null;
         let lastCloudSaveTime = 0; 
 
-        // 🚨 오염 데이터 원천 무력화 및 순수 숫자 강제 치유 모듈
         function sanitizeState() {
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money <= 0 || state.money > 1000000000000) state.money = 10000000;
@@ -402,7 +412,6 @@
             if (isNaN(state.highScore) || state.highScore < 0) state.highScore = 0;
         }
 
-        // 🚨 로컬 데이터 결합을 일절 배제하고 현재 치유된 객체를 단독 기록
         function saveGame(forceCloud = false) { 
             try {
                 sanitizeState();
@@ -770,21 +779,44 @@
         function showVersionModal() { document.getElementById("version-modal").style.display = "block"; }
         function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
+        // 🚨 [패치] 신규 유저 닉네임 강제 등록 함수
+        function submitInitialNickname() {
+            const inputEl = document.getElementById('initial-nickname-input');
+            const input = inputEl.value.trim();
+            if (!input) return alert("이름을 입력해주세요!");
+            if (input.length > 8) return alert("이름은 8자 이내로 입력해주세요.");
+            
+            state.nickname = input;
+            document.getElementById('nickname-overlay').style.display = 'none';
+            document.getElementById('nickname-modal').style.display = 'none';
+            
+            updateDisplay();
+            saveGame(true); // 입력한 닉네임 클라우드 즉시 저장
+            showAlert("입사 완료", `${state.nickname}님, K-직장에 오신 것을 환영합니다!`);
+        }
+
         function launchGameEngine() {
             processOfflineProgress(); updateDisplay(); 
             if (state.isWorking && state.currentTask) { startTaskInterval(); } else { resetUI(); }
             startGameLoop(); 
         }
 
-        // 🚨 로컬 데이터 원천 배제: 파이어베이스에서만 100% 데이터를 로드하여 오염 복구
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
                     firebase.firestore().collection("users").doc(user.uid).get()
                         .then((doc) => {
+                            let needsNickname = false; // 🚨 새 유저 판단 플래그
+
                             if (doc.exists) {
                                 let cloudData = doc.data();
+                                
+                                // 닉네임 데이터가 아예 존재하지 않는 경우 모달 띄우기
+                                if (!cloudData.nickname) {
+                                    needsNickname = true;
+                                }
+
                                 state.money = cloudData.money !== undefined ? Number(cloudData.money) : 10000000;
                                 state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
                                 state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
@@ -800,17 +832,26 @@
                                 state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
                                 state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
                                 state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
-                                state.nickname = cloudData.nickname ? String(cloudData.nickname) : "김씨";
+                                state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
                                 state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
+                            } else {
+                                // 아예 문서 자체가 없는 찐 신규 유저
+                                needsNickname = true;
                             }
+                            
                             sanitizeState(); 
                             
-                            // 완전히 정화된 데이터를 로컬 스토리지에 덮어쓰기 (오염 파괴)
                             let saveState = { ...state };
                             delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
                             localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
                             
                             launchGameEngine(); 
+
+                            // 🚨 데이터 연동이 끝난 후, 닉네임이 필요한 유저에게만 모달 강제 표출
+                            if (needsNickname) {
+                                document.getElementById('nickname-overlay').style.display = 'block';
+                                document.getElementById('nickname-modal').style.display = 'block';
+                            }
                         })
                         .catch((err) => { console.error(err); launchGameEngine(); });
                 } else { location.href = 'index.html'; }
