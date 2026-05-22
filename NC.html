@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>눈치눈치 - 부장님 눈치 피하기</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { margin: 0; background: #0f172a; color: white; font-family: 'Pretendard', sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .boss-box { width: 120px; height: 120px; background: #1e293b; border-radius: 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; font-size: 50px; border: 3px solid #06b6d4; }
+        .score-board { font-size: 24px; margin-bottom: 10px; color: #06b6d4; }
+        .work-btn { padding: 25px 50px; font-size: 24px; background: #f59e0b; border: none; border-radius: 15px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; }
+        .work-btn:active { transform: scale(0.95); }
+        .back-btn { margin-top: 20px; color: #94a3b8; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="score-board">BEST: <span id="best-score">0</span></div>
+<div class="score-board">현재 점수: <span id="current-score">0</span></div>
+<div id="boss-status" class="boss-box">😎</div>
+<div id="status-text" style="margin-bottom: 20px;">열심히 일하는 중...</div>
+<button class="work-btn" onclick="work()">업무 클릭!</button>
+<div class="back-btn" onclick="location.replace('main.html')">뒤로가기</div>
+
+<script>
+    // Firebase 설정 (main.html과 동일하게 설정되어 있는지 확인 필요)
+    const db = firebase.firestore();
+    let currentUser = null;
+    let score = 0;
+    let highScore = 0;
+    let isBossWatching = false;
+
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            db.collection("users").doc(user.uid).get().then(doc => {
+                if (doc.exists) {
+                    highScore = doc.data().highScore || 0;
+                    document.getElementById('best-score').innerText = highScore;
+                }
+            });
+        }
+    });
+
+    setInterval(() => {
+        isBossWatching = !isBossWatching;
+        document.getElementById('boss-status').innerText = isBossWatching ? '😠' : '😎';
+        document.getElementById('status-text').innerText = isBossWatching ? '부장님이 쳐다본다!!' : '열심히 일하는 중...';
+    }, Math.random() * 1500 + 1500);
+
+    function work() {
+        if (isBossWatching) {
+            alert("걸렸다!! 야근 확정! 점수가 초기화됩니다.");
+            score = 0;
+        } else {
+            score += 10;
+        }
+        document.getElementById('current-score').innerText = score;
+        
+        // 최고기록 갱신 시 업데이트
+        if (score > highScore) {
+            highScore = score;
+            document.getElementById('best-score').innerText = highScore;
+            db.collection("users").doc(currentUser.uid).update({ highScore: highScore });
+        }
+    }
+
+    // 게임 종료 처리 (창을 닫거나 뒤로갈 때 보상 지급)
+    window.onbeforeunload = function() {
+        if (score > 0) {
+            const earnings = score * 1.2;
+            db.collection("users").doc(currentUser.uid).get().then(doc => {
+                const currentMoney = doc.data().money || 0;
+                db.collection("users").doc(currentUser.uid).update({ money: currentMoney + earnings });
+            });
+        }
+    };
+</script>
+</body>
+</html>
