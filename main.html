@@ -42,7 +42,6 @@
 
         #game-screen { height: 100%; width: 100%; position: relative; }
 
-        /* 상단 고정 UI 레이어 */
         #top-ui-layer {
             position: fixed;
             top: 0; left: 0; width: 100%;
@@ -59,7 +58,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* 🚨 [패치] 조 단위 금액 짤림 방지를 위한 헤더 좌우 비율 조정 */
         .header-left { display: flex; flex-direction: column; gap: 5px; width: 42%; justify-content: center; flex-shrink: 0; }
         .header-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; width: 56%; flex-grow: 1; overflow: visible; }
         
@@ -83,8 +81,6 @@
         }
 
         #game-date { font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; white-space: nowrap; }
-        
-        /* 🚨 [패치] 조 단위 금액이 넘어가면 폰트 사이즈를 안전하게 억제 */
         #stat-money { font-size: clamp(16px, 4.8vw, 32px); font-weight: 900; color: #d97706; line-height: 1.1; white-space: nowrap; letter-spacing: -1px; }
         
         .income-rates { font-size: 11px; font-weight: 700; margin-top: 4px; display: flex; gap: 5px; }
@@ -104,24 +100,14 @@
         #cancel-btn { background: var(--danger); color: white; padding: 6px 12px; font-size: 11px; margin: 0; }
 
         #coin-container {
-            position: fixed;
-            top: 150px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 40;
-            display: flex; flex-direction: column; align-items: center;
-            pointer-events: none;
+            position: fixed; top: 150px; left: 50%; transform: translateX(-50%); z-index: 40;
+            display: flex; flex-direction: column; align-items: center; pointer-events: none;
         }
         
         #char-display { 
-            height: 220px; 
-            object-fit: contain;
-            margin-bottom: 5px; cursor: pointer; user-select: none;
-            -webkit-user-drag: none; 
-            display: inline-block;
-            filter: drop-shadow(0 6px 8px rgba(0,0,0,0.2));
-            pointer-events: auto;
-            transition: transform 0.05s;
+            height: 220px; object-fit: contain; margin-bottom: 5px; cursor: pointer; user-select: none;
+            -webkit-user-drag: none; display: inline-block; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.2));
+            pointer-events: auto; transition: transform 0.05s;
         }
         #char-display:active { transform: scale(0.9); }
         
@@ -131,25 +117,16 @@
 
         .town-scroll-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            overflow-x: auto; overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            touch-action: pan-x; 
-            z-index: 10;
+            overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+            touch-action: pan-x; z-index: 10;
         }
         .town-scroll-container::-webkit-scrollbar { display: none; }
         
         .town-map {
-            position: relative;
-            height: 100%;
-            min-width: max-content; 
+            position: relative; height: 100%; min-width: max-content; 
             background: url('메인배경/배경4.png') left bottom / auto 100% repeat-x;
-            display: flex; 
-            align-items: flex-end; 
-            justify-content: flex-start;
-            padding-left: 5vw;
-            padding-right: 15vw; 
-            padding-bottom: 15vh; 
-            gap: 5px; 
+            display: flex; align-items: flex-end; justify-content: flex-start;
+            padding-left: 5vw; padding-right: 15vw; padding-bottom: 15vh; gap: 5px; 
         }
 
         .building-wrapper {
@@ -225,16 +202,15 @@
 
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
-            background: #ffffff; 
-            border: 2px solid var(--border-color);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 22px; color: #1e293b; cursor: pointer; z-index: 900;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); transition: transform 0.1s, background-color 0.2s;
+            background: #ffffff; border: 2px solid var(--border-color); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 22px; 
+            color: #1e293b; cursor: pointer; z-index: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); 
+            transition: transform 0.1s, background-color 0.2s;
         }
         .settings-floating-btn:active { transform: scale(0.9); background-color: #f1f5f9; }
         
         .settings-bubble-modal {
-            position: fixed; bottom: 76px; right: 20px; width: 140px;
+            position: fixed; bottom: 76px; right: 20px; width: 150px;
             background: rgba(22, 15, 41, 0.98); border: 2px solid var(--neon-purple);
             border-radius: 12px; padding: 6px 0; display: none; flex-direction: column;
             box-shadow: 0 10px 25px rgba(0,0,0,0.65); z-index: 901; backdrop-filter: blur(10px);
@@ -266,9 +242,7 @@
     <div id="game-screen">
         <div class="town-scroll-container">
             <div class="town-map">
-                <div class="building-wrapper" onclick="openSheet('work')">
-                    <img src="메인배경/사무실.png" class="building-img"><div id="work-disabled-x" class="disabled-overlay">X</div>
-                </div>
+                <div class="building-wrapper" onclick="openSheet('work')"><img src="메인배경/사무실.png" class="building-img"><div id="work-disabled-x" class="disabled-overlay">X</div></div>
                 <div class="building-wrapper" onclick="openSheet('rest')"><img src="메인배경/집.png" class="building-img"></div>
                 <div class="building-wrapper" onclick="openSheet('house')"><img src="메인배경/부동산.png" class="building-img"></div>
                 <div class="building-wrapper" onclick="openSheet('buff')"><img src="메인배경/약국.png" class="building-img"></div>
@@ -283,18 +257,9 @@
         <div id="top-ui-layer">
             <header>
                 <div class="header-left">
-                    <div class="stat-row">
-                        <div class="stat-label-left">컨디션</div>
-                        <div class="bar-container"><div id="condition-fill" class="bar-fill condition"></div><div class="bar-text"><span id="val-condition">100</span> / <span id="val-max-condition">100</span></div></div>
-                    </div>
-                    <div class="stat-row">
-                        <div class="stat-label-left">체력</div>
-                        <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div><div class="bar-text"><span id="val-stamina">0</span></div></div>
-                    </div>
-                    <div class="stat-row">
-                        <div class="stat-label-left">업무력</div>
-                        <div class="bar-container"><div id="exp-fill" class="bar-fill exp"></div><div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">8000</span></div></div>
-                    </div>
+                    <div class="stat-row"><div class="stat-label-left">컨디션</div><div class="bar-container"><div id="condition-fill" class="bar-fill condition"></div><div class="bar-text"><span id="val-condition">100</span> / <span id="val-max-condition">100</span></div></div></div>
+                    <div class="stat-row"><div class="stat-label-left">체력</div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div><div class="bar-text"><span id="val-stamina">0</span></div></div></div>
+                    <div class="stat-row"><div class="stat-label-left">업무력</div><div class="bar-container"><div id="exp-fill" class="bar-fill exp"></div><div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">8000</span></div></div></div>
                 </div>
                 
                 <div class="header-right">
@@ -344,26 +309,32 @@
     <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
     
     <div class="settings-bubble-modal" id="settings-bubble">
-        <div class="settings-item" onclick="handleLogout()">🔓 로그아웃</div>
-        <div class="settings-item version-border" onclick="showVersionModal()">ℹ️ 버전 정보</div>
+        <div class="settings-item" onclick="openSheet('mailbox')">
+            📮 우편함 
+            <span id="mail-badge" style="display:none; background:var(--danger); color:white; border-radius:50%; padding:2px 6px; font-size:10px; margin-left:auto;">N</span>
+        </div>
+        <div class="settings-item version-border" onclick="handleLogout()">🔓 로그아웃</div>
+        <div class="settings-item" onclick="showVersionModal()">ℹ️ 버전 정보</div>
     </div>
     
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.1.0-Stabilized<br>
+            • 배포 버전: v1.1.5-Mailbox<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 1조 이상 금액 UI 짤림 방어 적용, 초기 가입자 사원증(닉네임) 의무 발급 모듈 가동
+            • 업데이트: 1조 금액 짤림 방어, 강제 닉네임, 그리고 <b>운영자 푸시 우편함 시스템</b> 탑재
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
 
     <script>
+        // 🚨 [패치] 상태 관리에 우편함(inbox)과 닉네임 변경권(nicknameTickets) 추가
         let state = {
             money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
             currentTask: null, workElapsed: 0, debuffTimeLeft: 0, 
-            timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: Date.now(), highScore: 0
+            timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: Date.now(), highScore: 0,
+            inbox: [], nicknameTickets: 0
         };
 
         const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 8000, bonus: 500}, {name: "사원", req: 32000, bonus: 1000}, {name: "주임", req: 64000, bonus: 2500}, {name: "대리", req: 96000, bonus: 4000}, {name: "과장", req: 160000, bonus: 7000}, {name: "차장", req: 256000, bonus: 10000}, {name: "부장", req: 384000, bonus: 15000}, {name: "사장", req: 1536000, bonus: 50000}];
@@ -410,6 +381,11 @@
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
             state.highScore = Number(state.highScore);
             if (isNaN(state.highScore) || state.highScore < 0) state.highScore = 0;
+            
+            // 우편함 및 닉네임 티켓 방어코드
+            if (!Array.isArray(state.inbox)) state.inbox = [];
+            state.nicknameTickets = Number(state.nicknameTickets);
+            if (isNaN(state.nicknameTickets) || state.nicknameTickets < 0) state.nicknameTickets = 0;
         }
 
         function saveGame(forceCloud = false) { 
@@ -533,6 +509,17 @@
             const charImg = document.getElementById('char-display');
             const expectedSrc = `캐릭터/${ageDecade}대.png`;
             if (charImg.getAttribute('src') !== expectedSrc) charImg.src = expectedSrc;
+            
+            // 🚨 우편함 뱃지 렌더링 로직
+            let badge = document.getElementById('mail-badge');
+            if (badge) {
+                if (state.inbox.length > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.innerText = state.inbox.length;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
         }
 
         function goToStock() {
@@ -585,7 +572,13 @@
                     let isOwned = state.ownedItems.includes(shop.id);
                     content.innerHTML += `<div class="list-item" onclick="buyShop(${i})" style="opacity: ${isOwned ? '0.5' : '1'}"><div class="item-info"><span class="item-name">${shop.name}</span><span class="item-sub">${shop.desc}</span></div><div class="item-price-box">${isOwned ? `<span class="item-owned">보유 중</span>` : `<span class="item-price">${shop.price.toLocaleString()}원</span>`}</div></div>`;
                 });
-                content.innerHTML += `<div class="list-item" onclick="buyNickname()"><div class="item-info"><span class="item-name">✨ 황금 명찰 변경권</span><span class="item-sub">캐릭터 이름을 변경합니다.</span></div><div class="item-price-box"><span class="item-price" style="color:var(--accent-color);">100,000원</span></div></div>`;
+                
+                // 🚨 [패치] 닉네임 변경권 UI 변경 (티켓 보유 시 돈 대신 티켓 차감 안내)
+                let nickPriceText = state.nicknameTickets > 0 ? 
+                    `<span style="color:var(--success);">변경권 보유 (${state.nicknameTickets}개)</span>` : 
+                    `<span class="item-price" style="color:var(--accent-color);">${(state.nicknameChangeCount === 0 ? 100000 : 100000000).toLocaleString()}원</span>`;
+                content.innerHTML += `<div class="list-item" onclick="buyNickname()"><div class="item-info"><span class="item-name">✨ 황금 명찰 변경권</span><span class="item-sub">캐릭터 이름을 변경합니다.</span></div><div class="item-price-box">${nickPriceText}</div></div>`;
+            
             } else if(type === 'house') {
                 header.innerText = "부동산 계약";
                 HOUSES.forEach((house, i) => {
@@ -600,7 +593,44 @@
                     let isCurrent = (state.carIdx === i);
                     content.innerHTML += `<div class="list-item" onclick="buyCar(${i})" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}"><div class="item-info"><span class="item-name">🚗 ${car.name}</span><span class="item-sub" style="color:var(--success);">${car.desc}</span></div><div class="item-price-box">${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}</div></div>`;
                 });
+            // 🚨 [패치] 우편함 전용 시트 UI 추가
+            } else if(type === 'mailbox') {
+                header.innerText = "📮 우편함";
+                if (state.inbox.length === 0) {
+                    content.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub); font-weight: bold;">도착한 우편이 없습니다.</div>`;
+                } else {
+                    state.inbox.forEach((mail, i) => {
+                        content.innerHTML += `
+                        <div class="list-item">
+                            <div class="item-info">
+                                <span class="item-name">${mail.title}</span>
+                                <span class="item-sub" style="color: var(--accent-color); font-weight:800;">${mail.rewardText}</span>
+                            </div>
+                            <div class="item-price-box">
+                                <button class="alert-btn" style="padding: 8px 12px; font-size: 12px;" onclick="claimMail(${i})">수령</button>
+                            </div>
+                        </div>`;
+                    });
+                }
             }
+        }
+
+        // 🚨 [패치] 우편 수령 기능
+        function claimMail(idx) {
+            let mail = state.inbox[idx];
+            if (mail.item === 'nickname') {
+                state.nicknameTickets++;
+                showAlert("수령 완료", `${mail.rewardText}을(를) 받았습니다!\n(쇼핑몰 메뉴에서 사용 가능)`);
+            } else {
+                // 나중에 돈이나 다른 아이템을 푸시할 때를 위한 방어 코드
+                showAlert("수령 완료", "아이템을 받았습니다.");
+            }
+            
+            // 수령 후 우편함에서 즉시 삭제
+            state.inbox.splice(idx, 1);
+            updateDisplay();
+            openSheet('mailbox'); // UI 새로고침
+            saveGame(true);
         }
 
         function buyCar(idx) {
@@ -760,12 +790,32 @@
             });
         }
         
+        // 🚨 [패치] 우편함에서 받은 변경권을 돈보다 우선 사용하도록 방어 로직 추가
         function buyNickname() {
-            let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
-            if(Number(state.money) >= price) {
-                let n = prompt("새 이름:");
-                if(n && n.trim() !== "") { state.money = Number(state.money) - Number(price); state.nickname = n.trim(); state.nicknameChangeCount++; updateDisplay(); closeSheet(); saveGame(true); }
-            } else { showAlert("잔액 부족", "돈 부족!"); }
+            if (state.nicknameTickets > 0) {
+                // 변경권이 있을 경우
+                let n = prompt("새 이름 (변경권 사용):");
+                if (n && n.trim() !== "") {
+                    state.nicknameTickets--; // 티켓 차감
+                    state.nickname = n.trim();
+                    state.nicknameChangeCount++;
+                    updateDisplay(); closeSheet(); saveGame(true);
+                    showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
+                }
+            } else {
+                // 변경권이 없을 경우 (돈으로 구매)
+                let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
+                if(Number(state.money) >= price) {
+                    let n = prompt(`새 이름 (비용: ${price.toLocaleString()}원):`);
+                    if(n && n.trim() !== "") { 
+                        state.money = Number(state.money) - Number(price); 
+                        state.nickname = n.trim(); 
+                        state.nicknameChangeCount++; 
+                        updateDisplay(); closeSheet(); saveGame(true); 
+                        showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
+                    }
+                } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
+            }
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; }
@@ -779,7 +829,6 @@
         function showVersionModal() { document.getElementById("version-modal").style.display = "block"; }
         function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
-        // 🚨 [패치] 신규 유저 닉네임 강제 등록 함수
         function submitInitialNickname() {
             const inputEl = document.getElementById('initial-nickname-input');
             const input = inputEl.value.trim();
@@ -791,7 +840,7 @@
             document.getElementById('nickname-modal').style.display = 'none';
             
             updateDisplay();
-            saveGame(true); // 입력한 닉네임 클라우드 즉시 저장
+            saveGame(true); 
             showAlert("입사 완료", `${state.nickname}님, K-직장에 오신 것을 환영합니다!`);
         }
 
@@ -805,55 +854,60 @@
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    firebase.firestore().collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            let needsNickname = false; // 🚨 새 유저 판단 플래그
+                    
+                    // 🚨 [패치] 우편함이 실시간으로 동기화되도록 onSnapshot 리스너로 교체
+                    firebase.firestore().collection("users").doc(user.uid).onSnapshot((doc) => {
+                        let needsNickname = false; 
 
-                            if (doc.exists) {
-                                let cloudData = doc.data();
-                                
-                                // 닉네임 데이터가 아예 존재하지 않는 경우 모달 띄우기
-                                if (!cloudData.nickname) {
-                                    needsNickname = true;
-                                }
+                        if (doc.exists) {
+                            let cloudData = doc.data();
+                            if (!cloudData.nickname) needsNickname = true;
 
-                                state.money = cloudData.money !== undefined ? Number(cloudData.money) : 10000000;
-                                state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
-                                state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
-                                state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
-                                state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : 100;
-                                state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : 100;
-                                state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : 0;
-                                state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : -1;
-                                state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
-                                state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
-                                state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
-                                state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
-                                state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
-                                state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
-                                state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
-                                state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
-                                state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
-                            } else {
-                                // 아예 문서 자체가 없는 찐 신규 유저
-                                needsNickname = true;
-                            }
+                            state.money = cloudData.money !== undefined ? Number(cloudData.money) : 10000000;
+                            state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
+                            state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
+                            state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
+                            state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : 100;
+                            state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : 100;
+                            state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : 0;
+                            state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : -1;
+                            state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
+                            state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
+                            state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
+                            state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
+                            state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
+                            state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
+                            state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
+                            state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
+                            state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
                             
-                            sanitizeState(); 
-                            
-                            let saveState = { ...state };
-                            delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
-                            localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-                            
+                            // 🚨 클라우드에 쏜 우편함(inbox) 데이터 실시간 연동
+                            state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
+                            state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
+                        } else {
+                            needsNickname = true;
+                        }
+                        
+                        sanitizeState(); 
+                        
+                        let saveState = { ...state };
+                        delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
+                        localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
+                        
+                        if (!workIntervalRef) {
                             launchGameEngine(); 
+                        } else {
+                            updateDisplay(); // 백그라운드 갱신
+                        }
 
-                            // 🚨 데이터 연동이 끝난 후, 닉네임이 필요한 유저에게만 모달 강제 표출
-                            if (needsNickname) {
-                                document.getElementById('nickname-overlay').style.display = 'block';
-                                document.getElementById('nickname-modal').style.display = 'block';
-                            }
-                        })
-                        .catch((err) => { console.error(err); launchGameEngine(); });
+                        if (needsNickname) {
+                            document.getElementById('nickname-overlay').style.display = 'block';
+                            document.getElementById('nickname-modal').style.display = 'block';
+                        }
+                    }, (err) => {
+                        console.error(err);
+                        if (!workIntervalRef) launchGameEngine();
+                    });
                 } else { location.href = 'index.html'; }
             });
         };
