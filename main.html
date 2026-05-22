@@ -251,7 +251,7 @@
             100% { transform: translateY(-40px); }
         }
 
-        /* 🚨 설정 버튼 톱니바퀴 원형 배경 순백색(하얀색) 완벽 교정 명세 */
+        /* 🚨 설정 버튼 톱니바퀴 원형 배경 순백색(하얀색) 완전 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
             background: #ffffff; 
@@ -420,7 +420,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.0.7-Final<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 초당 유해 세이브 패킷 완벽 거세 및 클라우드 트래픽 스로틀링 결계 안정화 탑재
+            • 업데이트: 깨진 0점 계정 긴급 치유 모듈 보강 및 랙 프리 마스터 패치 완수
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -502,7 +502,7 @@
             {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
         ];
 
-        let lastCloudSaveTime = 0; // 🚨 클라우드 트래픽 과부하 분산 스로틀링 변수
+        let lastCloudSaveTime = 0; 
 
         function sanitizeState() {
             state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
@@ -524,9 +524,13 @@
             state.nickname = state.nickname ? String(state.nickname) : "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
 
-            // 🚨과거 텍스트 결합 버그로 오염된 수십조원/수백만초 단위 수치 실시간 자동 치유 필터링 격벽
-            if (state.money > 1000000000000 || String(state.money).length > 12) { state.money = 10000000; }
-            if (state.gameSeconds > 50000000) { state.gameSeconds = 0; }
+            // 🚨 [강력 자동 치유 프로토콜] 클라우드에 0원이나 오염된 수치가 영구 저장되었을 때 강제로 표준 시작 자금(1000만 원)으로 회생 복구
+            if (state.money <= 0 || state.money > 1000000000000 || String(state.money).length > 12) { 
+                state.money = 10000000; 
+            }
+            if (state.maxCondition <= 0) state.maxCondition = 100;
+            if (state.condition <= 0) state.condition = 100;
+            if (state.gameSeconds > 50000000 || isNaN(state.gameSeconds)) { state.gameSeconds = 0; }
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
         }
 
@@ -541,10 +545,9 @@
                 let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
                 let merged = { ...existing, ...saveState }; 
 
-                // 로컬 디스크에는 즉각 반영
                 localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
 
-                // 🚨 파이어베이스 통신 스로틀 가동 (최소 7초 간격 쓰기 제한 걸어 무한과부하 원천 박멸)
+                // 🚨 파이어베이스 통신 스로틀링 제한 가동 (랙, 벽돌, 로그인창 튕김현상 완벽 척결)
                 if (currentUser) {
                     let now = Date.now();
                     if (forceCloud || (now - lastCloudSaveTime > 7000)) {
@@ -621,7 +624,7 @@
                     let passiveAdd = (0.5 * mult) * passedSecs;
                     if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
                     
-                    updateDisplay(); // 🚨 [완벽 박멸] 루프 백그라운드 내 유해 세이브 엔진 원천 거세 완료
+                    updateDisplay(); // 🚨 [유해 세이브 패킷 제거] 0.2초 간격 과부하 세이브 코드 흔적 영구 삭제
                 }
             }, 200); 
         }
@@ -677,7 +680,7 @@
 
         function goToStock() {
             document.getElementById('loading-screen').style.display = 'flex';
-            try { saveGame(true); } catch(e){} // 페이지 이동 시 즉시 전송 강제화
+            try { saveGame(true); } catch(e){} 
             setTimeout(() => { location.href = 'stock.html'; }, 2000); 
         }
 
@@ -831,7 +834,7 @@
         }
 
         function buyCar(idx) {
-            let car = CARS[idx]; // 🚨 [오타 교정] CARARS 구조 명세 에러 완벽 척결 완료
+            let car = CARS[idx]; 
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
             if (Number(state.money) < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
 
@@ -1150,12 +1153,14 @@
                                 if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
                                 if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
 
+                                // 🚨 [가장 중요] 구름 데이터를 매핑한 직후 강제로 수치 클리닝 및 자동 치유 긴급 가동
+                                sanitizeState(); 
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(state));
                             }
                             launchGameEngine(); 
                         })
                         .catch((err) => {
-                            console.error("클라우드 연동 실패, 로컬 캐시 수혈 구동:", err);
+                            console.error("클라우드 연동 실패, 로컬 구동 패스:", err);
                             launchGameEngine();
                         });
                 } else { location.href = 'index.html'; }
