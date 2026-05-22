@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>주식 시장 통제실 (정률 조정 모드)</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; }
+        input { width: 80px; padding: 8px; border-radius: 5px; border: none; margin-top: 5px; }
+        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>📈 주식 시장 통제실 (정률 조정 모드)</h1>
+    <div class="grid" id="market-list"></div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const stocks = [
+        { id: "nvda", name: "애비디아", price: 353189 }, { id: "aapl", name: "파인애플", price: 446539 },
+        { id: "tsla", name: "테슐라", price: 664130 }, { id: "brk", name: "요크셔 했어웨이", price: 1089420000 },
+        { id: "nbr", name: "NBR", price: 8510000 }, { id: "shib", name: "시바보드", price: 7050000 },
+        { id: "hdo", name: "효도중공업", price: 4600000 }, { id: "skh", name: "SK바이닉스", price: 1864000 },
+        { id: "hanwha", name: "하놔에어로스페이스", price: 1315000 }, { id: "sec", name: "사성전기", price: 982000 },
+        { id: "mirae", name: "미래차", price: 756000 }, { id: "hanmi", name: "한미중반도체", price: 409500 },
+        { id: "os", name: "오성전자", price: 277000 }, { id: "cocoa", name: "코코아", price: 92400 },
+        { id: "sksec", name: "OK증권", price: 1250 }
+    ];
+
+    let pendingPercents = {}; // 종목별 수동 정률 조정값
+
+    function applyManualPercent(id, percentStr) {
+        pendingPercents[id] = parseFloat(percentStr) / 100;
+        alert(`${id} 종목을 ${percentStr}% 조정 대기중!`);
+    }
+
+    async function updateMarket() {
+        const timestamp = Date.now();
+        
+        for (let s of stocks) {
+            let change;
+            if (pendingPercents[s.id] !== undefined) {
+                // 주임님이 입력한 정률(%) 적용
+                change = s.price * pendingPercents[s.id];
+                pendingPercents[s.id] = undefined; // 1회 적용 후 초기화
+            } else {
+                // 랜덤 변동폭 (기존: -2.5% ~ +2.5%)
+                change = s.price * (Math.random() - 0.5) * 0.05;
+            }
+            
+            s.price = Math.max(10, Math.floor(s.price + change));
+
+            db.collection("market_data").doc(s.id).set({
+                name: s.name, price: s.price, updatedAt: timestamp
+            });
+
+            db.collection("price_history").doc(s.id).collection("daily").doc(timestamp.toString()).set({
+                price: s.price, date: new Date()
+            });
+        }
+        renderUI();
+    }
+
+    function renderUI() {
+        document.getElementById('market-list').innerHTML = stocks.map(s => `
+            <div class="stock-card">
+                <h3>${s.name}</h3>
+                <p style="font-size: 18px; font-weight:bold;">${s.price.toLocaleString()}원</p>
+                <input type="number" placeholder="예: 5 또는 -5" onchange="applyManualPercent('${s.id}', this.value)"> %
+            </div>
+        `).join('');
+    }
+    
+    updateMarket();
+    setInterval(updateMarket, 90000); // 인게임 하루(90초) 주기
+</script>
+</body>
+</html>
