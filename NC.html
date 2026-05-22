@@ -2,8 +2,8 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>눈치눈치 - 모바일 최적화 패치</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>눈치눈치 - 모바일 최적화 패치</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -11,33 +11,59 @@
         body { margin: 0; background: #0f172a; color: white; font-family: 'Pretendard', sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         
         /* [최적화] 부장님 캐릭터 이동 영역 */
-        #boss-container { position: absolute; top: 15%; left: -150px; width: 120px; height: 120px; z-index: 10; transition: left 0.5s linear; }
-        #boss-img { width: 100%; height: 100%; object-fit: contain; }
+        #boss-container { position: absolute; top: 15%; left: -150px; width: 120px; height: 120px; z-index: 10; pointer-events: none; }
+        #boss-img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.1s ease; }
         
+        /* 🚨 [신설] 정중앙 매립형 부장님 감시망 레이더 프레임 디스플레이 */
+        #view-zone {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 120px;
+            border: 3px dashed #06b6d4;
+            border-radius: 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            background: rgba(6, 182, 212, 0.04);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: #06b6d4;
+            z-index: 5;
+            letter-spacing: -0.5px;
+        }
+
         .score-board { margin-top: 50px; font-size: 20px; color: #06b6d4; font-weight: bold; width: 100%; }
-        .work-btn { width: 80%; height: 180px; font-size: 32px; background: #f59e0b; border: none; border-radius: 25px; cursor: pointer; color: white; font-weight: 900; margin-top: auto; margin-bottom: 50px; }
-        .work-btn:active { transform: scale(0.95); }
+        .work-btn { width: 80%; height: 180px; font-size: 32px; background: #f59e0b; border: none; border-radius: 25px; cursor: pointer; color: white; font-weight: 900; margin-top: auto; margin-bottom: 50px; box-shadow: 0 8px 0 #b45309; transition: transform 0.05s; }
+        .work-btn:active { transform: scale(0.96) translateY(4px); box-shadow: 0 4px 0 #b45309; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 25px; border: 4px solid #f43f5e; width: 85%; }
-        .modal-btn { width: 100%; padding: 15px; font-size: 18px; border-radius: 12px; margin: 10px 0; font-weight: 800; cursor: pointer; }
+        .modal-content { background: #1e293b; padding: 30px; border-radius: 25px; border: 4px solid #f43f5e; width: 85%; max-width: 340px; }
+        .modal-btn { width: 100%; padding: 15px; font-size: 18px; border-radius: 12px; margin: 10px 0; font-weight: 800; cursor: pointer; border: none; }
     </style>
 </head>
 <body>
 
 <div class="score-board">BEST: <span id="best-score">0</span> | 점수: <span id="current-score">0</span></div>
 
+<div id="view-zone">안전 구역</div>
+
 <div id="boss-container">
     <img id="boss-img" src="캐릭터/60대.png" alt="부장님">
 </div>
 
-<div id="status-text" style="margin-top: 100px; font-size: 20px;">업무 중...</div>
+<div id="status-text" style="margin-top: 140px; font-size: 20px; font-weight: bold;">업무 중...</div>
 <button class="work-btn" onclick="work()">업무 클릭!</button>
 
 <div id="gameover-modal" class="modal-overlay">
     <div class="modal-content">
-        <h2 style="color: #f43f5e;">게임 오버!</h2>
-        <p id="result-text" style="font-size: 18px;"></p>
+        <h2 style="color: #f43f5e; margin-top: 0;">⚠️ 근무태만 적발!</h2>
+        <p id="result-text" style="font-size: 18px; line-height: 1.5; color: #cbd5e1;"></p>
         <button class="modal-btn" style="background:#06b6d4; color:white;" onclick="retryGame()">재시도 (100원)</button>
         <button class="modal-btn" style="background:#64748b; color:white;" onclick="location.replace('game.html')">나가기</button>
     </div>
@@ -48,58 +74,140 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     let currentUser = null, score = 0, highScore = 0, isWatching = false;
+    
+    // 🚨 글로벌 라이브 상태 통제 제어 플래그 분리 신설
+    let gameActive = true;
+    let bossTimerRef = null;
 
     firebase.auth().onAuthStateChanged(user => { if (user) { currentUser = user; db.collection("users").doc(user.uid).get().then(doc => { if(doc.exists) { highScore = doc.data().highScore || 0; document.getElementById('best-score').innerText = highScore; } }); } });
 
+    // 🎯 [개편] 물리적 궤적 난수 주행 가동 모듈
     function moveBoss() {
+        if (!gameActive) return;
+        
         const boss = document.getElementById('boss-container');
         const screenWidth = window.innerWidth;
-        const duration = Math.random() * 2000 + 1000;
+        
+        if (bossTimerRef) clearTimeout(bossTimerRef);
+
+        // 지나가는 주행 속도 난수 변동 (1.5초 ~ 3.2초)
+        const duration = Math.random() * 1700 + 1500;
         
         boss.style.transition = `left ${duration/1000}s linear`;
-        boss.style.left = (screenWidth + 100) + "px";
+        boss.style.left = (screenWidth + 150) + "px";
         
-        setTimeout(() => {
-            isWatching = true;
-            document.getElementById('status-text').innerText = '부장님이 쳐다본다!!';
-            document.getElementById('boss-img').style.transform = "scale(1.2)";
-        }, duration * 0.4);
-
-        setTimeout(() => {
-            isWatching = false;
-            document.getElementById('status-text').innerText = '업무 중...';
-            document.getElementById('boss-img').style.transform = "scale(1)";
+        // 완전히 우측 벽 너머로 아웃되었을 때 리셋 처리 스케줄러
+        bossTimerRef = setTimeout(() => {
+            if (!gameActive) return;
+            boss.style.transition = 'none';
             boss.style.left = "-150px";
-            setTimeout(moveBoss, 500);
-        }, duration * 0.4 + 1200);
+            
+            // 다음 등장할 때까지 숨어서 대기하는 시간 간격 (0.4초 ~ 1.8초 난수)
+            bossTimerRef = setTimeout(moveBoss, Math.random() * 1400 + 400);
+        }, duration);
+    }
+
+    // 🚨 [핵심 엔진] 픽셀 추적 장치를 통한 중앙 프레임 충돌 실시간 판정 검문소 (Loop)
+    function launchRealtimeRadarScanner() {
+        if (!gameActive) {
+            requestAnimationFrame(launchRealtimeRadarScanner);
+            return;
+        }
+
+        const boss = document.getElementById('boss-container');
+        const zone = document.getElementById('view-zone');
+        const statusText = document.getElementById('status-text');
+        const bossImg = document.getElementById('boss-img');
+
+        const bossRect = boss.getBoundingClientRect();
+        const zoneRect = zone.getBoundingClientRect();
+
+        // 부장님 머리통(중앙 영역)이 화면 가운데 사각형 점선 경계면 내부로 진입했는가 정밀 판단
+        if (bossRect.right > zoneRect.left + 25 && bossRect.left < zoneRect.right - 25) {
+            isWatching = true;
+            statusText.innerText = '⚠️ 부장님이 고개를 휙 돌렸다!!!';
+            statusText.style.color = '#f43f5e';
+            zone.style.borderColor = '#f43f5e';
+            zone.style.color = '#f43f5e';
+            zone.style.background = 'rgba(244, 63, 94, 0.2)';
+            zone.innerText = '🚨 적발 구역';
+            bossImg.style.transform = "scale(1.25) rotate(-8deg)";
+        } else {
+            isWatching = false;
+            statusText.innerText = '열심히 서류 작업 중...';
+            statusText.style.color = 'white';
+            zone.style.borderColor = '#06b6d4';
+            zone.style.color = '#06b6d4';
+            zone.style.background = 'rgba(6, 182, 212, 0.04)';
+            zone.innerText = '안전 구역';
+            bossImg.style.transform = "scale(1) rotate(0deg)";
+        }
+
+        requestAnimationFrame(launchRealtimeRadarScanner);
     }
 
     function work() {
-        if (isWatching) { gameOver(); } 
-        else {
+        if (!gameActive) return;
+        
+        if (isWatching) { 
+            gameOver(); 
+        } else {
             score += 10;
             document.getElementById('current-score').innerText = score;
-            if (score > highScore) { highScore = score; document.getElementById('best-score').innerText = highScore; db.collection("users").doc(currentUser.uid).update({ highScore: highScore }); }
+            if (score > highScore) { 
+                highScore = score; 
+                document.getElementById('best-score').innerText = highScore; 
+                db.collection("users").doc(currentUser.uid).update({ highScore: highScore }); 
+            }
         }
     }
 
     function gameOver() {
+        gameActive = false;
+        if (bossTimerRef) clearTimeout(bossTimerRef);
+        
+        // 걸린 순간 자리에 우뚝 멈추도록 강제 브레이크 인젝션
+        const boss = document.getElementById('boss-container');
+        boss.style.transition = 'none';
+
         const earnings = Math.floor(score * 1.2);
-        document.getElementById('result-text').innerText = `점수: ${score}점\n획득: ${earnings.toLocaleString()}원`;
+        document.getElementById('result-text').innerText = `최종 점수: ${score}점\n💰 획득 수당: +${earnings.toLocaleString()}원`;
         document.getElementById('gameover-modal').style.display = 'flex';
-        if (score > 0) { db.collection("users").doc(currentUser.uid).get().then(doc => { const currentMoney = Number(doc.data().money || 0); db.collection("users").doc(currentUser.uid).update({ money: currentMoney + earnings }); }); }
-        score = 0; document.getElementById('current-score').innerText = score;
+        
+        if (score > 0) { 
+            db.collection("users").doc(currentUser.uid).get().then(doc => { 
+                const currentMoney = Number(doc.data().money || 0); 
+                db.collection("users").doc(currentUser.uid).update({ money: currentMoney + earnings }); 
+            }); 
+        }
+        score = 0; 
+        document.getElementById('current-score').innerText = score;
     }
 
     function retryGame() {
         db.collection("users").doc(currentUser.uid).get().then(doc => {
             const money = Number(doc.data().money || 0);
-            if (money >= 100) { db.collection("users").doc(currentUser.uid).update({ money: money - 100 }); document.getElementById('gameover-modal').style.display = 'none'; } 
-            else { alert("돈이 부족합니다!"); }
+            if (money >= 100) { 
+                db.collection("users").doc(currentUser.uid).update({ money: money - 100 }); 
+                document.getElementById('gameover-modal').style.display = 'none'; 
+                
+                // 게임 엔진 리세팅 및 부장님 시동 리셋
+                gameActive = true;
+                const boss = document.getElementById('boss-container');
+                boss.style.transition = 'none';
+                boss.style.left = "-150px";
+                
+                setTimeout(moveBoss, 800);
+            } else { 
+                alert("예수금이 부족합니다! (비용 100원)"); 
+            }
         });
     }
 
-    window.onload = () => { setTimeout(moveBoss, 1000); };
+    window.onload = () => { 
+        setTimeout(moveBoss, 1000); 
+        launchRealtimeRadarScanner(); // 물리 판정 엔진 무한 가동 시동
+    };
 </script>
 </body>
 </html>
