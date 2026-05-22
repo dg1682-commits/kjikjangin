@@ -306,14 +306,17 @@
         <button class="alert-btn" style="width: 100%;" onclick="submitInitialNickname()">내 자리로 가기 (입사)</button>
     </div>
 
-    <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
+<div class="settings-floating-btn" onclick="toggleSettingsBubble(event)" style="position: fixed; bottom: 20px; right: 20px; position: relative;">
+    ⚙️
+    <span id="gear-badge" style="display:none; position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
+</div>
     
     <div class="settings-bubble-modal" id="settings-bubble">
         <div class="settings-item" onclick="openSheet('mailbox')">
             📮 우편함 
             <span id="mail-badge" style="display:none; background:var(--danger); color:white; border-radius:50%; padding:2px 6px; font-size:10px; margin-left:auto;">N</span>
         </div>
-        <div class="settings-item" onclick="location.href='notice.html'">📢 공지사항</div>
+        <div class="settings-item" onclick="localStorage.setItem('k_worker_notice_read', 'v1.1.5'); location.href='notice.html'">📢 공지사항</div>
         <div class="settings-item version-border" onclick="handleLogout()">🔓 로그아웃</div>
         <div class="settings-item" onclick="showVersionModal()">ℹ️ 버전 정보</div>
     </div>
@@ -545,6 +548,19 @@
                     badge.style.display = 'none';
                 }
             }
+            // 🚨 [추가] 톱니바퀴 알림 배지 실시간 검사 및 출력
+let gearBadge = document.getElementById('gear-badge');
+if (gearBadge) {
+    let hasNewMail = state.inbox && state.inbox.length > 0; // 우편함에 아이템이 있는가?
+    let hasNewNotice = localStorage.getItem('k_worker_notice_read') !== 'v1.1.5'; // 공지사항을 아직 안 읽었는가?
+
+    // 둘 중 하나라도 만족하면 톱니바퀴에 N 표시 활성화
+    if (hasNewMail || hasNewNotice) {
+        gearBadge.style.display = 'inline-block';
+    } else {
+        gearBadge.style.display = 'none';
+    }
+}
         }
 
         function goToStock() {
