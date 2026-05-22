@@ -67,7 +67,7 @@
         }
         .version-tag { color: var(--accent-purple); font-weight: 800; }
         
-        /* 신규 공지사항 전용 반짝이는 배지 */
+        /* 신규 공지사항 전용 배지 */
         .new-badge {
             background: var(--tag-new);
             color: white;
@@ -120,14 +120,13 @@
                 <span class="version-tag">v1.2.0-NewsFlash <span class="new-badge">NEW</span></span>
                 <span>2026년 05월 22일</span>
             </div>
-            <h2 class="notice-title">📰 실시간 사내 속보 뉴스룸 채널 개설 및 5턴 트렌드 동기화 안내</h2>
+            <h2 class="notice-title">📰 실시간 사내 속보 뉴스룸 채널 개설 및 시황 연동 시스템 안내</h2>
             <div class="notice-body">
                 <ul>
-                    <li><span class="highlight-purple">사내 실시간 뉴스 시스템 도입:</span> 메인 화면 좌측 하단에 고정형 신문 아이콘이 배치되었습니다. 통제실에서 특보가 발행되면 <span class="highlight-blue">실시간 무결성 검사 엔진</span>을 통해 0.1초 만에 메인 화면에 <b>'N' 알림 배지</b>가 켜집니다.</li>
-                    <li><span class="highlight-purple">통제실 5턴 트렌드 제어 기능 탑재:</span> 주식 통제실(<span class="highlight-blue">chart.html</span>)에서 특정 종목에 강제 호재(폭등) 및 악재(폭락) 뉴스 초안을 자동 빌드하여 송출할 수 있습니다. 송출 시 전체 유저의 시장 배율에 <b>정확히 5턴(7분 30초) 동안 연속 복리 가속</b>이 강제 인젝션됩니다.</li>
-                    <li><span class="highlight-purple">기사 자동 만료 및 취소선 시스템:</span> 5턴의 가속 버프/디버프 정산이 끝나면 뉴스룸(<span class="highlight-blue">news.html</span>)의 해당 카드에 실시간으로 <span style="text-decoration: line-through; opacity:0.6;">취소선 처리</span>와 함께 <b>[효과 종료]</b> 마크가 안전하게 렌더링됩니다.</li>
-                    <li><span class="highlight-purple">과거 데이터 원격 일괄 관리자 추가:</span> 통제실 하단에 과거 기사 일괄 만료 기능 및 뉴스 데이터 공장 초기화(비우기) 버튼 매니저가 배치되어 유연한 운영이 가능해졌습니다.</li>
-                    <li><span class="highlight-purple">뉴스룸 UI 최적화 개편:</span> 효과가 종료된 구버전 특보 배너가 상단을 가리고 있던 현상을 수정하여, 배너를 전격 삭제하고 시원하고 신뢰감 높은 프리미엄 언론사 카드 뷰 레이아웃으로 넓게 확장했습니다.</li>
+                    <li><span class="highlight-purple">실시간 사내 뉴스 전용 창구 도입:</span> 메인 화면 좌측 하단에 고정형 신문 아이콘이 새롭게 배치되었습니다. 새로운 특보나 기업 소식이 발행되면 실시간으로 메인 화면에 <b>'N' 알림 불빛</b>이 켜져 빠르게 시황을 파악할 수 있습니다.</li>
+                    <li><span class="highlight-purple">시황 특보 가속 시스템 연동:</span> 사내 경영 실적이나 글로벌 경제 변동에 따른 긴급 속보가 뉴스로 송출될 수 있습니다. 특정 종목의 호재(폭등) 및 리스크(폭락) 뉴스가 발표되면, 해당 종목의 주가에 <b>정확히 5턴 동안 강력한 트렌드 변화</b>가 실시간 반영됩니다.</li>
+                    <li><span class="highlight-purple">기사 마감 및 효과 종료 표시:</span> 뉴스 발행 이후 주가 변동 영향력이 발휘되는 5턴이 모두 경과하면, 뉴스룸 기사 제목에 자동으로 <span style="text-decoration: line-through; opacity:0.6;">취소선 처리</span>가 적용되며 <b>[효과 종료]</b> 배지가 표시되어 현재 진행 중인 시황을 직관적으로 구분할 수 있습니다.</li>
+                    <li><span class="highlight-purple">뉴스룸 레이아웃 최적화:</span> 화면을 불필요하게 가리던 상단 고정 전광판을 걷어내고, 실제 실시간 속보 카드들을 더 넓고 정갈하게 읽을 수 있도록 프리미엄 언론사 스타일의 카드 뷰 디자인으로 전면 개편했습니다.</li>
                 </ul>
             </div>
         </div>
@@ -137,12 +136,12 @@
                 <span class="version-tag" style="color: var(--text-sub);">v1.1.5-Mailbox</span>
                 <span>2026년 05월 22일</span>
             </div>
-            <h2 class="notice-title">📮 전 사원 대상 원격 '푸시 우편함 시스템' 가동 및 자산 표기 방어 패치</h2>
+            <h2 class="notice-title">📮 전 사원 대상 원격 '푸시 우편함 시스템' 가동 및 자산 표기 안정화</h2>
             <div class="notice-body">
                 <ul>
-                    <li><span class="highlight-blue">운영자 원격 보상 우편함 탑재:</span> 설정(⚙️) 메뉴 내부에 우편함 기능이 추가되었습니다. 운영자가 닉네임 변경권, 현금 보상, 체력 버프 등을 전 사원에게 실시간으로 원격 지급할 수 있습니다.</li>
-                    <li><span class="highlight-blue">자산 1조원 표기 짤림 방어:</span> 현금이 천만 단위를 넘어 억, 조 단위로 올라갈 경우 우측 상단 UI 레이아웃에서 텍스트가 잘려 보이던 현상을 유연 폰트 스케일링 기법(clamp CSS)으로 긴급 패치하였습니다.</li>
-                    <li><span class="highlight-blue">통합 마스터 알림 배지 연동:</span> 읽지 않은 우편물이 있거나 새로운 공지사항이 있을 경우 메인 화면의 우측 하단 ⚙️ 설정 버튼 위에 통합 알림 빨간 불이 실시간 동기화됩니다.</li>
+                    <li><span class="highlight-blue">사원 전용 보상 우편함 탑재:</span> 설정(⚙️) 메뉴 내부에 우편함 기능이 추가되었습니다. 경영지원팀의 깜짝 보상(명찰 변경권, 특별 격려금, 컨디션 회복 아이템 등)을 실시간 우편으로 안전하게 수령할 수 있습니다.</li>
+                    <li><span class="highlight-blue">대규모 자산 표기 짤림 방지:</span> 보유 현금이 천만 단위를 넘어 억, 조 단위의 초고액 자산가 반열에 오르더라도, 우측 상단 잔액 UI에서 글자가 깨지거나 잘리지 않도록 화면 표기 배율 최적화 패치를 완료했습니다.</li>
+                    <li><span class="highlight-blue">통합 마스터 알림 배지 연동:</span> 아직 확인하지 않은 중요한 우편물이 남아있거나 새로운 전사 공지사항이 있을 경우, 메인 화면 우측 하단 ⚙️ 설정 버튼 위에 알림 불빛이 켜져 중요한 소식을 놓치지 않도록 지원합니다.</li>
                 </ul>
             </div>
         </div>
