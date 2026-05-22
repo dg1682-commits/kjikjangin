@@ -328,7 +328,6 @@
     </div>
 
     <script>
-        // 🚨 [패치] 상태 관리에 우편함(inbox)과 닉네임 변경권(nicknameTickets) 추가
         let state = {
             money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
@@ -382,10 +381,13 @@
             state.highScore = Number(state.highScore);
             if (isNaN(state.highScore) || state.highScore < 0) state.highScore = 0;
             
-            // 우편함 및 닉네임 티켓 방어코드
             if (!Array.isArray(state.inbox)) state.inbox = [];
             state.nicknameTickets = Number(state.nicknameTickets);
             if (isNaN(state.nicknameTickets) || state.nicknameTickets < 0) state.nicknameTickets = 0;
+
+            if (state.isWorking === undefined) state.isWorking = false;
+            state.workElapsed = Number(state.workElapsed);
+            if (isNaN(state.workElapsed) || state.workElapsed < 0) state.workElapsed = 0;
         }
 
         function saveGame(forceCloud = false) { 
@@ -395,8 +397,7 @@
                 
                 let saveState = { ...state };
                 delete saveState.workInterval; 
-                delete saveState.isWorking; 
-                delete saveState.currentTask; 
+                // 🚨 [수정] 강제로 진행 상태 데이터를 날리던 로직 제거하여 유지되도록 패치
 
                 localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
 
@@ -428,6 +429,32 @@
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
             if (!isNaN(passiveEarned)) state.money = Number(state.money) + passiveEarned;
             
+            // 🚨 [수정] 오프라인 도중 켜둔 일반 업무 진행 시간 자동 정산 및 연장 반영 로직
+            if (state.isWorking && state.currentTask) {
+                let task = state.currentTask;
+                if (task.time) {
+                    let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
+                    let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult * carTimeMult);
+                    state.workElapsed += deltaTime;
+                    if (state.workElapsed >= actualTime) {
+                        let baseMoney = task.money + RANKS[state.rankIdx].bonus;
+                        let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
+                        let totalMoney = Math.floor(baseMoney * getIncomeMultiplier(state.stamina) * carIncomeMult);
+                        state.money = Number(state.money) + totalMoney;
+                        state.exp = Number(state.exp) + task.exp;
+                        state.condition = Math.max(0, state.condition - task.conditionCost);
+                        state.isWorking = false;
+                        state.currentTask = null;
+                        state.workElapsed = 0;
+                        setTimeout(() => {
+                            showAlert("💼 업무 오프라인 완료", `자리를 비운 사이에 [${task.name}] 업무가 완료되었습니다!\n💰 수익: +${totalMoney.toLocaleString()}원`);
+                        }, 600);
+                    }
+                } else if (task.minTime) {
+                    state.workElapsed += deltaTime;
+                }
+            }
+
             if(passiveEarned > 0) {
                 setTimeout(() => {
                     showAlert("💤 오프라인 방치 정산", `방치 시간: ${formatTextTime(deltaTime)}\n💰 수익: +${passiveEarned.toLocaleString()}원`);
@@ -510,7 +537,6 @@
             const expectedSrc = `캐릭터/${ageDecade}대.png`;
             if (charImg.getAttribute('src') !== expectedSrc) charImg.src = expectedSrc;
             
-            // 🚨 우편함 뱃지 렌더링 로직
             let badge = document.getElementById('mail-badge');
             if (badge) {
                 if (state.inbox.length > 0) {
@@ -573,7 +599,6 @@
                     content.innerHTML += `<div class="list-item" onclick="buyShop(${i})" style="opacity: ${isOwned ? '0.5' : '1'}"><div class="item-info"><span class="item-name">${shop.name}</span><span class="item-sub">${shop.desc}</span></div><div class="item-price-box">${isOwned ? `<span class="item-owned">보유 중</span>` : `<span class="item-price">${shop.price.toLocaleString()}원</span>`}</div></div>`;
                 });
                 
-                // 🚨 [패치] 닉네임 변경권 UI 변경 (티켓 보유 시 돈 대신 티켓 차감 안내)
                 let nickPriceText = state.nicknameTickets > 0 ? 
                     `<span style="color:var(--success);">변경권 보유 (${state.nicknameTickets}개)</span>` : 
                     `<span class="item-price" style="color:var(--accent-color);">${(state.nicknameChangeCount === 0 ? 100000 : 100000000).toLocaleString()}원</span>`;
@@ -593,7 +618,6 @@
                     let isCurrent = (state.carIdx === i);
                     content.innerHTML += `<div class="list-item" onclick="buyCar(${i})" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}"><div class="item-info"><span class="item-name">🚗 ${car.name}</span><span class="item-sub" style="color:var(--success);">${car.desc}</span></div><div class="item-price-box">${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}</div></div>`;
                 });
-            // 🚨 [패치] 우편함 전용 시트 UI 추가
             } else if(type === 'mailbox') {
                 header.innerText = "📮 우편함";
                 if (state.inbox.length === 0) {
@@ -615,22 +639,50 @@
             }
         }
 
-        // 🚨 [패치] 우편 수령 기능
+        // 🚨 [수정 및 통합] 우편함 실시간 수령 및 즉각적인 스탯/재화 처리 모듈 완비
         function claimMail(idx) {
-            let mail = state.inbox[idx];
-            if (mail.item === 'nickname') {
-                state.nicknameTickets++;
-                showAlert("수령 완료", `${mail.rewardText}을(를) 받았습니다!\n(쇼핑몰 메뉴에서 사용 가능)`);
+            let item = state.inbox[idx];
+            if (!item) return;
+
+            if (item.item === 'nickname') {
+                // 닉네임 변경권 처리 -> 수령 시 즉시 닉변 유도 모달(Prompt) 활성화
+                let n = prompt("새로운 사원증 이름을 입력해주세요 (8자 이내):", state.nickname);
+                if (n && n.trim() !== "") {
+                    if (n.trim().length > 8) {
+                        alert("이름은 8자 이내로 입력해주세요.");
+                        return;
+                    }
+                    state.nickname = n.trim();
+                    state.nicknameChangeCount++;
+                    showAlert("변경 완료", `황금 명찰이 [${state.nickname}] 이름으로 새롭게 교체되었습니다!`);
+                } else {
+                    return; // 취소 시 우편함에서 제거하지 않고 보존
+                }
+            } else if (item.item === 'money' || (item.rewardText && item.rewardText.includes('원'))) {
+                // 돈(재화) 즉시 가산
+                let amt = Number(item.amount);
+                if(isNaN(amt) || !amt) {
+                    amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
+                }
+                state.money = Number(state.money) + amt;
+                showAlert("수령 완료", `${amt.toLocaleString()}원이 정상 입금되었습니다.`);
+            } else if (item.item === 'stamina' || item.item === 'condition' || (item.rewardText && (item.rewardText.includes('체력') || item.rewardText.includes('컨디션')))) {
+                // 체력 스탯 수치 즉시 상승
+                let amt = Number(item.amount);
+                if(isNaN(amt) || !amt) {
+                    amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
+                }
+                state.stamina = Number(state.stamina) + amt;
+                showAlert("수령 완료", `체력 수치가 +${amt.toLocaleString()} 상승했습니다.`);
             } else {
-                // 나중에 돈이나 다른 아이템을 푸시할 때를 위한 방어 코드
-                showAlert("수령 완료", "아이템을 받았습니다.");
+                showAlert("수령 완료", "아이템 수령이 완료되었습니다.");
             }
-            
-            // 수령 후 우편함에서 즉시 삭제
+
+            // 우편 목록에서 제외 및 세이브 데이터 즉시 파이어베이스 동기화 반영
             state.inbox.splice(idx, 1);
+            saveGame(true); 
             updateDisplay();
-            openSheet('mailbox'); // UI 새로고침
-            saveGame(true);
+            openSheet('mailbox'); 
         }
 
         function buyCar(idx) {
@@ -657,6 +709,7 @@
         function executeWorkStart(job) {
             state.isWorking = true; state.currentTask = job; state.workElapsed = 0;
             closeSheet(); startTaskInterval();
+            saveGame(true); // 🚨 상태 보존을 위한 즉시 동기화 세이브
         }
 
         function startTaskInterval() {
@@ -678,6 +731,10 @@
                         let remain = Math.max(0, actualTime - state.workElapsed);
                         document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / actualTime) * 100) + "%";
                         document.getElementById('time-left').innerText = `${formatMMSS(remain)} 남음`;
+                        
+                        // 1초 단위 마다 주기적 중간 세이브로 새로고침 변수 소실 완전 차단
+                        if (state.workElapsed % 3 === 0) { saveGame(); }
+
                         if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
                     }
                 }, 200); 
@@ -696,6 +753,7 @@
                             let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
                             document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
                         }
+                        if (state.workElapsed % 5 === 0) { saveGame(); }
                     }
                 }, 200);
             }
@@ -742,6 +800,7 @@
             if(state.isWorking) return showAlert("안내", "먼저 진행중인 작업을 취소하세요.");
             state.isWorking = true; state.currentTask = rest; state.workElapsed = 0;
             closeSheet(); startTaskInterval();
+            saveGame(true);
         }
 
         function cancelWork() {
@@ -790,19 +849,17 @@
             });
         }
         
-        // 🚨 [패치] 우편함에서 받은 변경권을 돈보다 우선 사용하도록 방어 로직 추가
-function buyNickname() {
-    if (state.nicknameTickets > 0) {
-        let n = prompt("새 이름 (변경권 사용 중):", state.nickname);
-        if (n && n.trim() !== "") {
-            state.nicknameTickets--; 
-            state.nickname = n.trim();
-            state.nicknameChangeCount++;
-            updateDisplay(); closeSheet(); saveGame(true);
-            showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
-        }
-    } else {
-                // 변경권이 없을 경우 (돈으로 구매)
+        function buyNickname() {
+            if (state.nicknameTickets > 0) {
+                let n = prompt("새 이름 (변경권 사용 중):", state.nickname);
+                if (n && n.trim() !== "") {
+                    state.nicknameTickets--; 
+                    state.nickname = n.trim();
+                    state.nicknameChangeCount++;
+                    updateDisplay(); closeSheet(); saveGame(true);
+                    showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
+                }
+            } else {
                 let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
                 if(Number(state.money) >= price) {
                     let n = prompt(`새 이름 (비용: ${price.toLocaleString()}원):`);
@@ -854,7 +911,6 @@ function buyNickname() {
                 if (user) {
                     currentUser = user; 
                     
-                    // 🚨 [패치] 우편함이 실시간으로 동기화되도록 onSnapshot 리스너로 교체
                     firebase.firestore().collection("users").doc(user.uid).onSnapshot((doc) => {
                         let needsNickname = false; 
 
@@ -880,9 +936,13 @@ function buyNickname() {
                             state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
                             state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
                             
-                            // 🚨 클라우드에 쏜 우편함(inbox) 데이터 실시간 연동
                             state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
                             state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
+
+                            // 🚨 [수정] 데이터 동기화 시 진행 중인 업무 정보 바인딩 누락 방지 패치
+                            if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
+                            if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
+                            if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
                         } else {
                             needsNickname = true;
                         }
@@ -896,7 +956,7 @@ function buyNickname() {
                         if (!workIntervalRef) {
                             launchGameEngine(); 
                         } else {
-                            updateDisplay(); // 백그라운드 갱신
+                            updateDisplay(); 
                         }
 
                         if (needsNickname) {
@@ -910,38 +970,6 @@ function buyNickname() {
                 } else { location.href = 'index.html'; }
             });
         };
-        // 우편함 수령 로직
-// 🚨 기존 receiveItem을 삭제하고 아래로 덮어쓰세요.
-async function claimMail(idx) {
-    let item = state.inbox[idx];
-    if (!item) return;
-
-    // 1. 아이템 종류에 따른 로직 수행
-    if (item.item === 'nickname') {
-        // 닉네임 변경권 수령 시 티켓 추가 (프롬프트는 buyNickname에서 이미 다루고 있으므로 티켓만 지급)
-        state.nicknameTickets++;
-        showAlert("수령 완료", `닉네임 변경권 1장을 받았습니다!\n(쇼핑몰에서 사용 가능)`);
-    } else {
-        // 돈/컨디션 처리
-        if (item.rewardText.includes('원')) {
-            state.money = Number(state.money) + Number(item.amount);
-            showAlert("수령 완료", `${item.amount.toLocaleString()}원이 입금되었습니다.`);
-        } else if (item.rewardText.includes('컨디션')) {
-            state.stamina = Number(state.stamina) + Number(item.amount);
-            showAlert("수령 완료", `컨디션이 ${item.amount}만큼 회복되었습니다.`);
-        }
-    }
-
-    // 2. 우편함에서 삭제
-    state.inbox.splice(idx, 1);
-
-    // 3. 파이어베이스 즉시 반영
-    saveGame(true); 
-    
-    // 4. UI 갱신
-    updateDisplay();
-    openSheet('mailbox'); // 수령 후 자동으로 우편함을 다시 열어 리스트 갱신
-}
     </script>
 </body>
 </html>
