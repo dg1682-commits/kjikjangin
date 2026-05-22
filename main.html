@@ -20,7 +20,6 @@
             --condition-color: #f43f5e;
             --border-color: #e2e8f0;
 
-            /* 오락실 및 네온 테마 명세 */
             --neon-pink: #f43f5e;
             --neon-purple: #a855f7;
             --neon-cyan: #06b6d4;
@@ -87,7 +86,6 @@
         #stat-passive-rate { font-size: 12px; font-weight: 700; color: var(--success); }
         #stat-click-rate { font-size: 11px; font-weight: 700; color: var(--accent-color); }
 
-        /* 프로그레스 바 */
         .progress-wrapper { 
             pointer-events: auto; 
             width: 100%; display: none; flex-direction: row; align-items: center; gap: 10px; 
@@ -100,7 +98,6 @@
         #time-left { font-size: 12px; color: var(--text-main); font-weight: 800; min-width: 55px; text-align: right;}
         #cancel-btn { background: var(--danger); color: white; padding: 6px 12px; font-size: 11px; margin: 0; }
 
-        /* 터치용 캐릭터 컨테이너 */
         #coin-container {
             position: fixed;
             top: 150px;
@@ -111,7 +108,7 @@
             pointer-events: none;
         }
         
-        /* 캐릭터 크기 기존 대비 정확히 2배 확대한 220px 규격 절대 고정 */
+        /* 🚨 캐릭터 크기 정확히 2배 확대한 220px 규격 고정 (업무시 안사라짐) */
         #char-display { 
             height: 220px; 
             object-fit: contain;
@@ -128,7 +125,6 @@
         #current-action-label { color: var(--text-main); font-size: 15px; margin-bottom: 5px; font-weight: 800; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 12px; }
         .click-notice { font-size: 12px; color: var(--accent-color); font-weight: 800; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 8px;}
 
-        /* 가로 스크롤 마을 뷰 */
         .town-scroll-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             overflow-x: auto; overflow-y: hidden;
@@ -153,36 +149,18 @@
         }
 
         .building-wrapper {
-            position: relative;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            transition: transform 0.1s;
-            z-index: 20;
-            flex-shrink: 0; 
-            -webkit-user-select: none;
-            user-select: none;
+            position: relative; display: inline-flex; flex-direction: column; align-items: center;
+            cursor: pointer; transition: transform 0.1s; z-index: 20; flex-shrink: 0; user-select: none;
         }
         .building-wrapper:active { transform: scale(0.95); }
-        
-        .building-img { 
-            height: 132px; 
-            object-fit: contain; 
-            filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); 
-            pointer-events: none; 
-            -webkit-user-drag: none;
-            user-select: none;
-        }
+        .building-img { height: 132px; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); pointer-events: none; user-select: none; }
 
         .disabled-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-            color: var(--danger); font-size: 32px; font-weight: bold; border-radius: 16px;
-            display: none;
+            color: var(--danger); font-size: 32px; font-weight: bold; border-radius: 16px; display: none;
         }
 
-        /* 바텀 시트 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 100; }
         .bottom-sheet {
             position: fixed; bottom: -100%; left: 0; width: 100%;
@@ -196,10 +174,8 @@
         .close-sheet { font-size: 24px; color: var(--text-sub); cursor: pointer; }
         
         #sheet-content {
-            overflow-y: auto; flex-grow: 1; padding-bottom: 15px;
-            scrollbar-width: thin; scrollbar-color: #cbd5e1 var(--card-bg);
-            -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; 
+            overflow-y: auto; flex-grow: 1; padding-bottom: 15px; scrollbar-width: thin; scrollbar-color: #cbd5e1 var(--card-bg);
+            -webkit-overflow-scrolling: touch; overscroll-behavior: contain; 
         }
         #sheet-content::-webkit-scrollbar { width: 6px; }
         #sheet-content::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
@@ -223,7 +199,6 @@
         .color-wolse { color: var(--danger) !important; }     
         .color-jeonse { color: var(--accent-color) !important; } 
         
-        /* 알림 모달 */
         .alert-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--card-bg); padding: 25px; border-radius: 16px;
@@ -236,36 +211,25 @@
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
         .alert-btn.cancel { background: #94a3b8; }
 
-        /* 주식장 로딩 화면 */
         #loading-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-color); z-index: 9999; display: none;
             flex-direction: column; align-items: center; justify-content: center;
         }
-        .jumping-money {
-            font-size: 80px;
-            animation: jump 0.4s ease-in-out infinite alternate;
-        }
-        @keyframes jump {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-40px); }
-        }
+        .jumping-money { font-size: 80px; animation: jump 0.4s ease-in-out infinite alternate; }
+        @keyframes jump { 0% { transform: translateY(0); } 100% { transform: translateY(-40px); } }
 
-        /* 🚨 설정 버튼 톱니바퀴 원형 배경 순백색(하얀색) 완전 고정 */
+        /* 🚨 설정 버튼 순백색(하얀색) 완벽 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
             background: #ffffff; 
             border: 2px solid var(--border-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 22px; 
-            color: #1e293b; 
-            cursor: pointer; z-index: 900;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); 
-            transition: transform 0.1s, background-color 0.2s;
+            font-size: 22px; color: #1e293b; cursor: pointer; z-index: 900;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); transition: transform 0.1s, background-color 0.2s;
         }
         .settings-floating-btn:active { transform: scale(0.9); background-color: #f1f5f9; }
         
-        /* 말풍선 스타일 모달창 */
         .settings-bubble-modal {
             position: fixed; bottom: 76px; right: 20px; width: 140px;
             background: rgba(22, 15, 41, 0.98); border: 2px solid var(--neon-purple);
@@ -274,17 +238,12 @@
         }
         .settings-bubble-modal::after {
             content: ''; position: absolute; bottom: -8px; right: 16px;
-            border-width: 8px 8px 0; border-style: solid;
-            border-color: var(--neon-purple) transparent; display: block; width: 0;
+            border-width: 8px 8px 0; border-style: solid; border-color: var(--neon-purple) transparent; display: block; width: 0;
         }
-        .settings-item {
-            padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--text-light);
-            cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;
-        }
+        .settings-item { padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--text-light); cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
         .settings-item:active { background: rgba(244, 63, 94, 0.2); color: var(--neon-pink); }
         .settings-item.version-border { border-top: 1px solid #3b2d66; }
         
-        /* 버전 정보 팝업 모달 */
         .center-info-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(22, 15, 41, 0.98); padding: 20px; border-radius: 16px;
@@ -305,33 +264,16 @@
         <div class="town-scroll-container">
             <div class="town-map">
                 <div class="building-wrapper" onclick="openSheet('work')">
-                    <img src="메인배경/사무실.png" class="building-img">
-                    <div id="work-disabled-x" class="disabled-overlay">X</div>
+                    <img src="메인배경/사무실.png" class="building-img"><div id="work-disabled-x" class="disabled-overlay">X</div>
                 </div>
-                <div class="building-wrapper" onclick="openSheet('rest')">
-                    <img src="메인배경/집.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="openSheet('house')">
-                    <img src="메인배경/부동산.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="openSheet('buff')">
-                    <img src="메인배경/약국.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="openSheet('shop')">
-                    <img src="메인배경/쇼핑몰.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="goToStock()">
-                    <img src="메인배경/증권사.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="goToCar()">
-                    <img src="메인배경/자동차.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="goToArcade()">
-                    <img src="메인배경/오락실.png" class="building-img">
-                </div>
-                <div class="building-wrapper" onclick="showAlert('오픈 준비', '점심 메뉴를 골라주는 모먹지 식당은 현재 공사 중입니다!')">
-                    <img src="메인배경/식당.png" class="building-img">
-                </div>
+                <div class="building-wrapper" onclick="openSheet('rest')"><img src="메인배경/집.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="openSheet('house')"><img src="메인배경/부동산.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="openSheet('buff')"><img src="메인배경/약국.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="openSheet('shop')"><img src="메인배경/쇼핑몰.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="goToStock()"><img src="메인배경/증권사.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="goToCar()"><img src="메인배경/자동차.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="goToArcade()"><img src="메인배경/오락실.png" class="building-img"></div>
+                <div class="building-wrapper" onclick="showAlert('오픈 준비', '점심 메뉴를 골라주는 모먹지 식당은 현재 공사 중입니다!')"><img src="메인배경/식당.png" class="building-img"></div>
             </div>
         </div>
 
@@ -340,38 +282,23 @@
                 <div class="header-left">
                     <div class="stat-row">
                         <div class="stat-label-left">컨디션</div>
-                        <div class="bar-container">
-                            <div id="condition-fill" class="bar-fill condition"></div>
-                            <div class="bar-text"><span id="val-condition">100</span> / <span id="val-max-condition">100</span></div>
-                        </div>
+                        <div class="bar-container"><div id="condition-fill" class="bar-fill condition"></div><div class="bar-text"><span id="val-condition">100</span> / <span id="val-max-condition">100</span></div></div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-label-left">체력</div>
-                        <div class="bar-container">
-                            <div id="stamina-fill" class="bar-fill"></div>
-                            <div class="bar-text"><span id="val-stamina">0</span></div>
-                        </div>
+                        <div class="bar-container"><div id="stamina-fill" class="bar-fill"></div><div class="bar-text"><span id="val-stamina">0</span></div></div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-label-left">업무력</div>
-                        <div class="bar-container">
-                            <div id="exp-fill" class="bar-fill exp"></div>
-                            <div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">8000</span></div>
-                        </div>
+                        <div class="bar-container"><div id="exp-fill" class="bar-fill exp"></div><div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">8000</span></div></div>
                     </div>
                 </div>
                 
                 <div class="header-right">
-                    <div class="rank-badge" style="margin-bottom: 4px;">
-                        <span id="rank-badge-text">수습</span>
-                        <span id="val-nickname" style="margin-left: 4px; color: #fff;">김씨</span>
-                    </div>
+                    <div class="rank-badge" style="margin-bottom: 4px;"><span id="rank-badge-text">수습</span> <span id="val-nickname" style="margin-left: 4px; color: #fff;">김씨</span></div>
                     <div id="game-date">0년 1월 1일 00:00</div>
                     <div id="stat-money">0원</div>
-                    <div class="income-rates">
-                        <div id="stat-passive-rate">초당 +0.0</div>
-                        <div id="stat-click-rate">👆 +0.0</div>
-                    </div>
+                    <div class="income-rates"><div id="stat-passive-rate">초당 +0.0</div><div id="stat-click-rate">👆 +0.0</div></div>
                 </div>
             </header>
 
@@ -392,10 +319,7 @@
 
     <div class="modal-overlay" id="overlay" onclick="closeSheet()"></div>
     <div class="bottom-sheet" id="bottom-sheet">
-        <div class="sheet-title">
-            <span id="sheet-header">리스트</span>
-            <span class="close-sheet" onclick="closeSheet()">&times;</span>
-        </div>
+        <div class="sheet-title"><span id="sheet-header">리스트</span><span class="close-sheet" onclick="closeSheet()">&times;</span></div>
         <div id="sheet-content"></div>
     </div>
 
@@ -403,9 +327,7 @@
     <div class="alert-modal" id="alert-modal">
         <div class="alert-title" id="alert-title">알림</div>
         <div class="alert-desc" id="alert-desc">내용</div>
-        <div class="alert-btn-box" id="alert-btn-box">
-            <button class="alert-btn" onclick="closeAlert()">확인</button>
-        </div>
+        <div class="alert-btn-box" id="alert-btn-box"><button class="alert-btn" onclick="closeAlert()">확인</button></div>
     </div>
 
     <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)">⚙️</div>
@@ -418,179 +340,95 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.0.7-Final<br>
+            • 배포 버전: v1.0.9-Rescue<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 깨진 0점 계정 긴급 치유 모듈 보강 및 랙 프리 마스터 패치 완수
+            • 업데이트: 로컬 오염 캐시 파괴 및 Firebase 서버 100% 단독 강제 복구 모듈 가동
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
 
     <script>
-        let currentUser = null;
-        const SAVE_KEY = "k_worker_game_save";
-
-        // 초기 베이스 스탯 금액 10만원 설정 고정
         let state = {
-            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
+            money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
-            currentTask: null, workElapsed: 0, workInterval: null, debuffTimeLeft: 0, 
-            timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: 0
+            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, 
+            timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: Date.now(), highScore: 0
         };
 
-        const RANKS = [
-            {name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 8000, bonus: 500},
-            {name: "사원", req: 32000, bonus: 1000}, {name: "주임", req: 64000, bonus: 2500},
-            {name: "대리", req: 96000, bonus: 4000}, {name: "과장", req: 160000, bonus: 7000},
-            {name: "차장", req: 256000, bonus: 10000}, {name: "부장", req: 384000, bonus: 15000},
-            {name: "사장", req: 1536000, bonus: 50000}
-        ];
+        const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 8000, bonus: 500}, {name: "사원", req: 32000, bonus: 1000}, {name: "주임", req: 64000, bonus: 2500}, {name: "대리", req: 96000, bonus: 4000}, {name: "과장", req: 160000, bonus: 7000}, {name: "차장", req: 256000, bonus: 10000}, {name: "부장", req: 384000, bonus: 15000}, {name: "사장", req: 1536000, bonus: 50000}];
+        const JOBS = [{id: 'coffee', name: "커피 타오기", time: 5, money: 20, exp: 2, conditionCost: 1}, {id: 'receipt', name: "영수증 풀칠하기", time: 30, money: 125, exp: 15, conditionCost: 7}, {id: 'font', name: "보고서 폰트 수정", time: 60, money: 250, exp: 40, conditionCost: 17}, {id: 'basic', name: "기본 업무", time: 180, money: 750, exp: 100, conditionCost: 23}, {id: 'dog', name: "부장님 강아지 산책", time: 300, money: 1250, exp: 50, conditionCost: 27}, {id: 'dinner', name: "거래처 회식 참석", time: 480, money: 2000, exp: 400, conditionCost: 37}, {id: 'out', name: "타 지역 출장", time: 600, money: 2500, exp: 600, conditionCost: 57}, {id: 'cheat', name: "딴짓(주식보기)", time: 10, money: [100, 1000], exp: -1, risk: 0.30, conditionCost: 0}];
+        const RESTS = [{id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 3, conditionBonus: 5}, {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 8, conditionBonus: 10}, {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 20, conditionBonus: 15}, {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 35, conditionBonus: 30}];
+        const BUFFS = [{id: 'water', name: "냉수 한 잔", price: 500, effect: 1}, {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4}, {id: 'bacchus', name: "박카스", price: 2500, effect: 8}, {id: 'hot6', name: "핫식스", price: 3500, effect: 12}, {id: 'soju', name: "참이슬", price: 5000, effect: 20}, {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40}, {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70}, {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}];
+        const SHOPS = [{id: 'slipper', name: "다이소 슬리퍼", price: 5000, mult: 0.995, desc: "시간 0.5% 단축"}, {id: 'glasses', name: "블루라이트 안경", price: 35000, mult: 0.981, desc: "시간 1.9% 단축"}, {id: 'keyboard', name: "무소음 적축", price: 150000, mult: 0.955, desc: "시간 4.5% 단축"}, {id: 'chair', name: "허먼밀러 의자", price: 1800000, mult: 0.887, desc: "시간 11.3% 단축"}, {id: 'suit', name: "이태리 정장", price: 4500000, mult: 0.824, desc: "시간 17.6% 단축"}];
+        const HOUSES = [{id: 'home', name: "부모님 집", deposit: 0, rent: 0, moveCost: 0, mult: 1.0, type: "기본"}, {id: 'goshi', name: "고시원", deposit: 0, rent: 50000, moveCost: 10000, mult: 1.2, type: "월세"}, {id: 'oneroom', name: "원룸", deposit: 20000000, rent: 500000, moveCost: 200000, mult: 1.5, type: "월세"}, {id: 'officetel_w', name: "오피스텔 (월세)", deposit: 40000000, rent: 1500000, moveCost: 80000, mult: 2.5, type: "월세"}, {id: 'officetel_j', name: "오피스텔 (전세)", deposit: 150000000, rent: 0, moveCost: 80000, mult: 2.5, type: "전세"}, {id: 'apt_w', name: "아파트 (월세)", deposit: 120000000, rent: 2500000, moveCost: 2500000, mult: 5.0, type: "월세"}, {id: 'apt_j', name: "아파트 (전세)", deposit: 650000000, rent: 0, moveCost: 2500000, mult: 5.0, type: "전세"}, {id: 'apt_m', name: "아파트 (매매)", deposit: 800000000, rent: 0, moveCost: 2500000, mult: 10.0, type: "매매"}, {id: 'river_w', name: "한강뷰 아파트 (월세)", deposit: 1200000000, rent: 10000000, moveCost: 6500000, mult: 12.0, type: "월세"}, {id: 'river_j', name: "한강뷰 아파트 (전세)", deposit: 2200000000, rent: 0, moveCost: 6500000, mult: 12.0, type: "전세"}, {id: 'river_m', name: "한강뷰 아파트 (매매)", deposit: 2500000000, rent: 0, moveCost: 6500000, mult: 17.0, type: "매매"}];
+        const CARS = [{id: 'light_car', name: "K-경차", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "시간 5% 단축 | 보상 5% 증가"}, {id: 'small_car', name: "소형 세단", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "시간 10% 단축 | 보상 12% 증가"}, {id: 'mid_car', name: "중형 SUV", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "시간 18% 단축 | 보상 25% 증가"}, {id: 'large_car', name: "대형 세단", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "시간 30% 단축 | 보상 50% 증가"}];
 
-        const JOBS = [
-            {id: 'coffee', name: "커피 타오기", time: 5, money: 20, exp: 2, conditionCost: 1},
-            {id: 'receipt', name: "영수증 풀칠하기", time: 30, money: 125, exp: 15, conditionCost: 7},
-            {id: 'font', name: "보고서 폰트 수정", time: 60, money: 250, exp: 40, conditionCost: 17},
-            {id: 'basic', name: "기본 업무", time: 180, money: 750, exp: 100, conditionCost: 23},
-            {id: 'dog', name: "부장님 강아지 산책", time: 300, money: 1250, exp: 50, conditionCost: 27},
-            {id: 'dinner', name: "거래처 회식 참석", time: 480, money: 2000, exp: 400, conditionCost: 37},
-            {id: 'out', name: "타 지역 출장", time: 600, money: 2500, exp: 600, conditionCost: 57},
-            {id: 'cheat', name: "딴짓(주식보기)", time: 10, money: [100, 1000], exp: -1, risk: 0.30, conditionCost: 0}
-        ];
-
-        const RESTS = [
-            {id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 3, conditionBonus: 5},
-            {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 8, conditionBonus: 10},
-            {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 20, conditionBonus: 15},
-            {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 35, conditionBonus: 30}
-        ];
-
-        const BUFFS = [
-            {id: 'water', name: "냉수 한 잔", price: 500, effect: 1},
-            {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4},
-            {id: 'bacchus', name: "박카스", price: 2500, effect: 8},
-            {id: 'hot6', name: "핫식스", price: 3500, effect: 12},
-            {id: 'soju', name: "참이슬", price: 5000, effect: 20},
-            {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40},
-            {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70},
-            {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}
-        ];
-
-        const SHOPS = [
-            {id: 'slipper', name: "다이소 슬리퍼", price: 5000, mult: 0.995, desc: "시간 0.5% 단축"},
-            {id: 'glasses', name: "블루라이트 안경", price: 35000, mult: 0.981, desc: "시간 1.9% 단축"},
-            {id: 'keyboard', name: "무소음 적축", price: 150000, mult: 0.955, desc: "시간 4.5% 단축"},
-            {id: 'chair', name: "허먼밀러 의자", price: 1800000, mult: 0.887, desc: "시간 11.3% 단축"},
-            {id: 'suit', name: "이태리 정장", price: 4500000, mult: 0.824, desc: "시간 17.6% 단축"}
-        ];
-
-        const HOUSES = [
-            {id: 'home', name: "부모님 집", deposit: 0, rent: 0, moveCost: 0, mult: 1.0, type: "기본"},
-            {id: 'goshi', name: "고시원", deposit: 0, rent: 50000, moveCost: 10000, mult: 1.2, type: "월세"},
-            {id: 'oneroom', name: "원룸", deposit: 20000000, rent: 500000, moveCost: 200000, mult: 1.5, type: "월세"},
-            {id: 'officetel_w', name: "오피스텔 (월세)", deposit: 40000000, rent: 1500000, moveCost: 80000, mult: 2.5, type: "월세"},
-            {id: 'officetel_j', name: "오피스텔 (전세)", deposit: 150000000, rent: 0, moveCost: 80000, mult: 2.5, type: "전세"},
-            {id: 'apt_w', name: "아파트 (월세)", deposit: 120000000, rent: 2500000, moveCost: 2500000, mult: 5.0, type: "월세"},
-            {id: 'apt_j', name: "아파트 (전세)", deposit: 650000000, rent: 0, moveCost: 2500000, mult: 5.0, type: "전세"},
-            {id: 'apt_m', name: "아파트 (매매)", deposit: 800000000, rent: 0, moveCost: 2500000, mult: 10.0, type: "매매"},
-            {id: 'river_w', name: "한강뷰 아파트 (월세)", deposit: 1200000000, rent: 10000000, moveCost: 6500000, mult: 12.0, type: "월세"},
-            {id: 'river_j', name: "한강뷰 아파트 (전세)", deposit: 2200000000, rent: 0, moveCost: 6500000, mult: 12.0, type: "전세"},
-            {id: 'river_m', name: "한강뷰 아파트 (매매)", deposit: 2500000000, rent: 0, moveCost: 6500000, mult: 17.0, type: "매매"},
-            {id: 'pent_w', name: "펜트하우스 (월세)", deposit: 9000000000, rent: 100000000, moveCost: 15000000, mult: 30.0, type: "월세"},
-            {id: 'pent_j', name: "펜트하우스 (전세)", deposit: 10000000000, rent: 0, moveCost: 15000000, mult: 30.0, type: "전세"},
-            {id: 'pent_m', name: "펜트하우스 (매매)", deposit: 12000000000, rent: 0, moveCost: 15000000, mult: 35.0, type: "매매"}
-        ];
-
-        const CARS = [
-            {id: 'light_car', name: "K-경차 (스파크/레이)", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "업무 시간 5% 단축 | 업무 보상 5% 증가"},
-            {id: 'small_car', name: "소형 세단 (아반떼)", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "업무 시간 10% 단축 | 업무 보상 12% 증가"},
-            {id: 'mid_car', name: "중형 SUV (쏘렌토)", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "업무 시간 18% 단축 | 업무 보상 25% 증가"},
-            {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
-        ];
-
+        const SAVE_KEY = "k_worker_tycoon_save_data";
+        const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+        firebase.initializeApp(firebaseConfig);
+        
+        let currentUser = null; 
+        let workIntervalRef = null;
         let lastCloudSaveTime = 0; 
 
-        function getIncomeMultiplier(stamina) {
-            return 1 + (stamina / 1000);
-        }
-
-        function formatTextTime(seconds) {
-            if (seconds < 60) return Math.floor(seconds) + "초";
-            let m = Math.floor(seconds / 60);
-            let s = Math.floor(seconds % 60);
-            return s > 0 ? `${m}분 ${s}초` : `${m}분`;
-        }
-
-        function formatWorkTime(seconds) {
-            return formatTextTime(seconds);
-        }
-
-        function formatMMSS(seconds) {
-            let m = Math.floor(seconds / 60);
-            let s = Math.floor(seconds % 60);
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-        }
-
+        // 🚨 오염 데이터 원천 무력화 및 순수 숫자 강제 치유 모듈
         function sanitizeState() {
-            // 강제 리셋 상한 임계치 전면 제거 (순수 타입 에러 및 음수 자산만 10만원 스위칭 보정)
-            state.money = (isNaN(Number(state.money)) || Number(state.money) < 0) ? 100000 : Number(state.money);
-            state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
-            state.exp = isNaN(Number(state.exp)) ? 0 : Number(state.exp);
-            state.rankIdx = isNaN(Number(state.rankIdx)) ? 0 : Number(state.rankIdx);
-            if (state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
-            state.condition = isNaN(Number(state.condition)) ? 100 : Number(state.condition);
-            state.maxCondition = isNaN(Number(state.maxCondition)) ? 100 : Number(state.maxCondition);
-            state.gameSeconds = (isNaN(Number(state.gameSeconds)) || state.gameSeconds < 0) ? 0 : Number(state.gameSeconds);
-            state.rentDayCounter = isNaN(Number(state.rentDayCounter)) ? 0 : Number(state.rentDayCounter);
-            state.debuffTimeLeft = isNaN(Number(state.debuffTimeLeft)) ? 0 : Number(state.debuffTimeLeft);
-            state.timeMult = isNaN(Number(state.timeMult)) ? 1.0 : Number(state.timeMult);
-            state.nicknameChangeCount = isNaN(Number(state.nicknameChangeCount)) ? 0 : Number(state.nicknameChangeCount);
-            state.highScore = isNaN(Number(state.highScore)) ? 0 : Number(state.highScore);
-
-            let parsedLastSave = Number(state.lastSaveTime);
-            state.lastSaveTime = isNaN(parsedLastSave) || parsedLastSave <= 0 ? Date.now() : parsedLastSave;
-            state.nickname = state.nickname ? String(state.nickname) : "김씨";
-            if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
-
-            if (state.maxCondition <= 0) state.maxCondition = 100;
-            if (state.condition < 0) state.condition = 0;
+            state.money = Number(state.money);
+            if (isNaN(state.money) || state.money <= 0 || state.money > 1000000000000) state.money = 10000000;
+            state.stamina = Number(state.stamina);
+            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 500000) state.stamina = 0;
+            state.exp = Number(state.exp);
+            if (isNaN(state.exp) || state.exp < 0 || state.exp > 500000) state.exp = 0;
+            state.rankIdx = Number(state.rankIdx);
+            if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
+            state.maxCondition = Number(state.maxCondition);
+            if (isNaN(state.maxCondition) || state.maxCondition <= 0) state.maxCondition = 100;
+            state.condition = Number(state.condition);
+            if (isNaN(state.condition) || state.condition <= 0) state.condition = state.maxCondition;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
+            state.gameSeconds = Number(state.gameSeconds);
+            if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000) state.gameSeconds = 0;
+            state.houseIdx = Number(state.houseIdx);
+            if (isNaN(state.houseIdx) || state.houseIdx < 0) state.houseIdx = 0;
+            state.carIdx = Number(state.carIdx);
+            if (isNaN(state.carIdx) || state.carIdx < -1) state.carIdx = -1;
+            state.timeMult = Number(state.timeMult);
+            if (isNaN(state.timeMult) || state.timeMult <= 0) state.timeMult = 1.0;
+            state.lastSaveTime = Number(state.lastSaveTime);
+            if (isNaN(state.lastSaveTime) || state.lastSaveTime <= 0) state.lastSaveTime = Date.now();
+            if (!state.nickname || typeof state.nickname !== "string") state.nickname = "김씨";
+            if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
+            state.highScore = Number(state.highScore);
+            if (isNaN(state.highScore) || state.highScore < 0) state.highScore = 0;
         }
 
+        // 🚨 로컬 데이터 결합을 일절 배제하고 현재 치유된 객체를 단독 기록
         function saveGame(forceCloud = false) { 
             try {
-                state.lastSaveTime = Date.now(); 
                 sanitizeState();
+                state.lastSaveTime = Date.now(); 
                 
                 let saveState = { ...state };
                 delete saveState.workInterval; 
-                
-                let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
-                let merged = { ...existing, ...saveState }; 
+                delete saveState.isWorking; 
+                delete saveState.currentTask; 
 
-                localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
+                localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
 
-                if (currentUser && typeof firebase !== 'undefined') {
+                if (currentUser) {
                     let now = Date.now();
-                    if (forceCloud || (now - lastCloudSaveTime > 7000)) {
+                    if (forceCloud || (now - lastCloudSaveTime > 10000)) {
                         lastCloudSaveTime = now;
-                        firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                            .catch(e => console.error("클라우드 전송 보류:", e));
+                        firebase.firestore().collection("users").doc(currentUser.uid).set(saveState, { merge: true }).catch(e => console.error(e));
                     }
                 }
-            } catch (error) {
-                console.error("세이브 예외 핸들링 우회:", error);
-            }
+            } catch (error) { console.error(error); }
         }
 
-        function loadGame() {
-            const saved = localStorage.getItem(SAVE_KEY);
-            if(saved) {
-                try {
-                    let parsed = JSON.parse(saved);
-                    state = { ...state, ...parsed };
-                } catch(e) { console.error(e); }
-            }
-            sanitizeState();
-        }
+        function formatMMSS(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+        function formatWorkTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
+        function formatTextTime(seconds) { if(seconds >= 60) { const m = Math.floor(seconds/60); const s = seconds%60; return s > 0 ? `${m}분 ${s}초` : `${m}분`; } return `${seconds}초`; }
+        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
 
         function processOfflineProgress() {
             sanitizeState();
@@ -605,15 +443,9 @@
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
             if (!isNaN(passiveEarned)) state.money = Number(state.money) + passiveEarned;
             
-            if (state.isWorking) {
-                state.isWorking = false;
-                state.currentTask = null;
-                state.workElapsed = 0;
-            }
-            
             if(passiveEarned > 0) {
                 setTimeout(() => {
-                    showAlert("💤 오프라인 방치 정산", `자리를 비운 동안 캐릭터가 열심히 살았습니다!\n\n방치 시간: ${formatTextTime(deltaTime)}\n💰 패시브 수익: +${passiveEarned.toLocaleString()}원`);
+                    showAlert("💤 오프라인 방치 정산", `방치 시간: ${formatTextTime(deltaTime)}\n💰 수익: +${passiveEarned.toLocaleString()}원`);
                 }, 500);
             }
         }
@@ -651,7 +483,6 @@
 
         function updateDisplay() {
             sanitizeState();
-
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
             const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
@@ -668,17 +499,17 @@
             document.getElementById('stat-click-rate').innerText = `👆 클릭 +${(0.6 * mult).toFixed(1)}`;
             
             let condPct = (state.condition / state.maxCondition * 100);
-            document.getElementById('condition-fill').style.width = (isNaN(condPct) || condPct < 0 ? 100 : condPct) + '%';
+            document.getElementById('condition-fill').style.width = condPct + '%';
             document.getElementById('val-condition').innerText = Math.floor(state.condition);
             document.getElementById('val-max-condition').innerText = Math.floor(state.maxCondition);
             
             let stamPct = (state.stamina / 10000 * 100);
-            document.getElementById('stamina-fill').style.width = Math.min(100, (isNaN(stamPct) || stamPct < 0 ? 0 : stamPct)) + '%';
+            document.getElementById('stamina-fill').style.width = Math.min(100, stamPct) + '%';
             document.getElementById('val-stamina').innerText = Math.floor(state.stamina);
 
             let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
             let expPct = (state.exp / reqExp * 100);
-            document.getElementById('exp-fill').style.width = Math.min(100, (isNaN(expPct) || expPct < 0 ? 0 : expPct)) + '%';
+            document.getElementById('exp-fill').style.width = Math.min(100, expPct) + '%';
             document.getElementById('val-exp').innerText = Math.floor(state.exp);
             document.getElementById('val-req-exp').innerText = reqExp;
 
@@ -690,36 +521,24 @@
             let currentAge = 20 + y; 
             let ageDecade = Math.floor(currentAge / 10) * 10;
             if (ageDecade > 60) ageDecade = 60; 
-
             const charImg = document.getElementById('char-display');
             const expectedSrc = `캐릭터/${ageDecade}대.png`;
-            if (charImg.getAttribute('src') !== expectedSrc) {
-                charImg.src = expectedSrc;
-            }
+            if (charImg.getAttribute('src') !== expectedSrc) charImg.src = expectedSrc;
         }
 
         function goToStock() {
             document.getElementById('loading-screen').style.display = 'flex';
-            try { saveGame(true); } catch(e){} 
-            setTimeout(() => { location.href = 'stock.html'; }, 2000); 
+            saveGame(true); setTimeout(() => { location.href = 'stock.html'; }, 2000); 
         }
 
-        function goToArcade() {
-            try { saveGame(true); } catch(e){}
-            location.href = 'game.html';
-        }
-
-        function goToCar() {
-            openSheet('car');
-        }
+        function goToArcade() { saveGame(true); location.href = 'game.html'; }
+        function goToCar() { openSheet('car'); }
 
         function openSheet(type) {
             if(state.debuffTimeLeft > 0 && type === 'work') return showAlert("업무 불가", "혼나는 중이라 일을 지시받을 수 없습니다!");
-
             const sheet = document.getElementById('bottom-sheet');
             const content = document.getElementById('sheet-content');
             const header = document.getElementById('sheet-header');
-            
             content.innerHTML = "";
             sheet.classList.add('active');
             document.getElementById('overlay').style.display = 'block';
@@ -732,123 +551,45 @@
                 header.innerText = "업무 지시";
                 JOBS.forEach((job, i) => {
                     let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult * carTimeMult);
-                    let html = '';
                     if(job.id === 'cheat') {
-                        html = `
-                        <div class="list-item" onclick="doWork(${i})" ontouchstart="">
-                            <div class="item-info">
-                                <span class="item-name" style="color:var(--danger);">${job.name}</span>
-                                <span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | 컨디션 소모 무</span>
-                            </div>
-                            <div class="item-price-box">
-                                <span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span>
-                                <span class="item-bonus" style="color:var(--text-sub); font-size:10px;">(확률형 차등 지급)</span>
-                            </div>
-                        </div>`;
+                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name" style="color:var(--danger);">${job.name}</span><span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}%</span></div><div class="item-price-box"><span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span></div></div>`;
                     } else {
                         let baseTotal = job.money + RANKS[state.rankIdx].bonus;
                         let expected = baseTotal * mult * carIncomeMult;
                         let bonus = Math.floor(expected - baseTotal);
-                        html = `
-                        <div class="list-item" onclick="doWork(${i})" ontouchstart="">
-                            <div class="item-info">
-                                <span class="item-name">${job.name}</span>
-                                <span class="item-sub">시간: ${formatTextTime(actualTime)} | 업무력: ${job.exp} | <span style="color:var(--condition-color); font-weight:800;">소모 컨디션: ${job.conditionCost}</span></span>
-                            </div>
-                            <div class="item-price-box">
-                                <span class="item-price">기본 ${baseTotal.toLocaleString()}원</span>
-                                <span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span>
-                            </div>
-                        </div>`;
+                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name">${job.name}</span><span class="item-sub">시간: ${formatTextTime(actualTime)} | <span style="color:var(--condition-color); font-weight:800;">소모: ${job.conditionCost}</span></span></div><div class="item-price-box"><span class="item-price">기본 ${baseTotal.toLocaleString()}원</span><span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span></div></div>`;
                     }
-                    content.innerHTML += html;
                 });
             } else if(type === 'rest') {
                 header.innerText = "휴식 및 컨디션 관리";
                 RESTS.forEach((rest, i) => {
-                    content.innerHTML += `
-                        <div class="list-item" onclick="startRest(${i})" ontouchstart="">
-                            <div class="item-info">
-                                <span class="item-name">${rest.name}</span>
-                                <span class="item-sub">최소 이행: ${formatTextTime(rest.minTime)} (완치)</span>
-                            </div>
-                            <div class="item-price-box">
-                                <span class="item-price" style="font-size:11px; line-height:1.4;">분당 체력 +${rest.rate}<br><span style="color:var(--condition-color);">완료 시 현재 컨디션 100% 완치</span></span>
-                                ${rest.id === 'sleep' ? `<span class="item-bonus">(현재 집 x${HOUSES[state.houseIdx].mult}배 적용)</span>` : ''}
-                            </div>
-                        </div>`;
+                    content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px;">분당 체력 +${rest.rate}</span></div></div>`;
                 });
             } else if(type === 'buff') {
-                header.innerText = "약국 아이템 (현재 컨디션 회복)";
+                header.innerText = "약국 아이템";
                 BUFFS.forEach((buff, i) => {
-                    content.innerHTML += `
-                        <div class="list-item" onclick="buyBuff(${i})" ontouchstart="">
-                            <div class="item-info">
-                                <span class="item-name">${buff.name}</span>
-                                <span class="item-sub" style="color:var(--condition-color); font-weight:800;">현재 컨디션 +${buff.effect.toLocaleString()} 즉시 회복</span>
-                            </div>
-                            <div class="item-price-box">
-                                <span class="item-price">${buff.price.toLocaleString()}원</span>
-                            </div>
-                        </div>`;
+                    content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name">${buff.name}</span><span class="item-sub" style="color:var(--condition-color);">컨디션 +${buff.effect.toLocaleString()} 회복</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
                 });
             } else if(type === 'shop') {
-                header.innerText = "쇼핑몰 (업무 시간 단축)";
+                header.innerText = "쇼핑몰 (단축)";
                 SHOPS.forEach((shop, i) => {
                     let isOwned = state.ownedItems.includes(shop.id);
-                    content.innerHTML += `
-                        <div class="list-item" onclick="buyShop(${i})" ontouchstart="" style="opacity: ${isOwned ? '0.5' : '1'}">
-                            <div class="item-info">
-                                <span class="item-name">${shop.name}</span>
-                                <span class="item-sub">${shop.desc}</span>
-                            </div>
-                            <div class="item-price-box">
-                                ${isOwned ? `<span class="item-owned">보유 중</span>` : `<span class="item-price">${shop.price.toLocaleString()}원</span>`}
-                            </div>
-                        </div>`;
+                    content.innerHTML += `<div class="list-item" onclick="buyShop(${i})" style="opacity: ${isOwned ? '0.5' : '1'}"><div class="item-info"><span class="item-name">${shop.name}</span><span class="item-sub">${shop.desc}</span></div><div class="item-price-box">${isOwned ? `<span class="item-owned">보유 중</span>` : `<span class="item-price">${shop.price.toLocaleString()}원</span>`}</div></div>`;
                 });
-                let nickPrice = state.nicknameChangeCount === 0 ? 100000 : 100000000;
-                content.innerHTML += `
-                    <div class="list-item" onclick="buyNickname()" ontouchstart="">
-                        <div class="item-info">
-                            <span class="item-name">✨ 황금 명찰 변경권</span>
-                            <span class="item-sub">캐릭터의 이름을 변경합니다.</span>
-                        </div>
-                        <div class="item-price-box">
-                            <span class="item-price" style="color:var(--accent-color); font-size:12px;">${nickPrice.toLocaleString()}원</span>
-                        </div>
-                    </div>`;
+                content.innerHTML += `<div class="list-item" onclick="buyNickname()"><div class="item-info"><span class="item-name">✨ 황금 명찰 변경권</span><span class="item-sub">캐릭터 이름을 변경합니다.</span></div><div class="item-price-box"><span class="item-price" style="color:var(--accent-color);">100,000원</span></div></div>`;
             } else if(type === 'house') {
                 header.innerText = "부동산 계약";
                 HOUSES.forEach((house, i) => {
                     let isCurrent = (state.houseIdx === i);
-                    let priceText = house.id === 'home' ? '무료' : house.id === 'goshi' ? `선불 월세 ${house.rent.toLocaleString()}원` : house.type === '매매' ? `매매가 ${house.deposit.toLocaleString()}원` : `보증금 ${house.deposit.toLocaleString()}원`;
+                    let priceText = house.id === 'home' ? '무료' : house.id === 'goshi' ? `월세 ${house.rent.toLocaleString()}원` : `보증금 ${house.deposit.toLocaleString()}원`;
                     let colorClass = house.type === '매매' ? 'color-maemae' : house.type === '월세' ? 'color-wolse' : 'color-jeonse';
-                    content.innerHTML += `
-                        <div class="list-item" onclick="buyHouse(${i})" ontouchstart="" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}">
-                            <div class="item-info">
-                                <span class="item-name">${house.name} <span class="${colorClass}" style="font-size:10px; font-weight:bold;">[${house.type}]</span></span>
-                                <span class="item-sub" style="color:var(--success);">수면 효율 x${house.mult}배 | 이사비: ${house.moveCost.toLocaleString()}원</span>
-                            </div>
-                            <div class="item-price-box">
-                                ${isCurrent ? `<span class="item-owned">거주 중</span>` : `<span class="item-price ${colorClass}">${priceText}</span>${house.rent > 0 && house.id !== 'goshi' ? `<span class="item-sub" style="font-size:10px; color:var(--danger);">월세 ${house.rent.toLocaleString()}원</span>` : ''}`}
-                            </div>
-                        </div>`;
+                    content.innerHTML += `<div class="list-item" onclick="buyHouse(${i})" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}"><div class="item-info"><span class="item-name">${house.name}</span><span class="item-sub" style="color:var(--success);">수면 효율 x${house.mult}배 | 이사비: ${house.moveCost.toLocaleString()}</span></div><div class="item-price-box">${isCurrent ? `<span class="item-owned">거주 중</span>` : `<span class="item-price ${colorClass}">${priceText}</span>`}</div></div>`;
                 });
             } else if(type === 'car') {
                 header.innerText = "자동차 대리점";
                 CARS.forEach((car, i) => {
                     let isCurrent = (state.carIdx === i);
-                    content.innerHTML += `
-                        <div class="list-item" onclick="buyCar(${i})" ontouchstart="" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}">
-                            <div class="item-info">
-                                <span class="item-name">🚗 ${car.name}</span>
-                                <span class="item-sub" style="color:var(--success); font-weight:600;">${car.desc}</span>
-                            </div>
-                            <div class="item-price-box">
-                                ${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}
-                            </div>
-                        </div>`;
+                    content.innerHTML += `<div class="list-item" onclick="buyCar(${i})" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}"><div class="item-info"><span class="item-name">🚗 ${car.name}</span><span class="item-sub" style="color:var(--success);">${car.desc}</span></div><div class="item-price-box">${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}</div></div>`;
                 });
             }
         }
@@ -856,31 +597,22 @@
         function buyCar(idx) {
             let car = CARS[idx]; 
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
-            if (Number(state.money) < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
-
-            let desc = `🚗 [${car.name}] 신차 인도 청구서\n\n`;
-            desc += `차량 가격: ${car.price.toLocaleString()}원\n`;
-            desc += `-----------------------------\n효과: ${car.desc}\n\n이 차량을 계약하시겠습니까?`;
-
-            showConfirm("차량을 구매하시겠습니까?", desc, () => {
-                state.money = Number(state.money) - Number(car.price);
-                state.carIdx = idx;
-                showAlert("구매 성공", `${car.name} 인도가 완료되었습니다!\n출퇴근 및 출장 속도 가속화 버프가 즉시 적용됩니다.`);
-                updateDisplay(); closeSheet(); saveGame(true);
+            if (Number(state.money) < car.price) return showAlert("잔액 부족", `소집 자금이 부족합니다.`);
+            showConfirm("차량 구매", `차량 가격: ${car.price.toLocaleString()}원\n구매하시겠습니까?`, () => {
+                state.money = Number(state.money) - Number(car.price); state.carIdx = idx;
+                showAlert("구매 성공", `${car.name} 인도가 완료되었습니다!`); updateDisplay(); closeSheet(); saveGame(true);
             });
         }
 
         function doWork(idx) {
             let job = JOBS[idx];
-            if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중이라 일을 할 수 없습니다!");
-            if(state.isWorking) return showAlert("안내", "이미 진행 중인 업무나 휴식이 있습니다.\n화면 상단의 취소 버튼을 먼저 눌러주세요.");
-            if(state.condition < job.conditionCost) return showAlert("컨디션 부족!", `업무를 수행하기에 컨디션이 부족합니다.\n필요량: ${job.conditionCost}\n(현재 컨디션: ${Math.floor(state.condition)})`);
+            if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중입니다.");
+            if(state.isWorking) return showAlert("안내", "먼저 진행중인 작업을 취소하세요.");
+            if(state.condition < job.conditionCost) return showAlert("컨디션 부족!", `필요 컨디션: ${job.conditionCost}`);
             
             if (job.id === 'cheat') {
-                showConfirm("📱 딴짓을 시작하시겠습니까?", `⚠️ 부장님께 들키면 치명적인 불이익이 따릅니다.\n\n딴짓을 하다가 30% 확률로 걸리면 3분 동안 혼나고 통장에서 일부 보유금이 삭감됩니다. 그래도 하실건가요?`, () => executeWorkStart(job));
-            } else {
-                executeWorkStart(job);
-            }
+                showConfirm("딴짓 시작", `걸리면 돈 뺏깁니다. 하시겠습니까?`, () => executeWorkStart(job));
+            } else { executeWorkStart(job); }
         }
 
         function executeWorkStart(job) {
@@ -900,13 +632,10 @@
                 document.getElementById('current-action-label').innerText = `💼 ${task.name} 중...`;
                 let actualTime = task.id === 'cheat' ? task.time : Math.ceil(task.time * state.timeMult * carTimeMult);
 
-                state.workInterval = setInterval(() => {
-                    let now = Date.now();
-                    let delta = (now - lastWorkTick) / 1000;
+                workIntervalRef = setInterval(() => {
+                    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
                     if (delta >= 1) {
-                        let passedSecs = Math.floor(delta);
-                        state.workElapsed += passedSecs;
-                        lastWorkTick += passedSecs * 1000;
+                        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
                         let remain = Math.max(0, actualTime - state.workElapsed);
                         document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / actualTime) * 100) + "%";
                         document.getElementById('time-left').innerText = `${formatMMSS(remain)} 남음`;
@@ -917,19 +646,16 @@
                 document.getElementById('current-action-label').innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
                 document.getElementById('progress-bar').style.width = '100%';
 
-                state.workInterval = setInterval(() => {
-                    let now = Date.now();
-                    let delta = (now - lastWorkTick) / 1000;
+                workIntervalRef = setInterval(() => {
+                    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
                     if (delta >= 1) {
-                        let passedSecs = Math.floor(delta);
-                        state.workElapsed += passedSecs;
-                        lastWorkTick += passedSecs * 1000;
+                        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
                         let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
                         if (state.workElapsed < task.minTime) {
-                            document.getElementById('time-left').innerText = `최소 완료까지: ${formatWorkTime(task.minTime - state.workElapsed)}`;
+                            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)}`;
                         } else {
                             let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
-                            document.getElementById('time-left').innerText = `취소 시 체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
+                            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
                         }
                     }
                 }, 200);
@@ -937,38 +663,21 @@
         }
 
         function finishWork(job, isCanceled, actualTime) {
-            clearInterval(state.workInterval);
-            resetUI();
+            clearInterval(workIntervalRef); resetUI();
             
             if(job.risk && !isCanceled) {
                 if(Math.random() < job.risk) {
                     let lostPct = Math.floor(Math.random() * 10) + 1; 
                     let lostMoney = Math.floor(Number(state.money) * (lostPct / 100));
-                    
-                    if (lostMoney < 100 && Number(state.money) > 0) {
-                        lostMoney = Math.min(Number(state.money), 100);
-                    }
-
-                    state.money = Math.max(0, Number(state.money) - lostMoney); 
-                    state.debuffTimeLeft = 180; 
-                    showAlert("적발됨!", `딴짓하다 부장님께 걸렸습니다!\n부장님이 지갑을 검사하여 보유 현금의 ${lostPct}%인 📉${lostMoney.toLocaleString()}원을 삭감했습니다.\n3분간 업무 정지 페널티!`);
+                    state.money = Math.max(0, Number(state.money) - lostMoney); state.debuffTimeLeft = 180; 
+                    showAlert("적발됨!", `들켜서 📉${lostMoney.toLocaleString()}원을 삭감당했습니다!`);
                 } else {
-                    let rand = Math.random();
-                    let pct = 1;
-                    
-                    if (rand < 0.70) { pct = 1; } 
-                    else if (rand < 0.85) { pct = Math.floor(Math.random() * 9) + 2; } 
-                    else if (rand < 0.94) { pct = Math.floor(Math.random() * 20) + 11; } 
-                    else if (rand < 0.98) { pct = Math.floor(Math.random() * 30) + 31; } 
-                    else if (rand < 0.99) { pct = Math.floor(Math.random() * 39) + 61; } 
-                    else { pct = 100; }
-
+                    let rand = Math.random(); let pct = 1;
+                    if (rand < 0.70) { pct = 1; } else if (rand < 0.94) { pct = 15; } else { pct = 50; }
                     let earn = Math.floor(Number(state.money) * (pct / 100));
                     if (earn < 100) earn = 100; 
-
-                    state.money = Number(state.money) + earn; 
-                    state.exp = Math.max(0, Number(state.exp) - 1); 
-                    showAlert("완전 범죄", `성공적으로 딴짓을 마쳤습니다.\n부장님 몰래 주식 창을 켜서 보유 현금의 ${pct}%인 📉${earn.toLocaleString()}원을 벌고 업무력 1이 깎였습니다.`);
+                    state.money = Number(state.money) + earn; state.exp = Math.max(0, Number(state.exp) - 1); 
+                    showAlert("완전 범죄", `주식을 몰래 켜서 💰${earn.toLocaleString()}원을 벌었습니다!`);
                 }
                 updateDisplay(); saveGame(true); return;
             }
@@ -983,105 +692,62 @@
             let earnedMoney = Math.floor(totalMoney * ratio);
             let earnedExp = Math.floor(job.exp * ratio);
 
-            state.money = Number(state.money) + Number(earnedMoney); 
-            state.exp = Number(state.exp) + Number(earnedExp);
-            
-            if(isCanceled) {
-                showAlert("작업 취소", `중도 취소했습니다.\n\n진행 비율 정산에 따라\n💰 수익: ${earnedMoney.toLocaleString()}원\n📉 컨디션 소모: ${costDeducted}`);
-            } else {
-                showAlert("업무 완료", `[${job.name}] 업무를 무사히 마쳤습니다!\n\n💰 수익: +${earnedMoney.toLocaleString()}원\n💼 업무력: +${earnedExp}\n📉 소모 컨디션: ${costDeducted}`);
-            }
+            state.money = Number(state.money) + Number(earnedMoney); state.exp = Number(state.exp) + Number(earnedExp);
+            showAlert(isCanceled ? "작업 취소" : "업무 완료", `💰 수익: +${earnedMoney.toLocaleString()}원\n📉 소모 컨디션: ${costDeducted}`);
             updateDisplay(); saveGame(true);
         }
 
         function startRest(idx) {
             let rest = RESTS[idx];
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중입니다!");
-            if(state.isWorking) return showAlert("안내", "이미 진행 중인 업무나 휴식이 있습니다.\n화면 상단의 취소 버튼을 먼저 눌러주세요.");
-            
+            if(state.isWorking) return showAlert("안내", "먼저 진행중인 작업을 취소하세요.");
             state.isWorking = true; state.currentTask = rest; state.workElapsed = 0;
             closeSheet(); startTaskInterval();
         }
 
         function cancelWork() {
             if(!state.isWorking || !state.currentTask) return;
-            if (state.currentTask.id === 'cheat') {
-                clearInterval(state.workInterval); resetUI();
-                showAlert("작업 취소", "딴짓을 그만두었습니다."); saveGame(true); return;
-            }
-
+            if (state.currentTask.id === 'cheat') { clearInterval(workIntervalRef); resetUI(); showAlert("작업 취소", "딴짓 취소."); saveGame(true); return; }
             if(state.currentTask.minTime) { 
-                clearInterval(state.workInterval);
-                let rest = state.currentTask;
-                let houseMult = (rest.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
+                clearInterval(workIntervalRef); let rest = state.currentTask; let houseMult = (rest.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
                 let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
-                let msg = `총 ${formatWorkTime(state.workElapsed)} 동안 휴식했습니다.\n체력 +${Math.floor(gainedStamina)} 상승`;
-                
-                if (state.workElapsed >= rest.minTime) {
-                    state.condition = 100; 
-                    msg += `\n\n💡 [보너스] 최소 이행 시간 달성으로 현재 컨디션이 최대 한도(100)로 전액 완치되었습니다!`;
-                } else {
-                    msg += `\n\n⚠️ 최소 시간(${formatTextTime(rest.minTime)})을 채우지 못해 컨디션 회복에 실패했습니다.`;
-                }
+                if (state.workElapsed >= rest.minTime) state.condition = 100; 
                 state.stamina = Number(state.stamina) + gainedStamina;
-                resetUI(); showAlert("휴식 정산", msg); updateDisplay(); saveGame(true); return;
+                resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
             }
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
             let actualTime = Math.ceil(state.currentTask.time * state.timeMult * carTimeMult);
             finishWork(state.currentTask, true, actualTime);
         }
 
-        function resetUI() {
-            state.isWorking = false; state.currentTask = null;
-            document.getElementById('progress-wrapper').style.display = 'none';
-            document.getElementById('current-action-label').innerText = "대기 중...";
-            document.getElementById('coin-container').style.display = 'flex';
-        }
+        function resetUI() { state.isWorking = false; state.currentTask = null; document.getElementById('progress-wrapper').style.display = 'none'; document.getElementById('current-action-label').innerText = "대기 중..."; }
 
         function buyBuff(i) {
             let b = BUFFS[i];
             if(Number(state.money) >= b.price) {
-                if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("사용 불가", "이미 컨디션이 최상 상태입니다!");
-                state.money = Number(state.money) - Number(b.price); 
-                state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
-                showAlert("버프 사용", `${b.name} 복용 완료!\n현재 컨디션이 +${b.effect} 회복되었습니다.`);
-                updateDisplay(); closeSheet(); saveGame(true);
-            } else {
-                showAlert("잔액 부족", "돈이 부족합니다!");
-            }
+                if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
+                state.money = Number(state.money) - Number(b.price); state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
+                showAlert("사용 완료", `${b.name} 복용 완료!`); updateDisplay(); closeSheet(); saveGame(true);
+            } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
         }
         
         function buyShop(i) {
             let s = SHOPS[i];
-            if (state.ownedItems.includes(s.id)) return showAlert("안내", "이미 보유 중인 장비입니다.");
+            if (state.ownedItems.includes(s.id)) return showAlert("안내", "보유 중입니다.");
             if(Number(state.money) >= s.price) {
-                state.money = Number(state.money) - Number(s.price); 
-                state.ownedItems.push(s.id); state.timeMult *= s.mult;
-                showAlert("쇼핑 완료", `${s.name} 장착 완료!`);
-                updateDisplay(); openSheet('shop'); saveGame(true);
-            } else {
-                showAlert("잔액 부족", "돈이 부족합니다!");
-            }
+                state.money = Number(state.money) - Number(s.price); state.ownedItems.push(s.id); state.timeMult *= s.mult;
+                showAlert("쇼핑 완료", `${s.name} 구매!`); updateDisplay(); openSheet('shop'); saveGame(true);
+            } else { showAlert("잔액 부족", "돈 부족!"); }
         }
 
         function buyHouse(idx) {
             let house = HOUSES[idx];
-            if (state.houseIdx === idx) return showAlert("안내", "현재 거주 중인 집입니다.");
-            
-            let initialCost = house.deposit + house.moveCost;
-            if (house.id === 'goshi') initialCost += house.rent; 
-            if (Number(state.money) < initialCost) return showAlert("잔액 부족", `계약에 필요한 최소 자금이 부족합니다.\n필요 자금: ${initialCost.toLocaleString()}원`);
-
-            let desc = `🏠 [${house.name}] 계약 청구서\n\n`;
-            desc += house.type === "매매" ? `매매가: ${house.deposit.toLocaleString()}원\n` : `보증금: ${house.deposit.toLocaleString()}원\n`;
-            if (house.id === 'goshi') desc += `선불 월세: ${house.rent.toLocaleString()}원\n`;
-            desc += `이사비용: ${house.moveCost.toLocaleString()}원\n-----------------------------\n총 ${initialCost.toLocaleString()}원이 청구됩니다. 이사하시겠습니까?`;
-
-            showConfirm("이사를 시작하시겠습니까?", desc, () => {
-                state.money = Number(state.money) - Number(initialCost); 
-                state.houseIdx = idx;
-                showAlert("이사 성공", `${house.name}(으)로 이사를 완료했습니다!\n수면 시 체력 획득량이 ${house.mult}배로 적용됩니다.`);
-                updateDisplay(); closeSheet(); saveGame(true);
+            if (state.houseIdx === idx) return showAlert("안내", "거주 중입니다.");
+            let initialCost = house.deposit + house.moveCost; if (house.id === 'goshi') initialCost += house.rent; 
+            if (Number(state.money) < initialCost) return showAlert("잔액 부족", `비용: ${initialCost.toLocaleString()}원`);
+            showConfirm("이사", `계약하시겠습니까?`, () => {
+                state.money = Number(state.money) - Number(initialCost); state.houseIdx = idx;
+                showAlert("이사 성공", `${house.name} 이사 완료!`); updateDisplay(); closeSheet(); saveGame(true);
             });
         }
         
@@ -1089,127 +755,66 @@
             let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
             if(Number(state.money) >= price) {
                 let n = prompt("새 이름:");
-                if(n && n.trim() !== "") { 
-                    state.money = Number(state.money) - Number(price); 
-                    state.nickname = n.trim(); state.nicknameChangeCount++; 
-                    showAlert("명찰 변경 완료", `성공한 직장인의 상징, [${state.nickname}] 명찰을 달았습니다!`);
-                    updateDisplay(); closeSheet(); saveGame(true);
-                }
-            } else {
-                showAlert("잔액 부족", "돈이 부족합니다!");
-            }
+                if(n && n.trim() !== "") { state.money = Number(state.money) - Number(price); state.nickname = n.trim(); state.nicknameChangeCount++; updateDisplay(); closeSheet(); saveGame(true); }
+            } else { showAlert("잔액 부족", "돈 부족!"); }
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; }
-        
-        function showAlert(t, d) { 
-            document.getElementById('alert-title').innerText = t; 
-            document.getElementById('alert-desc').innerText = d; 
-            document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn" onclick="closeAlert()">확인</button>`;
-            document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; 
-        }
-        
-        function showConfirm(title, desc, onConfirm) {
-            document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc;
-            document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`;
-            document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); };
-            document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block';
-        }
-        
+        function showAlert(t, d) { document.getElementById('alert-title').innerText = t; document.getElementById('alert-desc').innerText = d; document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn" onclick="closeAlert()">확인</button>`; document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; }
+        function showConfirm(title, desc, onConfirm) { document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc; document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`; document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); }; document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; }
         function closeAlert() { document.getElementById('alert-overlay').style.display = 'none'; document.getElementById('alert-modal').style.display = 'none'; }
-
-        function toggleSettingsBubble(e) {
-            e.stopPropagation(); 
-            const bubble = document.getElementById("settings-bubble");
-            bubble.style.display = (bubble.style.display === "flex") ? "none" : "flex";
-        }
+        function toggleSettingsBubble(e) { e.stopPropagation(); const bubble = document.getElementById("settings-bubble"); bubble.style.display = (bubble.style.display === "flex") ? "none" : "flex"; }
+        document.addEventListener("click", () => { document.getElementById("settings-bubble").style.display = "none"; });
         
-        document.addEventListener("click", () => {
-            document.getElementById("settings-bubble").style.display = "none";
-        });
-        
-        function handleLogout() {
-            localStorage.removeItem("k_worker_auto_login");
-            if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
-                firebase.auth().signOut()
-                    .then(() => { location.replace("index.html"); })
-                    .catch(err => { console.error(err); location.replace("index.html"); });
-            } else {
-                location.replace("index.html");
-            }
-        }
-        
+        function handleLogout() { localStorage.removeItem("k_worker_auto_login"); firebase.auth().signOut().then(() => { location.replace("index.html"); }).catch(err => { location.replace("index.html"); }); }
         function showVersionModal() { document.getElementById("version-modal").style.display = "block"; }
         function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
         function launchGameEngine() {
-            processOfflineProgress(); 
-            updateDisplay(); 
-            if (state.isWorking && state.currentTask) { startTaskInterval(); } 
-            else { resetUI(); }
+            processOfflineProgress(); updateDisplay(); 
+            if (state.isWorking && state.currentTask) { startTaskInterval(); } else { resetUI(); }
             startGameLoop(); 
         }
 
-        // 🚨 클라우드(Firebase) 데이터를 절대 기준으로 삼아 상단 UI 레이어 전체 스탯을 완벽 동기화하는 모듈
+        // 🚨 로컬 데이터 원천 배제: 파이어베이스에서만 100% 데이터를 로드하여 오염 복구
         window.onload = () => {
-            try {
-                if (typeof firebase !== 'undefined') {
-                    firebase.auth().onAuthStateChanged((user) => {
-                        if (user) {
-                            currentUser = user; 
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    currentUser = user; 
+                    firebase.firestore().collection("users").doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                let cloudData = doc.data();
+                                state.money = cloudData.money !== undefined ? Number(cloudData.money) : 10000000;
+                                state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
+                                state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
+                                state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
+                                state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : 100;
+                                state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : 100;
+                                state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : 0;
+                                state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : -1;
+                                state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
+                                state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
+                                state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
+                                state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
+                                state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
+                                state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
+                                state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
+                                state.nickname = cloudData.nickname ? String(cloudData.nickname) : "김씨";
+                                state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
+                            }
+                            sanitizeState(); 
                             
-                            // 1. 디바이스 로컬 세이브 캐시를 기본 베이스로 확보
-                            loadGame(); 
+                            // 완전히 정화된 데이터를 로컬 스토리지에 덮어쓰기 (오염 파괴)
+                            let saveState = { ...state };
+                            delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
                             
-                            // 2. 파이어베이스 데이터베이스 접근 및 엄격한 1:1 오버라이트 (임의 숫자 강제 주입 절대 금지)
-                            firebase.firestore().collection("users").doc(user.uid).get()
-                                .then((doc) => {
-                                    if (doc.exists) {
-                                        let cloudData = doc.data();
-                                        
-                                        // 클라우드 정보가 있는 항목만 강제 치환 매핑 (유실 완전 차단)
-                                        if(cloudData.money !== undefined) state.money = Number(cloudData.money);
-                                        if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
-                                        if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
-                                        if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
-                                        if(cloudData.condition !== undefined) state.condition = Number(cloudData.condition);
-                                        if(cloudData.maxCondition !== undefined) state.maxCondition = Number(cloudData.maxCondition);
-                                        if(cloudData.houseIdx !== undefined) state.houseIdx = Number(cloudData.houseIdx);
-                                        if(cloudData.carIdx !== undefined) state.carIdx = Number(cloudData.carIdx);
-                                        if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
-                                        if(cloudData.rentDayCounter !== undefined) state.rentDayCounter = Number(cloudData.rentDayCounter);
-                                        if(cloudData.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(cloudData.debuffTimeLeft);
-                                        if(cloudData.timeMult !== undefined) state.timeMult = Number(cloudData.timeMult);
-                                        if(cloudData.lastSaveTime !== undefined) state.lastSaveTime = Number(cloudData.lastSaveTime);
-                                        if(cloudData.nickname !== undefined) state.nickname = String(cloudData.nickname);
-                                        if(cloudData.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(cloudData.nicknameChangeCount);
-                                        if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
-                                        if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
-                                    }
-                                    
-                                    sanitizeState(); 
-                                    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-                                    launchGameEngine(); 
-                                })
-                                .catch((err) => {
-                                    console.error("클라우드 통신 실패, 세이브 캐시로 대체 구동:", err);
-                                    sanitizeState();
-                                    launchGameEngine();
-                                });
-                        } else { 
-                            loadGame();
-                            launchGameEngine();
-                        }
-                    });
-                } else {
-                    loadGame();
-                    launchGameEngine();
-                }
-            } catch (e) {
-                console.error("인증 파이프라인 치명적 오류, 로컬 모드로 리다이렉트:", e);
-                loadGame();
-                launchGameEngine();
-            }
+                            launchGameEngine(); 
+                        })
+                        .catch((err) => { console.error(err); launchGameEngine(); });
+                } else { location.href = 'index.html'; }
+            });
         };
     </script>
 </body>
