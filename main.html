@@ -110,8 +110,10 @@
             display: flex; flex-direction: column; align-items: center;
             pointer-events: none;
         }
+        
+        /* 🚨 [요청 반영] 캐릭터 크기 기존 110px에서 220px로 정확히 2배 확대 */
         #char-display { 
-            height: 110px; 
+            height: 220px; 
             object-fit: contain;
             margin-bottom: 5px; cursor: pointer; user-select: none;
             -webkit-user-drag: none; 
@@ -249,10 +251,10 @@
             100% { transform: translateY(-40px); }
         }
 
-        /* 🚨 [요청 반영] 톱니바퀴 원형 배경 순백색(하얀색) 전면 보정 명세 */
+        /* 톱니바퀴 원형 배경 순백색(하얀색) 전면 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
-            background: #ffffff; /* 💡 완전한 하얀색 배경 고정 */
+            background: #ffffff; 
             border: 2px solid var(--border-color);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 22px; 
@@ -418,7 +420,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.0.6-stable<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 데이터 무결성 인프라 실시간 자동 정제 및 톱니바퀴 화이트 튜닝
+            • 업데이트: 캐릭터 업무 고정 유지 결계 가동 및 2배율 벌크업 패치 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -502,18 +504,6 @@
 
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
-        const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", // 🚨 마스터 고유 Key 검증 완료
-            authDomain: "kkkjikjang.firebaseapp.com",
-            projectId: "kkkjikjang",
-            storageBucket: "kkkjikjang.firebasestorage.app",
-            messagingSenderId: "138250223666",
-            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
-        };
-        firebase.initializeApp(firebaseConfig);
-        let currentUser = null; 
-
-        // 🚨 [데이터 무결성 격벽 시스템] NaN 검출 및 타 변수 오염 원천 배제 클리닝 실행
         function sanitizeState() {
             state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
             state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
@@ -547,15 +537,21 @@
                 
                 let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
                 let merged = { ...existing, ...saveState }; 
+                
+                merged.money = Number(merged.money);
+                merged.stamina = Number(merged.stamina);
+                merged.exp = Number(merged.exp);
+                merged.rankIdx = Number(merged.rankIdx);
+                merged.gameSeconds = Number(merged.gameSeconds);
 
                 localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
 
                 if (currentUser) {
                     firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                        .catch(e => console.error("클라우드 전송 실패 무시:", e));
+                        .catch(e => console.error("클라우드 백업 전송 실패:", e));
                 }
             } catch (error) {
-                console.error("세이브 예외 핸들링 우회:", error);
+                console.error("세이브 예외 우회:", error);
             }
         }
 
@@ -564,16 +560,34 @@
             if(saved) {
                 try {
                     let parsed = JSON.parse(saved);
-                    state = { ...state, ...parsed };
+                    if(parsed.money !== undefined) state.money = Number(parsed.money);
+                    if(parsed.stamina !== undefined) state.stamina = Number(parsed.stamina);
+                    if(parsed.exp !== undefined) state.exp = Number(parsed.exp);
+                    if(parsed.rankIdx !== undefined) state.rankIdx = Number(parsed.rankIdx);
+                    if(parsed.condition !== undefined) state.condition = Number(parsed.condition);
+                    if(parsed.maxCondition !== undefined) state.maxCondition = Number(parsed.maxCondition);
+                    if(parsed.houseIdx !== undefined) state.houseIdx = Number(parsed.houseIdx);
+                    if(parsed.carIdx !== undefined) state.carIdx = Number(parsed.carIdx);
+                    if(parsed.gameSeconds !== undefined) state.gameSeconds = Number(parsed.gameSeconds);
+                    if(parsed.rentDayCounter !== undefined) state.rentDayCounter = Number(parsed.rentDayCounter);
+                    if(parsed.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(parsed.debuffTimeLeft);
+                    if(parsed.timeMult !== undefined) state.timeMult = Number(parsed.timeMult);
+                    if(parsed.lastSaveTime !== undefined) state.lastSaveTime = Number(parsed.lastSaveTime);
+                    if(parsed.nickname !== undefined) state.nickname = String(parsed.nickname);
+                    if(parsed.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(parsed.nicknameChangeCount);
+                    if(Array.isArray(parsed.ownedItems)) state.ownedItems = parsed.ownedItems;
                 } catch(e) {
-                    console.error("로컬 로드 실패 패스:", e);
+                    console.error("로드 오류:", e);
                 }
             }
             sanitizeState();
         }
 
         function processOfflineProgress() {
-            sanitizeState();
+            if (!state.lastSaveTime || state.lastSaveTime <= 0) {
+                state.lastSaveTime = Date.now();
+                return;
+            }
             let deltaTime = Math.floor((Date.now() - state.lastSaveTime) / 1000);
             if (isNaN(deltaTime) || deltaTime <= 10) return;
             
@@ -583,7 +597,6 @@
             
             let mult = getIncomeMultiplier(state.stamina);
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
-            if (isNaN(passiveEarned)) passiveEarned = 0;
             state.money += passiveEarned;
             
             if (state.isWorking) {
@@ -878,11 +891,15 @@
             closeSheet(); startTaskInterval();
         }
 
+        // 🚨 [버그 패치 완료] 업무 지시 중에도 캐릭터 레이어가 투명화 및 사라지지 않도록 결계 설정
         function startTaskInterval() {
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
             document.getElementById('progress-wrapper').style.display = 'flex';
-            document.getElementById('coin-container').style.display = 'none';
+            
+            // 💡 [기존 버그 코드 제거] 기존에 캐릭터 레이어를 강제로 지우던 코드를 주석 삭제하여 실시간 노출 유지
+            // document.getElementById('coin-container').style.display = 'none'; 
+            
             let lastWorkTick = Date.now();
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
 
@@ -1085,21 +1102,18 @@
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; }
-        
         function showAlert(t, d) { 
             document.getElementById('alert-title').innerText = t; 
             document.getElementById('alert-desc').innerText = d; 
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn" onclick="closeAlert()">확인</button>`;
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; 
         }
-        
         function showConfirm(title, desc, onConfirm) {
             document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc;
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`;
             document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); };
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block';
         }
-        
         function closeAlert() { document.getElementById('alert-overlay').style.display = 'none'; document.getElementById('alert-modal').style.display = 'none'; }
 
         function toggleSettingsBubble(e) {
@@ -1131,7 +1145,6 @@
             startGameLoop(); 
         }
 
-        // 🚨 [데이터 동기화 안정성 결계 구축] 타입별 분리 파싱 및 무결성 보존 로드
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
@@ -1141,8 +1154,6 @@
                             loadGame(); 
                             if (doc.exists) {
                                 let cloudData = doc.data();
-                                
-                                // 💡 유효 필드만 선별하여 숫자로 확실히 변환 주입 (데이터 전면 복구)
                                 if(cloudData.money !== undefined) state.money = Number(cloudData.money);
                                 if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
                                 if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
