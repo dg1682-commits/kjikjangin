@@ -53,7 +53,6 @@
         }
         .breaking-tag { background: #ffffff; color: var(--breaking-red); padding: 2px 6px; border-radius: 4px; font-size: 11px; text-transform: uppercase; }
 
-        /* 신문 기사 본문 카드 디자인 */
         .news-article-card {
             background: var(--paper-white); border: 1px solid var(--border-line);
             border-radius: 12px; padding: 22px 20px; margin-bottom: 18px;
@@ -67,7 +66,6 @@
         .article-journalist { font-size: 12px; color: var(--ink-gray); font-weight: 600; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 14px; }
         .article-body-text { font-size: 14px; line-height: 1.65; color: var(--ink-gray); font-weight: 500; text-align: justify; word-break: break-all; }
         .article-body-text p { margin: 0 0 12px 0; }
-        .headline-focus { font-weight: 700; color: var(--ink-black); background-color: rgba(14, 165, 233, 0.08); padding: 0 2px; }
     </style>
 </head>
 <body>
@@ -82,7 +80,7 @@
         <div class="breaking-banner">
             <span class="breaking-tag">⚡ 속보</span>
             <div id="breaking-text" style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
-                사내 주식 시장 자율 변동화 선언으로 전 유저 실시간 거래 활성화!
+                시장의 새로운 속보 뉴스를 기다리는 중입니다...
             </div>
         </div>
 
@@ -92,69 +90,66 @@
     </main>
 
 <script>
-    // 통제실, 메인과 완벽하게 일치하는 파이어베이스 인증 정보 셋업
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 🚨 [핵심 기능] 파이어베이스 데이터베이스와 신문고를 실시간 스트리밍 바인딩하는 엔진
     function listenLiveNewsRoom() {
-    // 🚨 [변경] 안전한 기존 경로(market_data/market_news)를 실시간 감시(onSnapshot)합니다.
-    db.collection("market_data").doc("market_news").onSnapshot(doc => {
-        const container = document.getElementById('news-stream-container');
-        if (!container) return;
+        // 규칙 예외 처리가 확보된 통합 경로 실시간 감시 시동
+        db.collection("market_data").doc("market_news").onSnapshot(doc => {
+            const container = document.getElementById('news-stream-container');
+            if (!container) return;
 
-        if (!doc.exists || !doc.data().newsList || doc.data().newsList.length === 0) {
-            container.innerHTML = `
-            <div class="news-article-card">
-                <div class="article-meta"><span class="article-cat">[안내]</span><span class="article-dot">|</span><span class="article-date">방금 전</span></div>
-                <h2 class="article-headline">현재 발행된 사내 특보 기사가 존재하지 않습니다.</h2>
-                <div class="article-journalist">문화부 기자</div>
-                <div class="article-body-text">통제실 제어 장치를 통해 실시간 가속 뉴스를 송출하면 이 자리에 실시간 속보 헤드라인이 즉시 마운트됩니다.</div>
-            </div>`;
-            return;
-        }
+            if (!doc.exists || !doc.data().newsList || doc.data().newsList.length === 0) {
+                container.innerHTML = `
+                <div class="news-article-card">
+                    <div class="article-meta"><span class="article-cat">[안내]</span><span class="article-dot">|</span><span class="article-date">방금 전</span></div>
+                    <h2 class="article-headline">현재 발행된 사내 특보 기사가 존재하지 않습니다.</h2>
+                    <div class="article-journalist">문화부 기자</div>
+                    <div class="article-body-text">통제실 제어 장치를 통해 실시간 가속 뉴스를 송출하면 이 자리에 실시간 속보 헤드라인이 즉시 마운트됩니다.</div>
+                </div>`;
+                return;
+            }
 
-        // 🚨 데이터가 한 문서에 모여있으므로, 자바스크립트로 최신 등록순(시간 역순) 정렬을 수행합니다.
-        let newsList = doc.data().newsList;
-        newsList.sort((a, b) => b.timestamp - a.timestamp);
+            let newsList = doc.data().newsList;
+            // 최신 등록순 정렬 연산
+            newsList.sort((a, b) => b.timestamp - a.timestamp);
 
-        let html = "";
-        newsList.forEach(data => {
-            const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
-                year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', hour12: false
+            let html = "";
+            newsList.forEach(data => {
+                const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
+                    year: 'numeric', month: 'long', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+
+                html += `
+                <div class="news-article-card">
+                    <div class="article-meta">
+                        <span class="article-cat">${data.rewardText || '[시황 소식]'}</span>
+                        <span class="article-dot">|</span>
+                        <span class="article-date">${timeString}</span>
+                    </div>
+                    <h2 class="article-headline">${data.title}</h2>
+                    <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
+                    <div class="article-body-text">
+                        <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
+                    </div>
+                </div>`;
             });
 
-            html += `
-            <div class="news-article-card">
-                <div class="article-meta">
-                    <span class="article-cat">${data.rewardText || '[시황 소식]'}</span>
-                    <span class="article-dot">|</span>
-                    <span class="article-date">${timeString}</span>
-                </div>
-                <h2 class="article-headline">${data.title}</h2>
-                <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
-                <div class="article-body-text">
-                    <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
-                </div>
-            </div>`;
+            container.innerHTML = html;
+
+            // 상단 실시간 전광판 텍스트 동기화
+            if(newsList[0]) {
+                const latestNews = newsList[0];
+                document.getElementById('breaking-text').innerText = latestNews.title + " - " + latestNews.articleBody.substring(0, 40) + "...";
+            }
+
+        }, err => {
+            console.error("뉴스룸 데이터 스트림 미러링 장해:", err);
         });
+    }
 
-        container.innerHTML = html;
-
-        // 🚨 최상단 텍스트 전광판 실시간 동기화 연동
-        if(newsList[0]) {
-            const latestNews = newsList[0];
-            document.getElementById('breaking-text').innerText = latestNews.title + " - " + latestNews.articleBody.substring(0, 40) + "...";
-        }
-
-    }, err => {
-        console.error("뉴스룸 로딩 오류:", err);
-    });
-}
-
-    // 초기 엔진 즉시 시동
     listenLiveNewsRoom();
 </script>
 </body>
