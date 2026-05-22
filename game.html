@@ -228,7 +228,7 @@
 const ARCADE_GAMES = [
     { id: "LR", title: "니꺼내꺼", cost: 100, desc: "좌우 순발력 폭발! 성공 시 스코어 비례 두둑한 보너스 자금이 입금됩니다." },
     { id: "NC", title: "눈치눈치", cost: 100, desc: "부장님 피해서 업무하세요! 성공 시 스코어 비례 보너스 자금이 입금됩니다." }, // 🚨 id를 "NC"로 수정
-    { id: "rhythm", title: "리듬 테일즈 (리듬게임)", cost: 2000, desc: "화려한 콤보 달성 시 순발력(체력 스탯)이 영구 상승할 기회!" },
+    { id: "1955", title: "1955 (비행 슈팅)", cost: 100, desc: "하늘에서 사정없이 쏟아지는 운석과 미사일을 화려하게 무빙으로 회피하세요! 생존 점수에 비례해 두둑한 수당이 정산됩니다." },
     { id: "lotto", title: "K-오락실 연금 대박 복권", cost: 5000, desc: "인생 역전의 기회! 초고액의 현금 자산 당첨 스케줄 시뮬레이션." }
 ];
 
@@ -341,16 +341,20 @@ const ARCADE_GAMES = [
             }
 
 if (game.id === "LR") {
-        state.money -= game.cost;
-        saveGame(); 
-        location.replace('LR.html');
-    } else if (game.id === "NC") { // 🚨 이 부분을 추가하세요
-        state.money -= game.cost;
-        saveGame(); 
-        location.replace('NC.html'); // NC.html로 이동
-    } else {
-                showAlert("🚧 기기 점검 중 (공사 중)", `[${game.title}] 기기는 현재 기기 고유 연동 시스템 공사 중입니다!\n\n실제 미니게임이 가동되는 다음 패치 버전부터 코인이 정상 차감되오니 안심하고 구경해 주세요!`);
-            }
+            state.money -= game.cost;
+            saveGame(); 
+            location.replace('LR.html');
+        } else if (game.id === "NC") { 
+            state.money -= game.cost;
+            saveGame(); 
+            location.replace('NC.html'); 
+        } else if (game.id === "1955") { // 🚨 [신설] 1955 동전 차감 및 파일 다이렉트 링크 연동
+            state.money -= game.cost;
+            saveGame(); 
+            location.replace('1955.html'); 
+        } else {
+            showAlert("🚧 기기 점검 중 (공사 중)", `[${game.title}] 기기는 현재 기기 고유 연동 시스템 공사 중입니다!\n\n실제 미니게임이 가동되는 다음 패치 버전부터 코인이 정상 차감되오니 안심하고 구경해 주세요!`);
+        }
         }
 
         function startGameLoop() {
