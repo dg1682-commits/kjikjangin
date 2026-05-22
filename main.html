@@ -598,11 +598,16 @@ if (gearBadge) {
                     }
                 });
             } else if(type === 'rest') {
-                header.innerText = "휴식 및 컨디션 관리";
-                RESTS.forEach((rest, i) => {
-                    content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px;">분당 체력 +${rest.rate}</span></div></div>`;
-                });
-            } else if(type === 'buff') {
+    header.innerText = "휴식 및 컨디션 관리";
+    RESTS.forEach((rest, i) => {
+        // 🚨 현재 거주 중인 부동산의 효율 배율을 퍼센트(%)로 정밀 환산 (예: 1.5배 -> 150%)
+        let houseMult = HOUSES[state.houseIdx].mult;
+        let effPercent = Math.round(houseMult * 100);
+        
+        // 🚨 글자 겹침 방지를 위해 line-height를 추가하고 <br> 밑에 수면 효율 문구를 바인딩합니다.
+        content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px; line-height: 1.4;">분당 체력 +${rest.rate}<br><span style="color: var(--success); font-weight: 800;">수면 효율: ${effPercent}%</span></span></div></div>`;
+    });
+} else if(type === 'buff') {
                 header.innerText = "약국 아이템";
                 BUFFS.forEach((buff, i) => {
                     content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name">${buff.name}</span><span class="item-sub" style="color:var(--condition-color);">컨디션 +${buff.effect.toLocaleString()} 회복</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
