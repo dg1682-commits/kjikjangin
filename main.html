@@ -426,6 +426,10 @@
     </div>
 
     <script>
+        // 🚨 누락되었던 글로벌 필수 변수 선언 추가
+        let currentUser = null;
+        const SAVE_KEY = "k_worker_game_save";
+
         let state = {
             money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
@@ -504,6 +508,28 @@
 
         let lastCloudSaveTime = 0; 
 
+        // 🚨 누락되었던 연산 및 포맷팅 유틸리티 함수 정의 추가
+        function getIncomeMultiplier(stamina) {
+            return 1 + (stamina / 1000);
+        }
+
+        function formatTextTime(seconds) {
+            if (seconds < 60) return Math.floor(seconds) + "초";
+            let m = Math.floor(seconds / 60);
+            let s = Math.floor(seconds % 60);
+            return s > 0 ? `${m}분 ${s}초` : `${m}분`;
+        }
+
+        function formatWorkTime(seconds) {
+            return formatTextTime(seconds);
+        }
+
+        function formatMMSS(seconds) {
+            let m = Math.floor(seconds / 60);
+            let s = Math.floor(seconds % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
         function sanitizeState() {
             state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
             state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
@@ -524,7 +550,6 @@
             state.nickname = state.nickname ? String(state.nickname) : "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
 
-            // 🚨 [강력 자동 치유 프로토콜] 클라우드에 0원이나 오염된 수치가 영구 저장되었을 때 강제로 표준 시작 자금(1000만 원)으로 회생 복구
             if (state.money <= 0 || state.money > 1000000000000 || String(state.money).length > 12) { 
                 state.money = 10000000; 
             }
@@ -547,8 +572,8 @@
 
                 localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
 
-                // 🚨 파이어베이스 통신 스로틀링 제한 가동 (랙, 벽돌, 로그인창 튕김현상 완벽 척결)
-                if (currentUser) {
+                // 🚨 파이어베이스 미초기화 환경에서의 붕괴 방지용 예외 조건 분기 추가
+                if (currentUser && typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                     let now = Date.now();
                     if (forceCloud || (now - lastCloudSaveTime > 7000)) {
                         lastCloudSaveTime = now;
@@ -624,7 +649,7 @@
                     let passiveAdd = (0.5 * mult) * passedSecs;
                     if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
                     
-                    updateDisplay(); // 🚨 [유해 세이브 패킷 제거] 0.2초 간격 과부하 세이브 코드 흔적 영구 삭제
+                    updateDisplay(); 
                 }
             }, 200); 
         }
@@ -1110,9 +1135,14 @@
         
         function handleLogout() {
             localStorage.removeItem("k_worker_auto_login");
-            firebase.auth().signOut()
-                .then(() => { location.replace("index.html"); })
-                .catch(err => { console.error(err); location.replace("index.html"); });
+            // 🚨 파이어베이스 미초기화 환경에서의 튕김현상 억제 처리
+            if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                firebase.auth().signOut()
+                    .then(() => { location.replace("index.html"); })
+                    .catch(err => { console.error(err); location.replace("index.html"); });
+            } else {
+                location.replace("index.html");
+            }
         }
         
         function showVersionModal() { document.getElementById("version-modal").style.display = "block"; }
@@ -1127,44 +1157,61 @@
         }
 
         window.onload = () => {
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    currentUser = user; 
-                    firebase.firestore().collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            loadGame(); 
-                            if (doc.exists) {
-                                let cloudData = doc.data();
-                                if(cloudData.money !== undefined) state.money = Number(cloudData.money);
-                                if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
-                                if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
-                                if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
-                                if(cloudData.condition !== undefined) state.condition = Number(cloudData.condition);
-                                if(cloudData.maxCondition !== undefined) state.maxCondition = Number(cloudData.maxCondition);
-                                if(cloudData.houseIdx !== undefined) state.houseIdx = Number(cloudData.houseIdx);
-                                if(cloudData.carIdx !== undefined) state.carIdx = Number(cloudData.carIdx);
-                                if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
-                                if(cloudData.rentDayCounter !== undefined) state.rentDayCounter = Number(cloudData.rentDayCounter);
-                                if(cloudData.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(cloudData.debuffTimeLeft);
-                                if(cloudData.timeMult !== undefined) state.timeMult = Number(cloudData.timeMult);
-                                if(cloudData.lastSaveTime !== undefined) state.lastSaveTime = Number(cloudData.lastSaveTime);
-                                if(cloudData.nickname !== undefined) state.nickname = String(cloudData.nickname);
-                                if(cloudData.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(cloudData.nicknameChangeCount);
-                                if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
-                                if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
+            try {
+                // 🚨 파이어베이스 연결 실패 및 초기화 누락 시 로컬 저장소로 안전 우회 가동시키는 예외 처리 완비
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    firebase.auth().onAuthStateChanged((user) => {
+                        if (user) {
+                            currentUser = user; 
+                            firebase.firestore().collection("users").doc(user.uid).get()
+                                .then((doc) => {
+                                    loadGame(); 
+                                    if (doc.exists) {
+                                        let cloudData = doc.data();
+                                        if(cloudData.money !== undefined) state.money = Number(cloudData.money);
+                                        if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
+                                        if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
+                                        if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
+                                        if(cloudData.condition !== undefined) state.condition = Number(cloudData.condition);
+                                        if(cloudData.maxCondition !== undefined) state.maxCondition = Number(cloudData.maxCondition);
+                                        if(cloudData.houseIdx !== undefined) state.houseIdx = Number(cloudData.houseIdx);
+                                        if(cloudData.carIdx !== undefined) state.carIdx = Number(cloudData.carIdx);
+                                        if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
+                                        if(cloudData.rentDayCounter !== undefined) state.rentDayCounter = Number(cloudData.rentDayCounter);
+                                        if(cloudData.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(cloudData.debuffTimeLeft);
+                                        if(cloudData.timeMult !== undefined) state.timeMult = Number(cloudData.timeMult);
+                                        if(cloudData.lastSaveTime !== undefined) state.lastSaveTime = Number(cloudData.lastSaveTime);
+                                        if(cloudData.nickname !== undefined) state.nickname = String(cloudData.nickname);
+                                        if(cloudData.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(cloudData.nicknameChangeCount);
+                                        if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
+                                        if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
 
-                                // 🚨 [가장 중요] 구름 데이터를 매핑한 직후 강제로 수치 클리닝 및 자동 치유 긴급 가동
-                                sanitizeState(); 
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-                            }
-                            launchGameEngine(); 
-                        })
-                        .catch((err) => {
-                            console.error("클라우드 연동 실패, 로컬 구동 패스:", err);
+                                        sanitizeState(); 
+                                        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+                                    }
+                                    launchGameEngine(); 
+                                })
+                                .catch((err) => {
+                                    console.error("클라우드 연동 실패, 로컬 구동 패스:", err);
+                                    loadGame();
+                                    launchGameEngine();
+                                });
+                        } else { 
+                            console.warn("로그인 세션 없음 -> 로컬 모드로 엔진을 시동합니다.");
+                            loadGame();
                             launchGameEngine();
-                        });
-                } else { location.href = 'index.html'; }
-            });
+                        }
+                    });
+                } else {
+                    console.warn("Firebase 미초기화 환경 -> Local 모드로 게임을 시작합니다.");
+                    loadGame();
+                    launchGameEngine();
+                }
+            } catch (e) {
+                console.error("엔진 초기화 오류 발생 -> 로컬 우회 가동:", e);
+                loadGame();
+                launchGameEngine();
+            }
         };
     </script>
 </body>
