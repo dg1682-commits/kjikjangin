@@ -13,19 +13,32 @@
         .stock-card h3 { margin: 0 0 10px 0; font-size: 18px; color: #f1f5f9; }
         .stock-card p { margin: 0 0 15px 0; font-size: 20px; font-weight: bold; color: #38bdf8; }
         
-        /* [패치] 조작 버튼 및 입력창 스타일 */
         .control-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
         .step-btn { background: #475569; color: white; border: none; border-radius: 5px; width: 32px; height: 32px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .step-btn:active { background: #334155; transform: scale(0.95); }
         input[type="number"] { width: 60px; height: 32px; box-sizing: border-box; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; font-size: 16px; }
         .apply-btn { height: 32px; padding: 0 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; margin-left: auto; }
         .apply-btn:active { background: #0284c7; transform: scale(0.95); }
+
+        /* [패치] 대기열 전광판 스타일 */
+        .pending-container { margin-top: 40px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #f43f5e; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .pending-title { margin-top: 0; color: #f43f5e; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .pending-list { list-style: none; padding: 0; margin: 0; color: #cbd5e1; font-weight: bold; font-size: 16px; }
+        .pending-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; }
+        .pending-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     </style>
 </head>
 <body>
     <h1>📈 주식 시장 통제실 (자율 구동)</h1>
     <div id="timer-display">서버 시간 동기화 중...</div>
     <div class="grid" id="market-list"></div>
+
+    <div class="pending-container">
+        <h3 class="pending-title">⚠️ 다음 턴 적용 대기열 (0초 반영)</h3>
+        <ul id="pending-list" class="pending-list">
+            <li>대기 중인 조정 내역이 없습니다.</li>
+        </ul>
+    </div>
 
     <div style="margin-top: 50px; padding: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
         <p>마지막 업데이트 배포 시간: <span id="deploy-time">확인 중...</span></p>
@@ -65,23 +78,53 @@
     let isUpdating = false;
     let pendingPercents = {};
 
-    // 🚨 [패치] 플러스 마이너스 조작 함수
     function stepValue(id, delta) {
         const inputEl = document.getElementById(`input-${id}`);
         let currentVal = parseFloat(inputEl.value) || 0;
         inputEl.value = currentVal + delta;
     }
 
+    // 🚨 [패치] 대기열 리스트를 화면에 그려주는 함수
+    function renderPendingList() {
+        const listEl = document.getElementById('pending-list');
+        if (!listEl) return;
+
+        let html = "";
+        let hasPending = false;
+
+        for (let id in pendingPercents) {
+            if (pendingPercents[id] !== undefined) {
+                hasPending = true;
+                let stock = stocks.find(s => s.id === id);
+                let percent = (pendingPercents[id] * 100).toFixed(2);
+                let color = percent > 0 ? '#ef4444' : '#3b82f6';
+                let sign = percent > 0 ? '+' : '';
+                
+                html += `
+                    <li class="pending-item">
+                        <span>${stock.name}</span> 
+                        <span style="color: ${color};">${sign}${parseFloat(percent)}% 적용 대기</span>
+                    </li>`;
+            }
+        }
+
+        if (!hasPending) {
+            listEl.innerHTML = "<li>대기 중인 조정 내역이 없습니다.</li>";
+        } else {
+            listEl.innerHTML = html;
+        }
+    }
+
     function applyManualPercent(id, percentStr) {
         if (!percentStr || isNaN(percentStr)) {
             pendingPercents[id] = undefined;
+            renderPendingList(); // 갱신
             return;
         }
         pendingPercents[id] = parseFloat(percentStr) / 100;
         
-        const action = parseFloat(percentStr) > 0 ? "상승(떡상)" : "하락(떡락)";
-        alert(`${id} 종목, 다음 변동 시 ${percentStr}% ${action} 강제 적용 대기 완료!`);
-        document.getElementById(`input-${id}`).value = ""; // 입력창 초기화
+        document.getElementById(`input-${id}`).value = ""; 
+        renderPendingList(); // 적용 버튼 누를 때마다 하단 리스트 갱신
     }
 
     async function initMarket() {
@@ -95,10 +138,17 @@
             });
 
             const statusDoc = await db.collection("market_data").doc("market_status").get();
-            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
+            if (statusDoc.exists && statusDoc.data().lastUpdate) {
+                let lastUpdate = statusDoc.data().lastUpdate;
+                targetTime = lastUpdate + 90000;
+            } else {
+                let now = Date.now();
+                await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
+                targetTime = now + 90000;
+            }
             
-            targetTime = lastUpdate + 90000;
             renderUI();
+            renderPendingList();
 
             setInterval(tick, 1000);
             tick();
@@ -134,7 +184,7 @@
                 let change;
                 if (pendingPercents[s.id] !== undefined) {
                     change = s.price * pendingPercents[s.id];
-                    pendingPercents[s.id] = undefined; 
+                    pendingPercents[s.id] = undefined; // 🚨 반영 후 메모리에서 삭제
                 } else {
                     change = s.price * (Math.random() - 0.5) * 0.05;
                 }
@@ -151,6 +201,7 @@
             
             targetTime = now + 90000;
             renderUI();
+            renderPendingList(); // 🚨 시장 반영 끝났으니 대기열도 비움 처리
         } catch (error) {
             console.error("업데이트 에러:", error);
             targetTime = Date.now() + 5000; 
