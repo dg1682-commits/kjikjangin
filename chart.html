@@ -19,7 +19,7 @@
 </head>
 <body>
     <h1>📈 주식 시장 통제실</h1>
-    <div id="timer-display">다음 시장 변동까지: 계산 중...</div>
+    <div id="timer-display">서버 시간 동기화 중...</div>
     <div class="grid" id="market-list"></div>
 
     <div style="margin-top: 50px; padding: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
@@ -56,7 +56,8 @@
         { id: "sksec", name: "OK증권", price: 1250 }
     ];
 
-    let timeLeft = 90;
+    let targetTime = 0; // 다음 업데이트가 일어나야 할 목표 시간 (절대 시간)
+    let isUpdating = false; // 중복 업데이트 방지 락(Lock)
     let pendingPercents = {};
 
     function applyManualPercent(id, percentStr) {
@@ -70,7 +71,7 @@
 
     async function initMarket() {
         try {
-            // 1. 서버에 이미 축적된 최신 주가 불러와 동기화
+            // 1. 파이어베이스에 저장된 가장 최근 주가 불러오기
             const snapshot = await db.collection("market_data").get();
             snapshot.forEach(doc => {
                 if (doc.id !== "market_status") {
@@ -79,24 +80,40 @@
                 }
             });
 
-            // 2. 서버의 마지막 업데이트 시간과 연동하여 타이머 복구
+            // 2. 서버의 마지막 업데이트 시간 가져오기
             const statusDoc = await db.collection("market_data").doc("market_status").get();
             let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : 0;
-            let elapsed = Date.now() - lastUpdate;
-
+            
+            // 목표 시간 = 마지막 업데이트 시간 + 90초(90000ms)
+            targetTime = lastUpdate + 90000;
+            
             renderUI();
 
-            if (elapsed >= 90000) {
-                // 90초 초과 경과 시 즉각 시장 갱신
-                await updateMarket();
-            } else {
-                // 경과하지 않은 남은 시간만큼 타이머 할당 후 대기 구동
-                timeLeft = Math.floor((90000 - elapsed) / 1000);
-                setTimeout(updateMarket, 90000 - elapsed);
-            }
+            // 3. 진짜 시계(초침) 가동 시작
+            setInterval(tick, 1000);
+            tick(); // 즉시 1회 실행
         } catch (error) {
-            console.error("시장 데이터 초기화 실패:", error);
-            renderUI();
+            console.error("초기화 실패:", error);
+        }
+    }
+
+    // [핵심 해결] 브라우저 타이머 의존을 버리고 실제 Date.now() 시간차로 연산
+    async function tick() {
+        if (isUpdating || targetTime === 0) return;
+
+        let now = Date.now();
+        let remaining = Math.floor((targetTime - now) / 1000);
+
+        const timerEl = document.getElementById('timer-display');
+        
+        if (remaining <= 0) {
+            // 0초가 되는 순간 즉시 락을 걸고 업데이트 시작
+            isUpdating = true;
+            timerEl.innerText = `시장 데이터 갱신 중... (서버 통신)`;
+            await updateMarket();
+        } else {
+            // 정상 카운트다운
+            timerEl.innerText = `다음 시장 변동까지: ${remaining}초 남음`;
         }
     }
 
@@ -104,43 +121,39 @@
         const now = Date.now();
         
         try {
-            // 1. 동기화 기준 타임스탬프 기록 고정
+            // 1. 서버에 새로운 기준 시간 저장
             await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
 
-            // 2. 15개 전 종목 데이터 연산 및 원격 저장
+            // 2. 주가 변동 로직
             for (let s of stocks) {
                 let change;
                 if (pendingPercents[s.id] !== undefined) {
                     change = s.price * pendingPercents[s.id];
-                    pendingPercents[s.id] = undefined; // 반영 후 초기화
+                    pendingPercents[s.id] = undefined; 
                 } else {
-                    // 기본 랜덤 변동폭 범위 (-2.5% ~ +2.5%)
                     change = s.price * (Math.random() - 0.5) * 0.05;
                 }
 
                 s.price = Math.max(10, Math.floor(s.price + change));
 
-                // 원격 데이터 저장 실행
+                // 3. 100% 파이어베이스 저장 (로컬 저장소 없음)
                 await db.collection("market_data").doc(s.id).set({
-                    name: s.name,
-                    price: s.price,
-                    updatedAt: now
+                    name: s.name, price: s.price, updatedAt: now
                 });
-
-                // 30일 히스토리 이력 적립
                 await db.collection("price_history").doc(s.id).collection("daily").doc(now.toString()).set({
-                    price: s.price,
-                    date: new Date()
+                    price: s.price, date: new Date(now)
                 });
             }
             
+            // 4. 다음 목표 시간 90초 뒤로 재설정 및 화면 갱신
+            targetTime = now + 90000;
             renderUI();
-            timeLeft = 90;
-            setTimeout(updateMarket, 90000);
         } catch (error) {
             console.error("시장 변동성 업데이트 에러:", error);
-            timeLeft = 90;
-            setTimeout(updateMarket, 90000);
+            // 에러 시 5초 뒤 재시도
+            targetTime = Date.now() + 5000;
+        } finally {
+            isUpdating = false; // 락 해제 (다시 카운트다운 시작)
         }
     }
 
@@ -161,23 +174,9 @@
         `).join('');
     }
 
-    // 1초 단위 실시간 독립 카운트다운 타이머 루프
-    setInterval(() => {
-        if (timeLeft > 0) {
-            timeLeft--;
-        }
-        const timerEl = document.getElementById('timer-display');
-        if (timerEl) {
-            timerEl.innerText = `다음 시장 변동까지: ${timeLeft}초 남음`;
-        }
-    }, 1000);
-
-    // 전체 시스템 기동 초기화
+    // 시스템 가동
     initMarket();
-    
-    // 배포 완료 로그 갱신
-    const deployEl = document.getElementById('deploy-time');
-    if (deployEl) deployEl.innerText = new Date().toLocaleString();
+    document.getElementById('deploy-time').innerText = new Date().toLocaleString();
 </script>
 </body>
 </html>
