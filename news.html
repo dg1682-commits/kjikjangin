@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K-직장인 신문 - 뉴스룸</title>
+    <style>
+        :root {
+            --news-bg: #f4f6f9;
+            --paper-white: #ffffff;
+            --ink-black: #0f172a;
+            --ink-gray: #334155;
+            --ink-muted: #64748b;
+            --border-line: #cbd5e1;
+            --breaking-red: #dc2626;
+            --accent-blue: #1d4ed8;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%; 
+            font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+            background-color: var(--news-bg);
+            color: var(--ink-black);
+        }
+
+        /* 디지털 뉴스룸 고정 헤더 */
+        header { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 0 20px; background: var(--paper-white); 
+            border-bottom: 2px solid var(--ink-black); 
+            z-index: 100; 
+        }
+        .back-btn { font-size: 24px; font-weight: bold; color: var(--ink-black); cursor: pointer; text-decoration: none; }
+        .header-title { font-size: 16px; font-weight: 900; letter-spacing: 1px; }
+        .empty-space { width: 24px; }
+
+        /* 메인 기사 스트림 레이아웃 */
+        main { 
+            padding-top: 75px; padding-bottom: 50px; 
+            max-width: 640px; margin: 0 auto; padding-left: 14px; padding-right: 14px;
+            overflow-y: auto; height: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 🚨 실시간 속보 고정 티커 뷰 */
+        .breaking-banner {
+            background: var(--breaking-red);
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 11px 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.15);
+        }
+        .breaking-tag {
+            background: #ffffff;
+            color: var(--breaking-red);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        /* 신문 기사 본문 카드 디자인 */
+        .news-article-card {
+            background: var(--paper-white);
+            border: 1px solid var(--border-line);
+            border-radius: 12px;
+            padding: 22px 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+        }
+
+        /* 기사 헤더 영역 */
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--ink-muted);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .article-cat { color: var(--accent-blue); }
+        .article-dot { color: var(--border-line); }
+
+        .article-headline {
+            font-size: 19px;
+            font-weight: 800;
+            line-height: 1.45;
+            color: var(--ink-black);
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .article-journalist {
+            font-size: 12px;
+            color: var(--ink-gray);
+            font-weight: 600;
+            background: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 14px;
+        }
+
+        /* 기사 단락 텍스트 스타일 */
+        .article-body-text {
+            font-size: 14px;
+            line-height: 1.65;
+            color: var(--ink-gray);
+            font-weight: 500;
+            text-align: justify;
+            word-break: break-all;
+        }
+
+        .article-body-text p {
+            margin: 0 0 12px 0;
+        }
+        .article-body-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 주요 포인트 강조 텍스트 */
+        .headline-focus {
+            font-weight: 700;
+            color: var(--ink-black);
+            background-color: rgba(14, 165, 233, 0.08);
+            padding: 0 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="main.html" class="back-btn">←</a>
+        <div class="header-title">THE K-WORKER TIMES</div>
+        <div class="empty-space"></div>
+    </header>
+
+    <main>
+        
+        <div class="breaking-banner">
+            <span class="breaking-tag">⚡ 속보</span>
+            <div style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                사내 주식 시장 자율 변동화 선언으로 전 유저 실시간 거래 활성화!
+            </div>
+        </div>
+
+        <div class="news-article-card">
+            <div class="article-meta">
+                <span class="article-cat">[유통/물류]</span>
+                <span class="article-dot">|</span>
+                <span class="article-date">2026년 05월 22일 20:06</span>
+            </div>
+            <h2 class="article-headline">일신비츠온, 전국 물류망 강화 선언... 브랜드 차량 대규모 '래핑 광고' 캠페인 돌입</h2>
+            <div class="article-journalist">경영기획팀 조준호 기자</div>
+            <div class="article-body-text">
+                <p>종합 조명 및 산업재 MRO 유통 대기업 일신비츠온이 전국의 자사 물류 탑차들을 움직이는 랜드마크로 변모시키는 대규모 <span class="headline-focus">‘차량 차량 래핑 종합 광고 캠페인’</span>을 전격 가동한다고 밝혔다.</p>
+                <p>이번 프로젝트는 홈비트(Homevit) 등 독자적인 프리미엄 조명 브랜드의 인지도를 대대적으로 확장하고, 전국을 빈틈없이 연결하는 초고속 MRO 유통망의 건전성을 대내외에 과시하기 위해 기획되었다. 스마트 물류 센터에서 출고된 차량들은 도심과 산업 단지를 가로지르며 기업의 친근하고 강력한 브랜딩을 실시간으로 전파하게 된다.</p>
+                <p>사내 마케팅 TF 팀장은 "전국 방방곡곡을 누비는 탑차 광고는 고정식 빌보드 광고판보다 수십 배 높은 기동성과 노출 효과를 발휘할 것"이라며 강한 자부심을 나타냈다.</p>
+            </div>
+        </div>
+        <div class="news-article-card">
+            <div class="article-meta">
+                <span class="article-cat">[금융/증권]</span>
+                <span class="article-dot">|</span>
+                <span class="article-date">2026년 05월 20일 11:30</span>
+            </div>
+            <h2 class="article-headline">K-증권 앱, 24시간 자율 가동 체제 안착... "개미 사원들 자산 증식 기회 확대"</h2>
+            <div class="article-journalist">경제부 이진우 기자</div>
+            <div class="article-body-text">
+                <p>사내 주식 거래 시장을 총괄하는 K-증권 금융결제원이 시장 데이터 제어실의 중앙 집중식 구동 방식을 전면 개편하고, 유저들이 직접 생태계를 움직이는 <span class="headline-focus">'분산형 자율 시장 틱 시스템'</span>을 완벽히 구축했다고 공식 선언했다.</p>
+                <p>이번 패치로 인해 관리자가 오프라인 상태일 때도 접속 중인 모든 사원들의 브라우저 시계가 연대하여 90초 타이머마다 주가를 안전하게 갱신한다. 애비디아, 파인애플, 테슐라 등 핵심 종목들이 실시간으로 요동침에 따라 한탕을 노리는 수습 사원들의 매수, 매도 열기가 그 어느 때보다 뜨겁다.</p>
+                <p>자산 운용 전문가들은 "시장 변동 그래프를 예의주시하고 예수금을 확보해 두는 것이 대리, 과장 직급으로 가는 가장 빠른 재테크 지름길"이라고 조언했다.</p>
+            </div>
+        </div>
+        <div class="news-article-card">
+            <div class="article-meta">
+                <span class="article-cat">[기획 특보]</span>
+                <span class="article-dot">|</span>
+                <span class="article-date">2026년 05월 12일 09:00</span>
+            </div>
+            <h2 class="article-headline">"커피 타오기부터 출장까지"... 수습 사원들의 눈물겨운 승진 도전기 화제</h2>
+            <div class="article-journalist">사회부 박지현 기자</div>
+            <div class="article-body-text">
+                <p>K-직장인 생태계 내부에서 상사의 잔심부름인 '커피 타오기', '영수증 풀칠하기'부터 리스크를 감수한 '부장님 몰래 딴짓(주식 보기)'에 이르기까지 밑바닥에서 고군분투하는 사원들의 일상이 화제를 모으고 있다.</p>
+                <p>조사 결과에 따르면 대부분의 신입 사원들은 업무력 경험치(EXP)를 쌓아 '인턴' 및 정식 '사원' 명찰을 달기 위해 평균 하루에 수십 번씩 마우스 클릭과 터치를 반복하는 것으로 나타났다. 특히 타 지역 출장 업무의 경우 높은 소득과 경험치를 보장하지만 치명적인 컨디션 소모를 동반하여 철저한 약국 버프 아이템 관리가 동반되어야 한다고 전해졌다.</p>
+            </div>
+        </div>
+        </main>
+
+</body>
+</html>
