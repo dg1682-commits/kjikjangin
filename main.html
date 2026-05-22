@@ -996,30 +996,48 @@ if (gearBadge) {
                 } else { location.href = 'index.html'; }
             });
         };
-// 🚨 [추가] 글로벌 뉴스 속보 실시간 감시 및 신문고 N 배지 제어 엔진
-        if (typeof firebase !== 'undefined') {
-            db.collection("market_data").doc("market_news").onSnapshot(doc => {
-                const newsBadge = document.getElementById('news-badge');
-                if (!newsBadge) return;
-                
-                if (doc.exists && doc.data().newsList && doc.data().newsList.length > 0) {
-                    let newsList = doc.data().newsList;
+// 🚨 [고도화 완결판] 미선언 에러 및 로딩 지연을 완벽하게 방어하는 실시간 뉴스 배지 엔진
+        function initNewsBadgeRealtime() {
+            // 파이어베이스 라이브러리 및 Firestore 기능이 아직 메모리에 준비 안 됐다면 0.3초 후 재시도
+            if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') {
+                setTimeout(initNewsBadgeRealtime, 300);
+                return;
+            }
+            
+            try {
+                // db 변수 대신 firebase.firestore()를 다이렉트로 호출하여 ReferenceError를 완벽하게 차단합니다.
+                firebase.firestore().collection("market_data").doc("market_news").onSnapshot(doc => {
+                    const newsBadge = document.getElementById('news-badge');
+                    if (!newsBadge) return;
                     
-                    // 발행된 전체 뉴스 중 가장 최신의 타임스탬프 정밀 추출
-                    let latest = Math.max(...newsList.map(n => n.timestamp || 0));
-                    window.latestNewsTimestamp = latest; // 클릭 컨텍스트 연동용 전역 바인딩
-                    
-                    let lastRead = localStorage.getItem('k_worker_last_read_news');
-                    
-                    // 뉴스를 아예 본 적이 없거나, 통제실에서 새로 보낸 기사의 시간이 더 최신이면 N 표시
-                    if (!lastRead || Number(lastRead) < latest) {
-                        newsBadge.style.display = 'inline-block';
-                    } else {
-                        newsBadge.style.display = 'none';
+                    if (doc.exists && doc.data().newsList && doc.data().newsList.length > 0) {
+                        let newsList = doc.data().newsList;
+                        
+                        // 등록된 뉴스 중 가장 최근 타임스탬프 도출 (정수형 변환 보장)
+                        let latest = Math.max(...newsList.map(n => Number(n.timestamp) || 0));
+                        window.latestNewsTimestamp = latest; // 클릭 시 대조용 전역 변수 바인딩
+                        
+                        let lastRead = localStorage.getItem('k_worker_last_read_news');
+                        
+                        // 뉴스를 한 번도 안 봤거나, 통제실에서 새로 쏜 기사가 더 최신 시간이면 N 배지 즉시 활성화
+                        if (!lastRead || Number(lastRead) < latest) {
+                            newsBadge.style.display = 'inline-block';
+                            newsBadge.innerText = 'N';
+                        } else {
+                            newsBadge.style.display = 'none';
+                        }
                     }
-                }
-            }, err => { console.warn("뉴스 동기화 세션 대기 중"); });
+                }, err => { 
+                    console.warn("뉴스 스트림 세션 접속 대기 중...", err); 
+                });
+            } catch (e) {
+                console.error("뉴스 배지 초기화 중 예외 발생, 0.5초 후 재시도:", e);
+                setTimeout(initNewsBadgeRealtime, 500);
+            }
         }
+
+        // 엔진 안전 구동 시동
+        initNewsBadgeRealtime();
     </script>
 </body>
 </html>
