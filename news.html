@@ -88,12 +88,7 @@
     </header>
 
     <main>
-        <div class="breaking-banner">
-            <span class="breaking-tag">⚡ 속보</span>
-            <div id="breaking-text" style="flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
-                시장의 새로운 속보 뉴스를 기다리는 중입니다...
-            </div>
-        </div>
+
 
         <div id="news-stream-container">
             <div style="text-align:center; padding:40px; color:var(--ink-muted); font-weight:bold;">뉴스룸 기사를 불러오는 중...</div>
@@ -153,11 +148,7 @@ let newsList = doc.data().newsList;
 
         container.innerHTML = html;
 
-            // 상단 실시간 전광판 텍스트 동기화
-            if(newsList[0]) {
-                const latestNews = newsList[0];
-                document.getElementById('breaking-text').innerText = latestNews.title + " - " + latestNews.articleBody.substring(0, 40) + "...";
-            }
+
 
         }, err => {
             console.error("뉴스룸 데이터 스트림 미러링 장해:", err);
