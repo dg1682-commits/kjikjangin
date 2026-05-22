@@ -766,24 +766,26 @@ if (gearBadge) {
     document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / task.minTime) * 100) + "%";
 
     workIntervalRef = setInterval(() => {
-        let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
-        if (delta >= 1) {
-            let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
-            let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
-            
-            // 🚨 [추가] 최소 휴식 목표 시간(minTime) 대비 현재 경과 시간 비율을 계산하여 실시간으로 바를 채움
-            let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
-            document.getElementById('progress-bar').style.width = progressPct + "%";
+    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
+    if (delta >= 1) {
+        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
+        
+        // 🚨 [수정] id 제약을 과감히 철폐하고 현재 부동산 고유 배율을 전격 다이렉트 바인딩합니다.
+        let houseMult = HOUSES[state.houseIdx].mult;
+        
+        let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
+        document.getElementById('progress-bar').style.width = progressPct + "%";
 
-            if (state.workElapsed < task.minTime) {
-                document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)}`;
-            } else {
-                let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
-                document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
-            }
-            if (state.workElapsed % 5 === 0) { saveGame(); }
+        // 🚨 [UI 개선] 유저가 실시간 체력 충전 현황을 볼 수 있게 완료 전이라도 실시간 누적 체력을 우측에 표기합니다.
+        let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
+        if (state.workElapsed < task.minTime) {
+            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)} (+${curStamina})`;
+        } else {
+            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
         }
-    }, 200);
+        if (state.workElapsed % 5 === 0) { saveGame(); }
+    }
+}, 200);
 }
         }
 
@@ -835,12 +837,16 @@ if (gearBadge) {
             if(!state.isWorking || !state.currentTask) return;
             if (state.currentTask.id === 'cheat') { clearInterval(workIntervalRef); resetUI(); showAlert("작업 취소", "딴짓 취소."); saveGame(true); return; }
             if(state.currentTask.minTime) { 
-                clearInterval(workIntervalRef); let rest = state.currentTask; let houseMult = (rest.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
-                let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
-                if (state.workElapsed >= rest.minTime) state.condition = 100; 
-                state.stamina = Number(state.stamina) + gainedStamina;
-                resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
-            }
+    clearInterval(workIntervalRef); let rest = state.currentTask; 
+    
+    // 🚨 [수정] 최종 정산 시에도 부동산 수면 효율 배율이 100% 온전하게 곱해지도록 수정합니다.
+    let houseMult = HOUSES[state.houseIdx].mult;
+    
+    let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
+    if (state.workElapsed >= rest.minTime) state.condition = 100; 
+    state.stamina = Number(state.stamina) + gainedStamina;
+    resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
+}
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
             let actualTime = Math.ceil(state.currentTask.time * state.timeMult * carTimeMult);
             finishWork(state.currentTask, true, actualTime);
