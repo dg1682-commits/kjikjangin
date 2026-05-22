@@ -231,6 +231,7 @@
         let currentTarget = null;
         let currentTab = "list";
         let chartInstance = null; 
+        let marketCheckCounter = 0; // 파이어베이스 부하 조절용 카운터
 
         function showCustomAlert(title, message) {
             const titleEl = document.getElementById('custom-alert-title');
@@ -286,7 +287,6 @@
             }
         }
 
-        // 🚨 [패치 1] 오프라인 주식 랜덤 변동 로직 삭제 (글로벌 시장 데이터로 대체)
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -312,7 +312,55 @@
             saveStockStateToStorage();
         }
 
-        // 🚨 [패치 2] 게임 루프 내 주식 변동 로직 삭제
+        // 🚨 [자율 분산형 주가 틱 구동 시스템] 
+        // 관리자가 컴퓨터를 꺼두어도 게임 중인 유저들이 서로 연대하여 90초 타이머 마다 주가를 강제 자동 갱신해주는 공유 엔진
+        async function checkAndTickGlobalMarket() {
+            try {
+                const statusDoc = await db.collection("market_data").doc("market_status").get();
+                if (!statusDoc.exists) return;
+                
+                let lastUpdate = statusDoc.data().lastUpdate;
+                let now = Date.now();
+                
+                // 만약 마지막 시장 업데이트 시간으로부터 90초(90000ms) 이상 지났다면?
+                if (now - lastUpdate >= 90000) {
+                    let missedTurns = Math.floor((now - lastUpdate) / 90000);
+                    if (missedTurns < 1) missedTurns = 1;
+                    if (missedTurns > 25) missedTurns = 25; // 동시 접속 유저간 트래픽 폭주 및 한도 방어 상한 가드
+                    
+                    // 최신 데이터 가져와서 연속 복리 시뮬레이션 연산
+                    const snapshot = await db.collection("market_data").get();
+                    let batch = db.batch();
+                    
+                    snapshot.forEach(doc => {
+                        if (doc.id === "market_status") return;
+                        let data = doc.data();
+                        let currentPrice = Number(data.price);
+                        
+                        for (let turn = 0; turn < missedTurns; turn++) {
+                            let change = currentPrice * (Math.random() - 0.5) * 0.05;
+                            currentPrice = Math.max(10, Math.floor(currentPrice + change));
+                        }
+                        
+                        batch.set(db.collection("market_data").doc(doc.id), {
+                            name: data.name,
+                            price: currentPrice
+                        }, { merge: true });
+                    });
+                    
+                    let nextUpdateBase = lastUpdate + (missedTurns * 90000);
+                    if (now - nextUpdateBase > 90000) nextUpdateBase = now;
+                    
+                    batch.set(db.collection("market_data").doc("market_status"), { lastUpdate: nextUpdateBase }, { merge: true });
+                    
+                    // 파이어베이스에 일괄 원격 쓰기 실행
+                    await batch.commit();
+                }
+            } catch (e) { 
+                console.warn("마켓 동시 틱 충돌 방지 우회 패스"); 
+            }
+        }
+
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -341,13 +389,18 @@
                     gameState.lastSaveTime = Date.now(); 
                     saveStockStateToStorage();
                     
-                    // 상단 UI(날짜, 보유금 등) 갱신
                     updateAccountUI();
+
+                    // 🚨 3초 주기로 파이어베이스 시계를 역추적 감시하여 자동 주사위 틱 가동
+                    marketCheckCounter++;
+                    if (marketCheckCounter >= 3) {
+                        marketCheckCounter = 0;
+                        checkAndTickGlobalMarket();
+                    }
                 }
             }, 1000); 
         }
 
-        // 🚨 [패치 3 핵심] 글로벌 시장 데이터 실시간 동기화 (chart.html의 신호를 수신)
         function syncGlobalMarket() {
             db.collection("market_data").onSnapshot(snapshot => {
                 let dataChanged = false;
@@ -359,8 +412,8 @@
                     
                     if (s) {
                         if (s.price !== data.price) {
-                            s.prev = s.price; // 이전가 갱신 (증감률 계산용)
-                            s.price = data.price; // 최신 글로벌 주가 적용
+                            s.prev = s.price; 
+                            s.price = data.price; 
                             
                             if (!s.history) s.history = [];
                             s.history.push(s.price);
@@ -371,7 +424,6 @@
                     }
                 });
                 
-                // 데이터가 변경되었을 때만 UI 실시간 새로고침
                 if (dataChanged) {
                     saveStockStateToStorage();
                     updateAccountUI();
@@ -551,13 +603,10 @@
 
         function openChartModal() {
             if (!currentTarget) return;
-            
             document.getElementById('chart-modal').style.display = 'flex';
             
             let data = [...(currentTarget.history || [])];
-            if (data.length === 0) {
-                data.push(currentTarget.price);
-            }
+            if (data.length === 0) data.push(currentTarget.price);
             
             document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 ${data.length}일 기록)`;
             
@@ -568,9 +617,7 @@
             }
             
             const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
-            if (chartInstance) {
-                chartInstance.destroy(); 
-            }
+            if (chartInstance) chartInstance.destroy(); 
             
             chartInstance = new Chart(ctx, {
                 type: 'line',
@@ -615,9 +662,7 @@
             });
         }
         
-        function closeChartModal() {
-            document.getElementById('chart-modal').style.display = 'none';
-        }
+        function closeChartModal() { document.getElementById('chart-modal').style.display = 'none'; }
 
         function openModal(name) {
             currentTarget = gameState.stocks.find(s => s.name === name);
@@ -709,13 +754,10 @@
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
                             }
                             
-                            // 시스템 기동
                             processStockOfflineProgress(); 
                             updateAccountUI(); 
                             renderCoreView(); 
                             startGameLoop(); 
-                            
-                            // 글로벌 시장 동기화 셋업
                             syncGlobalMarket();
                         })
                         .catch((err) => {
