@@ -99,61 +99,60 @@
 
     // 🚨 [핵심 기능] 파이어베이스 데이터베이스와 신문고를 실시간 스트리밍 바인딩하는 엔진
     function listenLiveNewsRoom() {
-        db.collection("news_articles").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-            const container = document.getElementById('news-stream-container');
-            if (!container) return;
+    // 🚨 [변경] 안전한 기존 경로(market_data/market_news)를 실시간 감시(onSnapshot)합니다.
+    db.collection("market_data").doc("market_news").onSnapshot(doc => {
+        const container = document.getElementById('news-stream-container');
+        if (!container) return;
 
-            // 만약 운영자가 보낸 뉴스가 단 하나도 없는 클린 데이터베이스 상태라면 기본 안내 메시지 출력
-            if (snapshot.empty) {
-                container.innerHTML = `
-                <div class="news-article-card">
-                    <div class="article-meta"><span class="article-cat">[안내]</span><span class="article-dot">|</span><span class="article-date">방금 전</span></div>
-                    <h2 class="article-headline">현재 발행된 사내 특보 기사가 존재하지 않습니다.</h2>
-                    <div class="article-journalist">문화부 기자</div>
-                    <div class="article-body-text">통제실 제어 장치를 통해 실시간 가속 뉴스를 송출하면 이 자리에 실시간 속보 헤드라인이 즉시 마운트됩니다.</div>
-                </div>`;
-                return;
-            }
+        if (!doc.exists || !doc.data().newsList || doc.data().newsList.length === 0) {
+            container.innerHTML = `
+            <div class="news-article-card">
+                <div class="article-meta"><span class="article-cat">[안내]</span><span class="article-dot">|</span><span class="article-date">방금 전</span></div>
+                <h2 class="article-headline">현재 발행된 사내 특보 기사가 존재하지 않습니다.</h2>
+                <div class="article-journalist">문화부 기자</div>
+                <div class="article-body-text">통제실 제어 장치를 통해 실시간 가속 뉴스를 송출하면 이 자리에 실시간 속보 헤드라인이 즉시 마운트됩니다.</div>
+            </div>`;
+            return;
+        }
 
-            let html = "";
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                
-                // 타임스탬프 밀리초 데이터를 유저 인지용 문자열 포맷팅으로 파싱
-                const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
-                    year: 'numeric', month: 'long', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: false
-                });
+        // 🚨 데이터가 한 문서에 모여있으므로, 자바스크립트로 최신 등록순(시간 역순) 정렬을 수행합니다.
+        let newsList = doc.data().newsList;
+        newsList.sort((a, b) => b.timestamp - a.timestamp);
 
-                // 실시간 기사 전송 트래픽을 감지하여 템플릿에 데이터 1:1 주입 결합
-                html += `
-                <div class="news-article-card">
-                    <div class="article-meta">
-                        <span class="article-cat">${data.rewardText || '[시황 소식]'}</span>
-                        <span class="article-dot">|</span>
-                        <span class="article-date">${timeString}</span>
-                    </div>
-                    <h2 class="article-headline">${data.title}</h2>
-                    <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
-                    <div class="article-body-text">
-                        <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
-                    </div>
-                </div>`;
+        let html = "";
+        newsList.forEach(data => {
+            const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
             });
 
-            container.innerHTML = html;
-
-            // 🚨 최신 뉴스의 헤드라인을 최상단 빨간색 속보(Breaking) 텍스트 배너에도 실시간 동기화 링크 연동
-            if(snapshot.docs[0]) {
-                const latestNews = snapshot.docs[0].data();
-                document.getElementById('breaking-text').innerText = latestNews.title + " - " + latestNews.articleBody.substring(0, 40) + "...";
-            }
-
-        }, err => {
-            console.error("뉴스룸 노드 로딩 오류:", err);
-            document.getElementById('news-stream-container').innerHTML = `<div style="text-align:center; color:var(--breaking-red); font-weight:bold;">서버와 통신이 원할하지 않습니다.</div>`;
+            html += `
+            <div class="news-article-card">
+                <div class="article-meta">
+                    <span class="article-cat">${data.rewardText || '[시황 소식]'}</span>
+                    <span class="article-dot">|</span>
+                    <span class="article-date">${timeString}</span>
+                </div>
+                <h2 class="article-headline">${data.title}</h2>
+                <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
+                <div class="article-body-text">
+                    <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
+                </div>
+            </div>`;
         });
-    }
+
+        container.innerHTML = html;
+
+        // 🚨 최상단 텍스트 전광판 실시간 동기화 연동
+        if(newsList[0]) {
+            const latestNews = newsList[0];
+            document.getElementById('breaking-text').innerText = latestNews.title + " - " + latestNews.articleBody.substring(0, 40) + "...";
+        }
+
+    }, err => {
+        console.error("뉴스룸 로딩 오류:", err);
+    });
+}
 
     // 초기 엔진 즉시 시동
     listenLiveNewsRoom();
