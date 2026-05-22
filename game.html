@@ -124,7 +124,7 @@
         .alert-desc { font-size: 14px; color: var(--text-light); margin-bottom: 22px; line-height: 1.5; font-weight: 500; }
         .alert-btn { background: var(--neon-pink); color: #fff; padding: 12px; width: 100%; border-radius: 10px; font-weight: 800; }
 
-        /* 오락기 위에 점수 배지 스타일 */
+        /* 오락기 위에 점수 배지 */
         #best-score-display {
             position: absolute; 
             top: -40px; 
@@ -205,13 +205,13 @@
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
         let state = {
-            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
+            money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
-            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, timeMult: 1.0, ownedItems: []
+            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, timeMult: 1.0, ownedItems: [], highScore: 0
         };
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3TCMMeWasorTJrrcfwnNaPi38TXk",
+            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
             authDomain: "kkkjikjang.firebaseapp.com",
             projectId: "kkkjikjang",
             storageBucket: "kkkjikjang.firebasestorage.app",
@@ -230,7 +230,20 @@
             { id: "lotto", title: "K-오락실 연금 대박 복권", cost: 5000, desc: "인생 역전의 기회! 초고액의 현금 자산 당첨 스케줄 시뮬레이션." }
         ];
 
+        // 🚨 오락실 무결성 수치 클리닝 정제 처리
+        function sanitizeState() {
+            state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
+            state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
+            state.exp = isNaN(Number(state.exp)) ? 0 : Number(state.exp);
+            state.rankIdx = isNaN(Number(state.rankIdx)) ? 0 : Number(state.rankIdx);
+            state.condition = isNaN(Number(state.condition)) ? 100 : Number(state.condition);
+            state.maxCondition = isNaN(Number(state.maxCondition)) ? 100 : Number(state.maxCondition);
+            state.gameSeconds = isNaN(Number(state.gameSeconds)) ? 0 : Number(state.gameSeconds);
+            state.highScore = isNaN(Number(state.highScore)) ? 0 : Number(state.highScore);
+        }
+
         function saveGame() { 
+            sanitizeState();
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...state }; 
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged)); 
@@ -241,9 +254,21 @@
             }
         }
 
+        function loadGame() {
+            const saved = localStorage.getItem(SAVE_KEY);
+            if(saved) {
+                try {
+                    let parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch(e) { console.error(e); }
+            }
+            sanitizeState();
+        }
+
         function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
 
         function updateDisplay() {
+            sanitizeState();
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
             const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
@@ -256,7 +281,6 @@
 
         function clickTargetGame(idx) {
             if (activeIndex === idx) return; 
-            
             isAutoScrolling = true;
             const track = document.getElementById('carousel-track');
             const cardWidth = 280; 
@@ -269,7 +293,6 @@
 
         function trackScrollHandler() {
             if (isAutoScrolling) return; 
-            
             const track = document.getElementById('carousel-track');
             let cardWidth = 280; 
             let scrollLeft = track.scrollLeft;
@@ -299,11 +322,10 @@
                 else d.classList.remove('active');
             });
 
-            // 0번 게임(니꺼내꺼)일 때만 BEST 점수 보여주기
             if (index === 0) {
-                bestScoreEl.style.display = 'block';
+                if(bestScoreEl) bestScoreEl.style.display = 'block';
             } else {
-                bestScoreEl.style.display = 'none';
+                if(bestScoreEl) bestScoreEl.style.display = 'none';
             }
             
             document.getElementById('display-title').innerText = ARCADE_GAMES[activeIndex].title;
@@ -312,7 +334,6 @@
 
         function insertCoinToPlay() {
             let game = ARCADE_GAMES[activeIndex];
-            
             if (state.money < game.cost) {
                 return showAlert("지갑 확인 필요", "코인을 넣기 위한 현금이 부족합니다.\n사무실에서 열심히 일하거나 주식으로 돈을 더 벌어오세요!");
             }
@@ -329,7 +350,9 @@
         function startGameLoop() {
             setInterval(() => {
                 state.gameSeconds += 108; 
-                state.money += (0.5 * getIncomeMultiplier(state.stamina)) * 0.2;
+                let mult = getIncomeMultiplier(state.stamina);
+                let passiveAdd = (0.5 * mult) * 0.2;
+                if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
                 updateDisplay();
             }, 200);
         }
@@ -346,31 +369,43 @@
             location.replace('main.html'); 
         }
 
+        // 🚨 [패치 완료] 인증 완료 시점에 확실하게 UI를 전면 로드하고 루프를 가동
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user;
                     firebase.firestore().collection("users").doc(user.uid).get().then((doc) => {
+                        loadGame(); // 로컬 데이터 우선 동기화 뼈대 주입
                         if (doc.exists) {
-                            // 로드 데이터 병합 연동
-                            state.money = doc.data().money || 0;
-                            state.highScore = doc.data().highScore || 0;
-                            state.gameSeconds = doc.data().gameSeconds || 0;
-                            state.stamina = doc.data().stamina || 0;
-                            
-                            // 데이터 불러온 후 UI에 즉시 반영
-                            document.getElementById('best-score-display').innerText = "BEST: " + state.highScore;
+                            let cloudData = doc.data();
+                            if(cloudData.money !== undefined) state.money = Number(cloudData.money);
+                            if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
+                            if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
+                            if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
+                            if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
+                            if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
+
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(state));
                         }
-                        // 🚨 [해결] 로드가 끝난 직후 화면을 즉시 새로고침하고 0번 인덱스 UI 정렬 및 루프 엔진 작동 가동
+                        
+                        // 🚨 [핵심 수정] 로드 성공 후 UI 요소 주입 및 화면 정밀 동기화 기동
+                        const bestScoreEl = document.getElementById('best-score-display');
+                        if (bestScoreEl) bestScoreEl.innerText = "BEST: " + state.highScore;
+                        
                         updateDisplay();
                         syncArcadeSelection(0); 
                         startGameLoop();
                     }).catch((err) => {
-                        console.error("오락실 정보 로드 장해:", err);
+                        console.error("Firestore 로드 장해 우회 구동:", err);
+                        loadGame();
                         updateDisplay();
+                        syncArcadeSelection(0);
                         startGameLoop();
                     });
-                } else { location.href = 'index.html'; }
+                } else { 
+                    // 로그인 세션 소실 시에만 안전하게 가이드 후 인덱스로 전환
+                    location.replace('index.html'); 
+                }
             });
         };
     </script>
