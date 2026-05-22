@@ -337,7 +337,7 @@
 
     <script>
         let state = {
-            money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
+            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
             currentTask: null, workElapsed: 0, debuffTimeLeft: 0, 
             timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: Date.now(), highScore: 0,
@@ -946,7 +946,7 @@ if (gearBadge) {
                             let cloudData = doc.data();
                             if (!cloudData.nickname) needsNickname = true;
 
-                            state.money = cloudData.money !== undefined ? Number(cloudData.money) : 10000000;
+                            state.money = cloudData.money !== undefined ? Number(cloudData.money) : 100000;
                             state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
                             state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
                             state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
