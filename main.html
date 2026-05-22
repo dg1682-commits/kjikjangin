@@ -593,26 +593,27 @@
                     let isCurrent = (state.carIdx === i);
                     content.innerHTML += `<div class="list-item" onclick="buyCar(${i})" style="border: ${isCurrent ? '2px solid var(--accent-color)' : '1px solid var(--border-color)'}"><div class="item-info"><span class="item-name">🚗 ${car.name}</span><span class="item-sub" style="color:var(--success);">${car.desc}</span></div><div class="item-price-box">${isCurrent ? `<span class="item-owned">보유 중</span>` : `<span class="item-price" style="color:var(--accent-color);">${car.price.toLocaleString()}원</span>`}</div></div>`;
                 });
-// main.html 내 openSheet 함수 안의 mailbox 부분 수정
-else if(type === 'mailbox') {
-    header.innerText = "📮 우편함";
-    if (state.inbox.length === 0) {
-        content.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub); font-weight: bold;">도착한 우편이 없습니다.</div>`;
-    } else {
-        state.inbox.forEach((mail, i) => {
-            content.innerHTML += `
-            <div class="list-item">
-                <div class="item-info">
-                    <span class="item-name">${mail.title}</span>
-                    <span class="item-sub" style="color: var(--accent-color); font-weight:800;">${mail.rewardText}</span>
-                </div>
-                <div class="item-price-box">
-                    <button class="alert-btn" style="padding: 8px 12px; font-size: 12px;" onclick="receiveItem(${i})">수령</button>
-                </div>
-            </div>`;
-        });
-    }
-}
+            // 🚨 [패치] 우편함 전용 시트 UI 추가
+            } else if(type === 'mailbox') {
+                header.innerText = "📮 우편함";
+                if (state.inbox.length === 0) {
+                    content.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub); font-weight: bold;">도착한 우편이 없습니다.</div>`;
+                } else {
+                    state.inbox.forEach((mail, i) => {
+                        content.innerHTML += `
+                        <div class="list-item">
+                            <div class="item-info">
+                                <span class="item-name">${mail.title}</span>
+                                <span class="item-sub" style="color: var(--accent-color); font-weight:800;">${mail.rewardText}</span>
+                            </div>
+                            <div class="item-price-box">
+                                <button class="alert-btn" style="padding: 8px 12px; font-size: 12px;" onclick="claimMail(${i})">수령</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+            }
+        }
 
         // 🚨 [패치] 우편 수령 기능
         function claimMail(idx) {
@@ -910,40 +911,36 @@ function buyNickname() {
             });
         };
         // 우편함 수령 로직
-// 기존 receiveItem 함수를 찾아 아래 코드로 덮어씌우세요
-async function receiveItem(index) {
-    const item = state.inbox[index];
+// 🚨 기존 receiveItem을 삭제하고 아래로 덮어쓰세요.
+async function claimMail(idx) {
+    let item = state.inbox[idx];
     if (!item) return;
 
     // 1. 아이템 종류에 따른 로직 수행
     if (item.item === 'nickname') {
-        // 닉네임 변경권 수령 시 모달창 노출 후 즉시 변경
-        const newNickname = prompt("변경할 닉네임을 입력하세요:", state.nickname);
-        if (newNickname && newNickname.trim() !== "") {
-            state.nickname = newNickname.trim();
-            alert(`닉네임이 ${state.nickname}(으)로 변경되었습니다!`);
-        } else {
-            alert("변경이 취소되었습니다.");
-            return; // 취소 시 삭제하지 않음
-        }
+        // 닉네임 변경권 수령 시 티켓 추가 (프롬프트는 buyNickname에서 이미 다루고 있으므로 티켓만 지급)
+        state.nicknameTickets++;
+        showAlert("수령 완료", `닉네임 변경권 1장을 받았습니다!\n(쇼핑몰에서 사용 가능)`);
     } else {
-        // 돈 또는 컨디션 처리
+        // 돈/컨디션 처리
         if (item.rewardText.includes('원')) {
-            state.money = (Number(state.money) || 0) + Number(item.amount);
-            alert(`${item.amount.toLocaleString()}원이 입금되었습니다.`);
+            state.money = Number(state.money) + Number(item.amount);
+            showAlert("수령 완료", `${item.amount.toLocaleString()}원이 입금되었습니다.`);
         } else if (item.rewardText.includes('컨디션')) {
-            state.stamina = (Number(state.stamina) || 0) + Number(item.amount);
-            alert(`컨디션이 ${item.amount}만큼 회복되었습니다.`);
+            state.stamina = Number(state.stamina) + Number(item.amount);
+            showAlert("수령 완료", `컨디션이 ${item.amount}만큼 회복되었습니다.`);
         }
     }
 
-    // 2. 우편함에서 아이템 삭제
-    state.inbox.splice(index, 1);
+    // 2. 우편함에서 삭제
+    state.inbox.splice(idx, 1);
 
-    // 3. 저장 및 화면 갱신 (가장 중요)
-    saveGame(true); // 파이어베이스 동기화
-    updateDisplay(); // 상단 재화 UI 새로고침
-    openSheet('mailbox'); // 수령 후 자동으로 우편함 리스트를 다시 그려줌
+    // 3. 파이어베이스 즉시 반영
+    saveGame(true); 
+    
+    // 4. UI 갱신
+    updateDisplay();
+    openSheet('mailbox'); // 수령 후 자동으로 우편함을 다시 열어 리스트 갱신
 }
     </script>
 </body>
