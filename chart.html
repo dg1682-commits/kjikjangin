@@ -2,19 +2,24 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>주식 시장 통제실 (무로그인 모드)</title>
+    <title>주식 시장 통제실 (자율 구동)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
         #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
         .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; text-align: left; }
         .stock-card h3 { margin: 0 0 10px 0; font-size: 18px; color: #f1f5f9; }
         .stock-card p { margin: 0 0 15px 0; font-size: 20px; font-weight: bold; color: #38bdf8; }
-        input { width: 80px; padding: 8px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
-        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
-        .apply-btn:active { background: #0284c7; }
+        
+        /* [패치] 조작 버튼 및 입력창 스타일 */
+        .control-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .step-btn { background: #475569; color: white; border: none; border-radius: 5px; width: 32px; height: 32px; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .step-btn:active { background: #334155; transform: scale(0.95); }
+        input[type="number"] { width: 60px; height: 32px; box-sizing: border-box; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; font-size: 16px; }
+        .apply-btn { height: 32px; padding: 0 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; margin-left: auto; }
+        .apply-btn:active { background: #0284c7; transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -60,19 +65,27 @@
     let isUpdating = false;
     let pendingPercents = {};
 
+    // 🚨 [패치] 플러스 마이너스 조작 함수
+    function stepValue(id, delta) {
+        const inputEl = document.getElementById(`input-${id}`);
+        let currentVal = parseFloat(inputEl.value) || 0;
+        inputEl.value = currentVal + delta;
+    }
+
     function applyManualPercent(id, percentStr) {
         if (!percentStr || isNaN(percentStr)) {
             pendingPercents[id] = undefined;
             return;
         }
         pendingPercents[id] = parseFloat(percentStr) / 100;
-        alert(`${id} 종목 다음 변동 타임에 ${percentStr}% 강제 정률 조정 대기 완료!`);
+        
+        const action = parseFloat(percentStr) > 0 ? "상승(떡상)" : "하락(떡락)";
+        alert(`${id} 종목, 다음 변동 시 ${percentStr}% ${action} 강제 적용 대기 완료!`);
+        document.getElementById(`input-${id}`).value = ""; // 입력창 초기화
     }
 
-async function initMarket() {
-        document.getElementById('timer-display').innerText = "서버 기준 시간 가져오는 중...";
+    async function initMarket() {
         try {
-            // 1. 서버 주가 실시간 동기화
             const snapshot = await db.collection("market_data").get();
             snapshot.forEach(doc => {
                 if (doc.id !== "market_status") {
@@ -81,23 +94,12 @@ async function initMarket() {
                 }
             });
 
-            // 2. 🚨 [핵심 수정] 마지막 갱신 시간 검사 및 강제 기록
             const statusDoc = await db.collection("market_data").doc("market_status").get();
+            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
             
-            if (statusDoc.exists && statusDoc.data().lastUpdate) {
-                // 기록이 있으면 그 시간부터 이어서 계산
-                let lastUpdate = statusDoc.data().lastUpdate;
-                targetTime = lastUpdate + 90000;
-            } else {
-                // 기록이 없으면(최초 실행), 지금 당장 파이어베이스에 시작 시간을 박아버림!
-                let now = Date.now();
-                await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
-                targetTime = now + 90000;
-            }
-            
+            targetTime = lastUpdate + 90000;
             renderUI();
 
-            // 타이머 구동
             setInterval(tick, 1000);
             tick();
         } catch (error) {
@@ -151,7 +153,7 @@ async function initMarket() {
             renderUI();
         } catch (error) {
             console.error("업데이트 에러:", error);
-            targetTime = Date.now() + 5000; // 에러 시 5초 후 재시도
+            targetTime = Date.now() + 5000; 
         } finally {
             isUpdating = false;
         }
@@ -165,16 +167,17 @@ async function initMarket() {
             <div class="stock-card">
                 <h3>${s.name}</h3>
                 <p>${s.price.toLocaleString()}원</p>
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <input type="number" id="input-${s.id}" placeholder="%">
-                    <span style="font-weight: bold;">%</span>
+                <div class="control-group">
+                    <button class="step-btn" onclick="stepValue('${s.id}', -1)">-</button>
+                    <input type="number" id="input-${s.id}" placeholder="0">
+                    <button class="step-btn" onclick="stepValue('${s.id}', 1)">+</button>
+                    <span style="font-weight: bold; margin-left: 2px;">%</span>
                     <button class="apply-btn" onclick="applyManualPercent('${s.id}', document.getElementById('input-${s.id}').value)">적용</button>
                 </div>
             </div>
         `).join('');
     }
 
-    // 🚨 [패치] 로그인 체크 단계를 완전히 제거하고 즉시 실행되도록 변경
     initMarket();
 
     document.getElementById('deploy-time').innerText = new Date().toLocaleString();
