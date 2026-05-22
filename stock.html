@@ -232,6 +232,7 @@
         let currentTab = "list";
         let chartInstance = null; 
         let marketCheckCounter = 0; // 파이어베이스 부하 조절용 카운터
+        let lastMarketUpdate = Date.now(); // 🚨 [추가] 글로벌 마켓 시계 기록용 변수
 
         function showCustomAlert(title, message) {
             const titleEl = document.getElementById('custom-alert-title');
@@ -401,14 +402,21 @@
             }, 1000); 
         }
 
-        function syncGlobalMarket() {
-            db.collection("market_data").onSnapshot(snapshot => {
-                let dataChanged = false;
+function syncGlobalMarket() {
+    db.collection("market_data").onSnapshot(snapshot => {
+        let dataChanged = false;
 
-                snapshot.forEach(doc => {
-                    if (doc.id === "market_status") return;
-                    let data = doc.data();
-                    let s = gameState.stocks.find(x => x.name === data.name);
+        snapshot.forEach(doc => {
+            // 🚨 [수정] 글로벌 시장의 마지막 변동 시간을 실시간으로 갱신 받아옵니다
+            if (doc.id === "market_status") {
+                let data = doc.data();
+                if (data && data.lastUpdate) {
+                    lastMarketUpdate = data.lastUpdate;
+                }
+                return;
+            }
+            let data = doc.data();
+            let s = gameState.stocks.find(x => x.name === data.name);
                     
                     if (s) {
                         if (s.price !== data.price) {
@@ -482,11 +490,16 @@
                 totalProfitLossEl.innerText = `${sign}${Math.floor(totalProfitLoss).toLocaleString()}원`;
                 totalProfitLossEl.style.color = color;
             }
-            if (totalProfitRateEl) {
+if (totalProfitRateEl) {
                 totalProfitRateEl.innerText = `${sign}${totalProfitRate}%`;
                 totalProfitRateEl.style.color = color;
             }
-            if (gameDateEl) gameDateEl.innerText = getGameDateString();
+            
+            // 🚨 [수정] 기존 게임 날짜 표시를 없애고, 글로벌 마켓의 남은 시간을 실시간 초 단위 연산하여 출력합니다.
+            if (gameDateEl) {
+                let remaining = Math.max(0, Math.floor(((lastMarketUpdate + 90000) - Date.now()) / 1000));
+                gameDateEl.innerText = `다음 변동 ${remaining}초 남음`;
+            }
         }
 
         function renderView(view, el) {
