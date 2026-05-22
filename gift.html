@@ -11,6 +11,13 @@
         select, input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
         button { background: #a855f7; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
         h2 { text-align: center; color: #a855f7; }
+
+        /* 🚨 히스토리 세션 디자인 명세 추가 */
+        .history-container { margin-top: 30px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #a855f7; max-width: 500px; margin-left: auto; margin-right: auto; }
+        .history-title { margin-top: 0; color: #a855f7; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .history-list { list-style: none; padding: 0; margin: 0; color: #cbd5e1; font-weight: bold; font-size: 14px; }
+        .history-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; align-items: center; }
+        .history-time { color: #64748b; font-size: 12px; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -33,10 +40,20 @@
     <button onclick="sendGift()">선물 전송하기</button>
 </div>
 
+<div class="history-container">
+    <h3 class="history-title">📜 최근 선물 지급 이력 (실시간 동기화)</h3>
+    <ul id="history-list" class="history-list">
+        <li style="text-align:center; color:#64748b; padding:10px 0;">이력을 불러오는 중...</li>
+    </ul>
+</div>
+
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // 유저의 uid와 닉네임을 매핑하기 위한 캐시 객체
+    let userCacheMap = {};
 
     // 유저 리스트 가져오기
     async function loadUsers() {
@@ -45,34 +62,87 @@
         select.innerHTML = '<option value="">유저를 선택하세요</option>';
         snapshot.forEach(doc => {
             const data = doc.data();
-            select.innerHTML += `<option value="${doc.id}">${data.nickname || '익명'} (${doc.id.substring(0,6)})</option>`;
+            const nick = data.nickname || '익명';
+            userCacheMap[doc.id] = nick; // 캐시에 저장
+            select.innerHTML += `<option value="${doc.id}">${nick} (${doc.id.substring(0,6)})</option>`;
         });
     }
 
-    // 선물 전송 (inbox 추가)
+    // 선물 전송 (inbox 추가 및 로그 이력 영구 기록)
     async function sendGift() {
         const uid = document.getElementById('user-select').value;
         const type = document.getElementById('item-select').value;
         const qty = parseInt(document.getElementById('reward-qty').value);
         
-        if (!uid || !qty) return alert("대상과 수량을 확인하세요!");
+        if (!uid || !qty || isNaN(qty)) return alert("대상과 수량을 확인하세요!");
+
+        const rewardTextString = `${type === 'money' ? qty.toLocaleString()+'원' : type === 'stamina' ? '컨디션 '+qty : '닉네임 변경권 '+qty+'개'}`;
 
         const mail = {
             title: "운영자의 특별 선물",
-            rewardText: `${type === 'money' ? qty.toLocaleString()+'원' : type === 'stamina' ? '컨디션 '+qty : '닉네임 변경권 '+qty+'개'}`,
+            rewardText: rewardTextString,
             item: type === 'nickname' ? 'nickname' : 'etc',
             amount: qty,
             received: false
         };
 
-        await db.collection("users").doc(uid).update({
-            inbox: firebase.firestore.FieldValue.arrayUnion(mail)
-        });
-        
-        alert("성공적으로 지급되었습니다!");
+        try {
+            // 1. 해당 유저 우편함 배열에 강제 버프 푸시
+            await db.collection("users").doc(uid).update({
+                inbox: firebase.firestore.FieldValue.arrayUnion(mail)
+            });
+
+            // 2. 전송 내역 모니터링을 위한 히스토리 도큐먼트 생성 보강
+            await db.collection("gift_history").add({
+                uid: uid,
+                userName: userCacheMap[uid] || '익명',
+                rewardText: rewardTextString,
+                timestamp: Date.now()
+            });
+            
+            document.getElementById('reward-qty').value = "";
+            alert("성공적으로 지급되었습니다!");
+        } catch (error) {
+            console.error("선물 지급 오류:", error);
+            alert("지급에 실패했습니다. 콘솔 창을 확인하세요.");
+        }
     }
 
-    loadUsers();
+    // 🚨 [기능 주입] 히스토리 컬렉션을 실시간 역추적 정렬하여 뿌려주는 실시간 감시 모듈
+    function listenGiftHistory() {
+        db.collection("gift_history").orderBy("timestamp", "desc").limit(30).onSnapshot(snapshot => {
+            const listEl = document.getElementById('history-list');
+            if (snapshot.empty) {
+                listEl.innerHTML = '<li style="text-align:center; color:#64748b; padding:10px 0;">지급된 선물 이력이 존재하지 않습니다.</li>';
+                return;
+            }
+            
+            let html = "";
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const timeString = new Date(data.timestamp).toLocaleString('ko-KR', { hour12: false });
+                html += `
+                <li class="history-item">
+                    <div>
+                        <span style="color:#a855f7; font-weight:800;">${data.userName}</span>님께 
+                        <span style="color:#22c55e;">${data.rewardText}</span> 지급 완료
+                    </div>
+                    <div class="history-time">${timeString}</div>
+                </li>`;
+            });
+            listEl.innerHTML = html;
+        }, err => {
+            console.error("히스토리 로드 장해:", err);
+        });
+    }
+
+    // 초기 엔진 실행부 통합 구동
+    async function initControlCenter() {
+        await loadUsers();
+        listenGiftHistory();
+    }
+
+    initControlCenter();
 </script>
 </body>
 </html>
