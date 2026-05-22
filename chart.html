@@ -2,19 +2,20 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>주식 시장 통제실 (정률 조정 모드)</title>
+    <title>주식 시장 통제실</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
+        #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
         .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; }
         input { width: 80px; padding: 8px; border-radius: 5px; border: none; margin-top: 5px; }
-        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>📈 주식 시장 통제실 (정률 조정 모드)</h1>
+    <h1>📈 주식 시장 통제실</h1>
+    <div id="timer-display">다음 시장 변동까지: 90초 남음</div>
     <div class="grid" id="market-list"></div>
 
 <script>
@@ -33,7 +34,8 @@
         { id: "sksec", name: "OK증권", price: 1250 }
     ];
 
-    let pendingPercents = {}; // 종목별 수동 정률 조정값
+    let timeLeft = 90;
+    let pendingPercents = {};
 
     function applyManualPercent(id, percentStr) {
         pendingPercents[id] = parseFloat(percentStr) / 100;
@@ -42,27 +44,18 @@
 
     async function updateMarket() {
         const timestamp = Date.now();
+        timeLeft = 90; // 변동 시점마다 타이머 리셋
         
         for (let s of stocks) {
-            let change;
-            if (pendingPercents[s.id] !== undefined) {
-                // 주임님이 입력한 정률(%) 적용
-                change = s.price * pendingPercents[s.id];
-                pendingPercents[s.id] = undefined; // 1회 적용 후 초기화
-            } else {
-                // 랜덤 변동폭 (기존: -2.5% ~ +2.5%)
-                change = s.price * (Math.random() - 0.5) * 0.05;
-            }
+            let change = (pendingPercents[s.id] !== undefined) ? 
+                         s.price * pendingPercents[s.id] : 
+                         s.price * (Math.random() - 0.5) * 0.05;
             
             s.price = Math.max(10, Math.floor(s.price + change));
+            pendingPercents[s.id] = undefined;
 
-            db.collection("market_data").doc(s.id).set({
-                name: s.name, price: s.price, updatedAt: timestamp
-            });
-
-            db.collection("price_history").doc(s.id).collection("daily").doc(timestamp.toString()).set({
-                price: s.price, date: new Date()
-            });
+            db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price, updatedAt: timestamp });
+            db.collection("price_history").doc(s.id).collection("daily").doc(timestamp.toString()).set({ price: s.price, date: new Date() });
         }
         renderUI();
     }
@@ -72,13 +65,19 @@
             <div class="stock-card">
                 <h3>${s.name}</h3>
                 <p style="font-size: 18px; font-weight:bold;">${s.price.toLocaleString()}원</p>
-                <input type="number" placeholder="예: 5 또는 -5" onchange="applyManualPercent('${s.id}', this.value)"> %
+                <input type="number" placeholder="예: 5" onchange="applyManualPercent('${s.id}', this.value)"> %
             </div>
         `).join('');
     }
     
+    // 타이머 및 갱신 루프
+    setInterval(() => {
+        timeLeft--;
+        if (timeLeft >= 0) document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${timeLeft}초 남음`;
+    }, 1000);
+    
     updateMarket();
-    setInterval(updateMarket, 90000); // 인게임 하루(90초) 주기
+    setInterval(updateMarket, 90000);
 </script>
 </body>
 </html>
