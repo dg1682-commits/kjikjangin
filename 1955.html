@@ -69,8 +69,8 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 7, 15, 0.93); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card-bg); padding: 30px 25px; border-radius: 20px; border: 3px solid var(--neon-pink); width: 85%; max-width: 330px; text-align: center; box-shadow: 0 0 30px rgba(244, 63, 94, 0.4); }
         .modal-title { font-size: 24px; color: var(--neon-pink); font-weight: 900; margin-top: 0; margin-bottom: 15px; }
-        .result-box { background: rgba(0,0,0,0.3); border-left: 3px solid var(--neon-pink); padding: 12px; border-radius: 8px; text-align: left; font-size: 15px; line-height: 1.6; margin-bottom: 20px; font-weight: 600; }
-        .modal-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 800; border-radius: 10px; margin: 8px 0; border: none; cursor: pointer; }
+        .result-box { background: rgba(0,0,0,0.3); border-left: 3px solid var(--neon-pink); padding: 12px; border-radius: 8px; text-align: left; font-size: 15px; line-height: 1.6; margin-bottom: 20px; font-weight: 600; color: #cbd5e1; }
+        .modal-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 800; border-radius: 10px; margin: 8px 0; border: none; cursor: pointer; font-family: 'Pretendard', sans-serif; }
         .modal-btn.retry { background: linear-gradient(135deg, var(--neon-cyan), #0369a1); color: white; }
         .modal-btn.exit { background: #334155; color: var(--text-light); }
     </style>
@@ -114,7 +114,11 @@
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    
+    // 🚨 [전역 변수 오류 해결] 전역 상태 감시용 라이브 통제 플래그 안전 선언
     let currentUser = null, highScore1955 = 0;
+    let gameActive = true;
+    let bossTimerRef = null;
 
     firebase.auth().onAuthStateChanged(user => { 
         if (user) { 
@@ -135,15 +139,14 @@
     let canvasWidth = 400;
     let canvasHeight = 600;
 
-    // 🚨 [전역 에셋 관리 파트] 제공해주신 이미지 파일 및 상대 폴더 경로 매핑
     const bgImg = new Image();       bgImg.src = 'arcade/1955/1955bg.png';
     const playerImg = new Image();   playerImg.src = 'arcade/1955/user.png';
     const asteroidImg = new Image(); asteroidImg.src = 'arcade/1955/asteroid.png';
     const bulletImg = new Image();   bulletImg.src = 'arcade/1955/bullet.png';
     const missileImg = new Image();  missileImg.src = 'arcade/1955/missile.png';
 
-    let bgY = 0;         // 무한 스크롤러 Y축 변수
-    let bgSpeed = 1.8;   // 우주 스크롤링 전진 속도
+    let bgY = 0;         
+    let bgSpeed = 1.8;   
 
     function resizeCanvas() {
         canvasWidth = container.clientWidth;
@@ -152,7 +155,7 @@
         canvas.height = canvasHeight;
         
         if(player) {
-            player.y = canvasHeight - 80; // 조금 더 안정감 있게 배치 하향
+            player.y = canvasHeight - 80; 
             player.targetX = canvasWidth / 2;
             player.x = canvasWidth / 2;
         }
@@ -161,7 +164,7 @@
     let player = {
         x: 200,
         y: 530,
-        size: 26,       // 충돌 반경 및 드로잉 스케일 절반 값
+        size: 26,       
         targetX: 200,
         speedFactor: 0.18 
     };
@@ -188,6 +191,7 @@
     window.addEventListener('touchstart', handlePointerMove, { passive: false });
 
     function spawnEnemyEntity() {
+        if (!gameActive || isGameOver) return;
         const types = ['asteroid', 'missile', 'bullet'];
         const chosenType = types[Math.floor(Math.random() * types.length)];
         
@@ -195,11 +199,11 @@
         let speed = Math.random() * 3 + 2;
         
         if(chosenType === 'asteroid') {
-            size = Math.random() * 15 + 15; // 묵직하고 거대한 행성 (반지름 15 ~ 30)
+            size = Math.random() * 15 + 15; 
             speed = Math.random() * 1.2 + 1.3;
         } else if(chosenType === 'bullet') {
-            size = 12; // 📢 화염구 이미지의 시각적 선명도를 위해 반지름 스케일을 12로 최적화 상향
-            speed = Math.random() * 3 + 4.5; // 대단히 빠른 고속 낙하
+            size = 12; 
+            speed = Math.random() * 3 + 4.5; 
         } else if(chosenType === 'missile') {
             size = 16;
             speed = Math.random() * 2 + 3.2;
@@ -217,17 +221,14 @@
     function updateEngineLoop() {
         if (isGameOver) return;
 
-        // 1. 🚨 무한 루프 배경 롤링 연산 엔진
         bgY += bgSpeed;
         if (bgY >= canvasHeight) {
             bgY = 0;
         }
 
-        // 2. 마찰력 연동 스무스 Lerp 플레이어 X 트래킹
         let dx = player.targetX - player.x;
         player.x += dx * player.speedFactor;
 
-        // 3. 난이도 조절형 엔티티 소환 주기 제어
         spawnTimer++;
         if (spawnTimer > Math.max(12, 38 - Math.floor(score / 50))) {
             spawnEnemyEntity();
@@ -236,7 +237,6 @@
             document.getElementById('current-score').innerText = score;
         }
 
-        // 4. 충돌 물리 공식 연산 루프
         for (let i = entities.length - 1; i >= 0; i--) {
             let ent = entities[i];
             ent.y += ent.speed;
@@ -250,7 +250,6 @@
             let distDY = ent.y - player.y;
             let distance = Math.sqrt(distDX * distDX + distDY * distDY);
 
-            // 픽셀 도트 에셋에 맞추어 히트박스 판정 마진 계수 적용 (0.75 배로 더 정밀하게 타격감 매칭)
             if (distance < (player.size * 0.75) + (ent.size * 0.8)) {
                 triggerPlayerGameOver();
                 return;
@@ -264,29 +263,23 @@
     function renderGraphicsGraphics() {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-        // 1. 🚨 상하 타일 무한 연결식 배경 드로잉 (2장 이어붙이기 돌려막기 기법 구현)
         ctx.drawImage(bgImg, 0, bgY, canvasWidth, canvasHeight);
         ctx.drawImage(bgImg, 0, bgY - canvasHeight, canvasWidth, canvasHeight);
 
-        // 2. 하늘에서 하강하는 적 오브젝트 스프라이트 렌더링
         entities.forEach(ent => {
             if (ent.type === 'asteroid') {
-                // 둥근 운석은 크기 반경에 딱 맞게 정중앙 오프셋 정렬 드로잉
                 ctx.drawImage(asteroidImg, ent.x - ent.size, ent.y - ent.size, ent.size * 2, ent.size * 2);
             } 
             else if (ent.type === 'bullet') {
-                // 이글거리는 노란 화염구 총알 렌더링
                 ctx.drawImage(bulletImg, ent.x - ent.size, ent.y - ent.size, ent.size * 2, ent.size * 2);
             } 
             else if (ent.type === 'missile') {
-                // 직선 미사일은 위아래 비율이 긴 에셋 특성을 고려해 종횡비를 세로로 정밀 보정 드로잉
                 let mWidth = ent.size * 1.2;
                 let mHeight = ent.size * 2.6;
                 ctx.drawImage(missileImg, ent.x - (mWidth / 2), ent.y - (mHeight / 2), mWidth, mHeight);
             }
         });
 
-        // 3. 아군 전투 비행물체 캐릭터 (user.png) 실시간 드로잉
         ctx.drawImage(playerImg, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
     }
 
@@ -294,8 +287,11 @@
         isGameOver = true;
         gameActive = false;
 
-        const earnings = Math.floor(score * 1.5); 
-        document.getElementById('result-text').innerText = `최종 비행 점수: ${score}점\n💰 오락실 정산 수당: +${earnings.toLocaleString()}원`;
+        // 🚨 [밸런스 패치] 정산 효율을 주임님께서 지시하신 점수 * 1.2배 정속으로 수정
+        const earnings = Math.floor(score * 1.2); 
+        
+        // 🚨 [버그 완치] 태그 바인딩 타깃 ID를 'result-box'로 긴급 교체하여 전산 충돌 완벽 방어!
+        document.getElementById('result-box').innerText = `최종 비행 점수: ${score}점\n💰 오락실 정산 수당: +${earnings.toLocaleString()}원`;
         document.getElementById('gameover-modal').style.display = 'flex';
 
         if (score > 0 && currentUser) {
@@ -344,7 +340,6 @@
 
     window.addEventListener('resize', resizeCanvas);
     
-    // 비행 기지 즉시 시동 가동
     resizeCanvas();
     setTimeout(() => {
         updateEngineLoop();
