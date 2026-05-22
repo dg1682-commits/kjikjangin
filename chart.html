@@ -161,56 +161,54 @@
         };
     }
 
-    // 🚨 [추가] 전송 버튼 클릭 시 5턴 주가 락인 동기화 및 유저용 사내뉴스(news.html) 컬렉션 강제 인젝션
-    async function submitNewsFlash() {
-        if(!localDraftNews || document.getElementById('news-textarea').value.trim() === "") {
-            return alert("먼저 기사 초안 작성 버튼을 눌러 뉴스 내용을 생성해주세요!");
-        }
-        
-        localDraftNews.text = document.getElementById('news-textarea').value.trim();
-        let s = stocks.find(x => x.id === localDraftNews.stockId);
-        
-        if(!confirm(`[${s.name}] 종목의 주가를 향후 5턴(7분 30초) 동안 폭등/폭락시킬 속보 뉴스를 진짜로 발행하시겠습니까?`)) return;
-
-        try {
-            // 1. 파이어베이스 시계(market_status) 도큐먼트에 5턴 락 상태 저장
-            const statusDoc = await db.collection("market_data").doc("market_status").get();
-            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
-            
-let newsTimestamp = Date.now();
-localDraftNews.timestamp = newsTimestamp; // activeNews에도 동기화용 심어줌
-
-await db.collection("market_data").doc("market_news").set({
-    newsList: firebase.firestore.FieldValue.arrayUnion({
-        title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
-        rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
-        timestamp: newsTimestamp,
-        articleBody: localDraftNews.text,
-        userName: "운영총괄팀",
-        isExpired: false // 🚨 만료 플래그 신설
-    })
-}, { merge: true });
-
-// 🚨 [변경] 규칙 차단을 우회하기 위해 이미 열려있는 market_data 컬렉션의 통합 문서에 배열로 누적합니다.
-await db.collection("market_data").doc("market_news").set({
-    newsList: firebase.firestore.FieldValue.arrayUnion({
-        title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
-        rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
-        timestamp: Date.now(),
-        articleBody: localDraftNews.text,
-        userName: "운영총괄팀"
-    })
-}, { merge: true });
-
-            renderActiveNewsUI(localDraftNews);
-            alert("📰 뉴스룸 특보 발행 완료! 유저들의 news.html 및 실시간 주가 변동에 5턴 가속 배율이 즉시 강제 반영됩니다.");
-            document.getElementById('news-textarea').value = "";
-            localDraftNews = null;
-        } catch (e) {
-            console.error(e);
-            alert("전송 오류 발생");
-        }
+// 🚨 [수정] 더블 클릭 방지 가드 및 타이머 밀림 방지 엔진 탑재 버전
+async function submitNewsFlash() {
+    if (window.isNewsSubmitting) return; // 중복 클릭 차단 방어선
+    if (!localDraftNews || document.getElementById('news-textarea').value.trim() === "") {
+        return alert("먼저 기사 초안 작성 버튼을 눌러 뉴스 내용을 생성해주세요!");
     }
+    
+    localDraftNews.text = document.getElementById('news-textarea').value.trim();
+    let s = stocks.find(x => x.id === localDraftNews.stockId);
+    
+    if (!confirm(`[${s.name}] 종목의 주가를 향후 5턴(7분 30초) 동안 폭등/폭락시킬 속보 뉴스를 진짜로 발행하시겠습니까?`)) return;
+
+    try {
+        window.isNewsSubmitting = true;
+        
+        let newsTimestamp = Date.now();
+        localDraftNews.timestamp = newsTimestamp;
+        localDraftNews.processedExpired = false; // 만료 정산 여부 플래그 신설
+
+        // 1. [핵심 수정] 속보를 쏘는 순간 시장 시계를 현재 시간으로 완전히 동기화 리셋 (새로고침 시 증발 방지)
+        await db.collection("market_data").doc("market_status").set({
+            lastUpdate: newsTimestamp,
+            activeNews: localDraftNews
+        }, { merge: true });
+
+        // 2. 안전 경로를 통해 뉴스 통합 문서에 기사 단 1개만 안전하게 인젝션
+        await db.collection("market_data").doc("market_news").set({
+            newsList: firebase.firestore.FieldValue.arrayUnion({
+                title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
+                rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
+                timestamp: newsTimestamp,
+                articleBody: localDraftNews.text,
+                userName: "운영총괄팀",
+                isExpired: false
+            })
+        }, { merge: true });
+
+        renderActiveNewsUI(localDraftNews);
+        alert("📰 뉴스룸 특보 발행 완료! 유저들의 news.html 및 실시간 주가 변동에 5턴 가속 배율이 즉시 강제 반영됩니다.");
+        document.getElementById('news-textarea').value = "";
+        localDraftNews = null;
+    } catch (e) {
+        console.error(e);
+        alert("전송 오류 발생");
+    } finally {
+        window.isNewsSubmitting = false;
+    }
+}
 
     async function initMarket() {
         // 드롭다운 종목 바인딩 연동 추가
@@ -298,14 +296,15 @@ await db.collection("market_data").doc("market_news").set({
             await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
 
-        // 🚨 [추가] 뉴스 가속 버프가 완전히 종료(turnsLeft === 0)되었다면 newsList 배열을 역추적해 해당 기사 취소선 플래그 전환
-        if (activeNews && activeNews.turnsLeft === 0) {
+// 🚨 [수정] 무한 루프 정산을 막고 딱 1회만 정확하게 취소선 플래그를 정산하도록 제어합니다.
+        if (activeNews && activeNews.turnsLeft === 0 && !activeNews.processedExpired) {
             try {
+                activeNews.processedExpired = true; // 중복 처리 방지 락
                 const newsDoc = await db.collection("market_data").doc("market_news").get();
                 if (newsDoc.exists && newsDoc.data().newsList) {
                     let list = newsDoc.data().newsList;
                     list.forEach(n => {
-                        if (n.timestamp === activeNews.timestamp) {
+                        if (Number(n.timestamp) === Number(activeNews.timestamp)) {
                             n.isExpired = true;
                         }
                     });
