@@ -66,6 +66,17 @@
         .article-journalist { font-size: 12px; color: var(--ink-gray); font-weight: 600; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 14px; }
         .article-body-text { font-size: 14px; line-height: 1.65; color: var(--ink-gray); font-weight: 500; text-align: justify; word-break: break-all; }
         .article-body-text p { margin: 0 0 12px 0; }
+        /* 🚨 [추가] 효과 종료 기사 전용 영구 강제 취소선 클래스 명세 */
+        .news-article-card.expired-news {
+            background: #f1f5f9 !important;
+            opacity: 0.65 !important;
+        }
+        .news-article-card.expired-news .article-headline,
+        .news-article-card.expired-news .article-body-text,
+        .news-article-card.expired-news .article-cat {
+            text-decoration: line-through !important;
+            color: var(--ink-muted) !important;
+        }
     </style>
 </head>
 <body>
@@ -111,37 +122,36 @@
                 return;
             }
 
-            let newsList = doc.data().newsList;
-            // 최신 등록순 정렬 연산
-            newsList.sort((a, b) => b.timestamp - a.timestamp);
+let newsList = doc.data().newsList;
+        newsList.sort((a, b) => b.timestamp - a.timestamp);
 
-            let html = "";
-newsList.forEach(data => {
-    const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: false
-    });
+        let html = "";
+        newsList.forEach(data => {
+            const timeString = new Date(data.timestamp).toLocaleString('ko-KR', {
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            });
 
-    // 🚨 [추가] 만료 기사인 경우 텍스트 취소선 스타일 및 배경 디버프 꼬리표 바인딩 연산
-    let strikeStyle = data.isExpired ? 'style="text-decoration: line-through; opacity: 0.5;"' : '';
-    let expiredTag = data.isExpired ? '<span style="color: var(--ink-muted); font-size: 11px; margin-left: 6px; text-decoration: none !important; display: inline-block; font-weight: bold;">[효과 종료]</span>' : '';
+            // 🚨 [수정] 인라인 대신 상단에 선언한 강력한 강제 만료 클래스명(.expired-news)을 다이렉트로 매핑합니다.
+            let expiredClass = data.isExpired === true ? 'expired-news' : '';
+            let expiredTag = data.isExpired === true ? '<span style="color: #ef4444; font-size: 11px; margin-left: 6px; text-decoration: none !important; display: inline-block; font-weight: 800; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">[효과 종료]</span>' : '';
 
-    html += `
-    <div class="news-article-card" ${data.isExpired ? 'style="background: #f1f5f9; opacity: 0.8;"' : ''}>
-        <div class="article-meta">
-            <span class="article-cat" ${strikeStyle}>${data.rewardText || '[시황 소식]'}</span>
-            <span class="article-dot">|</span>
-            <span class="article-date">${timeString}</span>
-        </div>
-        <h2 class="article-headline" ${strikeStyle}>${data.title} ${expiredTag}</h2>
-        <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
-        <div class="article-body-text" ${strikeStyle}>
-            <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
-        </div>
-    </div>`;
-});
+            html += `
+            <div class="news-article-card ${expiredClass}">
+                <div class="article-meta">
+                    <span class="article-cat">${data.rewardText || '[시황 소식]'}</span>
+                    <span class="article-dot">|</span>
+                    <span class="article-date">${timeString}</span>
+                </div>
+                <h2 class="article-headline">${data.title} ${expiredTag}</h2>
+                <div class="article-journalist">${data.userName || '운영총괄팀'} 기자</div>
+                <div class="article-body-text">
+                    <p>${data.articleBody ? data.articleBody.replace(/\n/g, '<br>') : '본문 내용이 없는 속보입니다.'}</p>
+                </div>
+            </div>`;
+        });
 
-            container.innerHTML = html;
+        container.innerHTML = html;
 
             // 상단 실시간 전광판 텍스트 동기화
             if(newsList[0]) {
