@@ -305,8 +305,9 @@
         <input type="text" id="initial-nickname-input" placeholder="예: 김주임" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid var(--accent-color); border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box;">
         <button class="alert-btn" style="width: 100%;" onclick="submitInitialNickname()">내 자리로 가기 (입사)</button>
     </div>
-<div class="news-floating-btn" onclick="if(window.latestNewsTimestamp){ localStorage.setItem('k_worker_last_read_news', window.latestNewsTimestamp); } location.href='news.html'" style="position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; background: #ffffff; border: 2px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; z-index: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);" ontouchstart="">
-    📰
+<div class="news-floating-btn" onclick="if(window.latestNewsTimestamp){ localStorage.setItem('k_worker_last_read_news', window.latestNewsTimestamp); } location.href='news.html'" style="position: fixed; bottom: 20px; left: 20px; width: 48px; height: 48px; background: #ffffff; border: 2px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);" ontouchstart="">
+    <img src="메인배경/news.png" alt="뉴스" style="width: 26px; height: 26px; object-fit: contain; -webkit-user-drag: none; user-select: none;">
+    
     <span id="news-badge" style="display:none; position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
 </div>
 <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)" style="position: fixed; bottom: 20px; right: 20px;">
