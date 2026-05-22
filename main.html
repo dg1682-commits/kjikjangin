@@ -357,8 +357,9 @@
         let lastCloudSaveTime = 0; 
 
         function sanitizeState() {
-            state.money = Number(state.money);
-            if (isNaN(state.money) || state.money <= 0 || state.money > 1000000000000) state.money = 10000000;
+state.money = Number(state.money);
+// 🚨 데이터 오류(NaN) 시에만 최소 방어선(0원)을 잡고, 0원이 되더라도 천만 원을 주입하지 않고 그대로 유지합니다.
+if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
             if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 500000) state.stamina = 0;
             state.exp = Number(state.exp);
@@ -368,7 +369,8 @@
             state.maxCondition = Number(state.maxCondition);
             if (isNaN(state.maxCondition) || state.maxCondition <= 0) state.maxCondition = 100;
             state.condition = Number(state.condition);
-            if (isNaN(state.condition) || state.condition <= 0) state.condition = state.maxCondition;
+// 🚨 컨디션이 0 이하로 떨어져도 자동으로 풀충전(100)하지 않고 0으로 냅둡니다. (직접 휴식을 하도록 유도)
+if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
             state.gameSeconds = Number(state.gameSeconds);
             if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000) state.gameSeconds = 0;
