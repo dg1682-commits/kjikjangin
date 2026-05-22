@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>1955 - 오락실 미니게임</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-color: #05070f;
+            --card-bg: #111625;
+            --neon-cyan: #06b6d4;
+            --neon-pink: #f43f5e;
+            --text-light: #f1f5f9;
+            --text-muted: #64748b;
+            --border-neon: #221a42;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            overflow: hidden;
+            touch-action: none; /* 모바일 브라우저 기본 스크롤/바운스 원천 차단 */
+        }
+
+        /* 고유 오락실 상단 헤더 바 명세 */
+        header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 50px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; background: rgba(15, 10, 28, 0.9);
+            backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-neon);
+            z-index: 100;
+        }
+        .back-btn { font-size: 22px; font-weight: bold; color: var(--neon-cyan); cursor: pointer; text-decoration: none; }
+        .header-title { font-size: 16px; font-weight: 800; color: var(--text-light); letter-spacing: -0.5px; }
+        .empty-space { width: 22px; }
+
+        main { padding-top: 50px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+
+        /* 실시간 스코어보드 탑 레이아웃 */
+        .score-container {
+            width: 95%; max-width: 440px; display: flex; justify-content: space-between;
+            background: rgba(22, 15, 41, 0.8); border: 1px solid var(--border-neon);
+            padding: 10px 15px; margin-top: 10px; border-radius: 8px; box-sizing: border-box;
+        }
+        .score-box { display: flex; flex-direction: column; text-align: left; }
+        .score-box.right { text-align: right; }
+        .score-label { font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; }
+        .score-val { font-size: 18px; font-weight: 900; color: var(--neon-cyan); }
+        .score-val.best { color: #10b981; }
+
+        /* 🎮 메인 2D 그래픽 렌더링 캔버스 뷰포트 */
+        .game-viewport {
+            width: 95%; max-width: 440px; flex-grow: 1;
+            margin-top: 10px; margin-bottom: 20px;
+            background: linear-gradient(180deg, #0b0f19 0%, #05070f 100%);
+            border: 2px solid var(--border-neon); border-radius: 16px;
+            box-shadow: 0 0 20px rgba(34, 26, 66, 0.4);
+            position: relative; overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* 하단 가이드 패널 */
+        .guide-banner { position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 12px; color: rgba(6, 182, 212, 0.6); font-weight: bold; pointer-events: none; animation: blink 1.5s infinite alternate; }
+        @keyframes blink { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* ☠️ 적발/게임오버 모달 디자인 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 7, 15, 0.93); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card-bg); padding: 30px 25px; border-radius: 20px; border: 3px solid var(--neon-pink); width: 85%; max-width: 330px; text-align: center; box-shadow: 0 0 30px rgba(244, 63, 94, 0.4); }
+        .modal-title { font-size: 24px; color: var(--neon-pink); font-weight: 900; margin-top: 0; margin-bottom: 15px; }
+        .result-box { background: rgba(0,0,0,0.3); border-left: 3px solid var(--neon-pink); padding: 12px; border-radius: 8px; text-align: left; font-size: 15px; line-height: 1.6; margin-bottom: 20px; font-weight: 600; }
+        .modal-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 800; border-radius: 10px; margin: 8px 0; border: none; cursor: pointer; }
+        .modal-btn.retry { background: linear-gradient(135deg, var(--neon-cyan), #0369a1); color: white; }
+        .modal-btn.exit { background: #334155; color: var(--text-light); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="game.html" class="back-btn">←</a>
+        <div class="header-title">🛩️ 클래식 스트라이커 1955</div>
+        <div class="empty-space"></div>
+    </header>
+
+    <main>
+        <section class="score-container">
+            <div class="score-box">
+                <span class="score-label">CURRENT SCORE</span>
+                <span class="score-val" id="current-score">0</span>
+            </div>
+            <div class="score-box right">
+                <span class="score-label">BEST RECORD</span>
+                <span class="score-val best" id="best-score">0</span>
+            </div>
+        </section>
+
+        <section class="game-viewport" id="viewport-container">
+            <canvas id="game-canvas"></canvas>
+            <div class="guide-banner">↔️ 좌우로 드래그하여 장애물을 회피하세요!</div>
+        </section>
+    </main>
+
+    <div id="gameover-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">💥 격추 완료 (GAME OVER)</h2>
+            <div class="result-box" id="result-box"></div>
+            <button class="modal-btn retry" onclick="resetEngineToRetry()">재시도 기회 (100원)</button>
+            <button class="modal-btn exit" onclick="location.replace('game.html')">오락실 나가기</button>
+        </div>
+    </div>
+
+<script>
+    // 파이어베이스 계정 연동 명세
+    const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let currentUser = null, highScore1955 = 0;
+
+    // 인증 모듈 마운트
+    firebase.auth().onAuthStateChanged(user => { 
+        if (user) { 
+            currentUser = user; 
+            db.collection("users").doc(user.uid).get().then(doc => { 
+                if(doc.exists) { 
+                    // 1955 전용 최고점수 필드가 없으면 기본값 0 바인딩
+                    highScore1955 = doc.data().highScore_1955 || 0; 
+                    document.getElementById('best-score').innerText = highScore1955.toLocaleString(); 
+                } 
+            }); 
+        } 
+    });
+
+    // 캔버스 기본 인프라 셋업
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('viewport-container');
+
+    let canvasWidth = 400;
+    let canvasHeight = 600;
+
+    // 스마트폰 해상도 무결성 맞춤형 리사이징 엔진
+    function resizeCanvas() {
+        canvasWidth = container.clientWidth;
+        canvasHeight = container.clientHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // 리사이즈 시 플레이어 비행체 바닥 안착선 재조정
+        if(player) {
+            player.y = canvasHeight - 70;
+            player.targetX = canvasWidth / 2;
+            player.x = canvasWidth / 2;
+        }
+    }
+
+    // 🚀 게임 오브젝트 기본 팩토리 데이터 모델 구조화
+    let player = {
+        x: 200,
+        y: 530,
+        size: 28,
+        targetX: 200,
+        speedFactor: 0.18 // 🎯 [핵심 수정] 손가락을 쫓아오는 스무스 마찰 계수 (낮을수록 부드럽고 묵직해짐)
+    };
+
+    let entities = []; // 하늘에서 떨어지는 적 유닛 및 발사체/총알 오브젝트 보관 배열
+    let score = 0;
+    let isGameOver = false;
+    let spawnTimer = 0;
+    let starfield = []; // 종스크롤 종진 감성을 위한 스크롤링 우주 배경 입자 파일 대용 배열
+
+    // 백그라운드 밤하늘 은하수 성단 가속 엔진 초기화
+    function initStarfield() {
+        starfield = [];
+        for (let i = 0; i < 40; i++) {
+            starfield.push({
+                x: Math.random() * 440,
+                y: Math.random() * 650,
+                speed: Math.random() * 2 + 0.5,
+                size: Math.random() * 2
+            });
+        }
+    }
+
+    // 🎯 [터치 이벤트 고도화 파트] 마우스 & 터치 드래그 통합 스무스 X 트랙 추적기
+    function handlePointerMove(e) {
+        if (isGameOver) return;
+        
+        // 터치이든 마우스이든 캔버스 기준의 물리 좌표 분리 수신
+        const rect = canvas.getBoundingClientRect();
+        let clientX = e.clientX;
+        
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        }
+        
+        // 🚨 드래그한 좌표를 곧바로 X에 박지 않고, '목표지점(targetX)'으로 설정해 유연 우회 처리
+        let relativeX = clientX - rect.left;
+        // 비행체가 화면 좌우 밖으로 탈출하지 못하도록 충돌 마진 세이프 가드 적용
+        player.targetX = Math.max(player.size, Math.min(canvasWidth - player.size, relativeX));
+    }
+
+    // 포인터 실시간 감시 센서 부착
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('mousedown', handlePointerMove);
+    window.addEventListener('touchstart', handlePointerMove, { passive: false });
+
+    // 하늘에서 무작위로 낙하하는 물체(적/미사일) 생성 공장
+    function spawnEnemyEntity() {
+        const types = ['asteroid', 'missile', 'bullet'];
+        const chosenType = types[Math.floor(Math.random() * types.length)];
+        
+        let size = 15;
+        let speed = Math.random() * 3 + 2;
+        let color = '#f43f5e';
+        
+        if(chosenType === 'asteroid') {
+            size = Math.random() * 15 + 15;
+            speed = Math.random() * 2 + 1.5;
+            color = '#64748b';
+        } else if(chosenType === 'bullet') {
+            size = 6;
+            speed = Math.random() * 3 + 4; // 총알 계열은 대폭 고속 가속 낙하
+            color = '#fbbf24';
+        }
+
+        entities.push({
+            x: Math.random() * (canvasWidth - size * 2) + size,
+            y: -50,
+            size: size,
+            speed: speed,
+            type: chosenType,
+            color: color
+        });
+    }
+
+    // 🎬 메인 프레임워크 갱신 및 충돌 감지 연산 파이프라인
+    function updateEngineLoop() {
+        if (isGameOver) return;
+
+        // 1. 배경 성단 스크롤링 기동 연산
+        starfield.forEach(star => {
+            star.y += star.speed;
+            if (star.y > canvasHeight) { star.y = 0; star.x = Math.random() * canvasWidth; }
+        });
+
+        // 2. 🎯 [핵심] 선형 보간 알고리즘(Lerp) 기반 플레이어 좌우 무빙 스무싱 가속 처리
+        let dx = player.targetX - player.x;
+        player.x += dx * player.speedFactor; // 목표 거리에 마찰 계수를 곱해 도착지점에 가까워질수록 부드럽게 감속 정지
+
+        // 3. 적 물체 소환 타이밍 조율 모듈
+        spawnTimer++;
+        if (spawnTimer > Math.max(10, 35 - Math.floor(score / 50))) { // 점수가 올라갈수록 소환 주기 가속 타이트 압박
+            spawnEnemyEntity();
+            spawnTimer = 0;
+            score += 2; // 생존 점수 누적 증가 보상
+            document.getElementById('current-score').innerText = score;
+        }
+
+        // 4. 오브젝트 추적 루프 및 물리 바운딩 박스 오버랩 판정
+        for (let i = entities.length - 1; i >= 0; i--) {
+            let ent = entities[i];
+            ent.y += ent.speed; // 중력 가속 하강
+
+            // 화면 밑으로 통과해 나간 오브젝트 소멸 정제 처리
+            if (ent.y > canvasHeight + 50) {
+                entities.splice(i, 1);
+                continue;
+            }
+
+            // 🚨 2D 원형 반지름 기준 정밀 물리 충돌 공식 구동 (AABB Circle Collision)
+            let distDX = ent.x - player.x;
+            let distDY = ent.y - player.y;
+            let distance = Math.sqrt(distDX * distDX + distDY * distDY);
+
+            // 두 오브젝트의 반지름 합보다 중심 거리가 가까워지면 충돌 격추로 판정
+            if (distance < (player.size * 0.7) + ent.size) {
+                triggerPlayerGameOver();
+                return;
+            }
+        }
+
+        // 프레임 워크 데이터 시각화 드로잉 무대 호출
+        renderGraphicsGraphics();
+        requestAnimationFrame(updateEngineLoop);
+    }
+
+    // 🎨 2D 캔버스 그래픽 최종 드로잉 모듈
+    function renderGraphicsGraphics() {
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        // 1. 성단 물리 배경 도포
+        ctx.fillStyle = '#ffffff';
+        starfield.forEach(star => {
+            ctx.globalAlpha = star.speed / 2.5; // 속도가 빠른 먼지 입자일수록 더 밝게 알파 엔진 렌더링
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+
+        // 2. 적 장애물/총알 투사체 군집 마운트 드로잉
+        entities.forEach(ent => {
+            ctx.fillStyle = ent.color;
+            ctx.shadowBlur = ent.type === 'bullet' ? 12 : 0;
+            ctx.shadowColor = ent.color;
+            
+            ctx.beginPath();
+            if(ent.type === 'asteroid') {
+                // 운석 계열은 각진 다각형 느낌의 원형으로 처리
+                ctx.arc(ent.x, ent.y, ent.size, 0, Math.PI * 2);
+            } else if(ent.type === 'missile') {
+                // 미사일 계열은 길쭉한 캡슐형 드로잉
+                ctx.rect(ent.x - 4, ent.y - ent.size, 8, ent.size * 2);
+            } else {
+                // 적 총알은 원형 플라즈마 구체 드로잉
+                ctx.arc(ent.x, ent.y, ent.size, 0, Math.PI * 2);
+            }
+            ctx.fill();
+        });
+        ctx.shadowBlur = 0; // 그림자 엔진 초기화 리셋
+
+        // 3. 아군 메인 전투 비행체 그래픽 마운트 드로잉
+        // (추후 에셋 확보 시 이미지 드로잉 ctx.drawImage 로 교체하기 매우 쉽게 좌표 확보 완료)
+        ctx.fillStyle = varColor = varColor = '#06b6d4';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = 'var(--neon-cyan)';
+        
+        ctx.beginPath();
+        // 삼각형 우주선 뼈대 형태 빌드
+        ctx.moveTo(player.x, player.y - player.size);
+        ctx.lineTo(player.x - player.size, player.y + player.size);
+        ctx.lineTo(player.x + player.size, player.y + player.size);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 전투기 제트 엔진 부스터 불꽃 시각 효과 서브 인젝션
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y + player.size + (Math.random() * 8), 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0; // 클리닝
+    }
+
+    // 격추 오버 플래그 가동 및 파이어베이스 전적 락인
+    function triggerPlayerGameOver() {
+        isGameOver = true;
+        gameActive = false;
+
+        const earnings = Math.floor(score * 1.5); // 1955 게임은 오락실 수당 효율 1.5배 보너스 배율 책정
+        document.getElementById('result-text').innerText = `최종 비행 점수: ${score}점\n💰 오락실 정산 수당: +${earnings.toLocaleString()}원`;
+        document.getElementById('gameover-modal').style.display = 'flex';
+
+        if (score > 0 && currentUser) {
+            db.collection("users").doc(currentUser.uid).get().then(doc => {
+                if (doc.exists) {
+                    const currentMoney = Number(doc.data().money || 0);
+                    let updatePayload = { money: currentMoney + earnings };
+                    
+                    // 최고 기록 경신 시 신규 락인 플래그 전사 기록
+                    if (score > highScore1955) {
+                        highScore1955 = score;
+                        document.getElementById('best-score').innerText = highScore1955.toLocaleString();
+                        updatePayload.highScore_1955 = highScore1955;
+                    }
+                    
+                    db.collection("users").doc(currentUser.uid).update(updatePayload);
+                }
+            });
+        }
+    }
+
+    // 동전 인젝션 후 초기화 엔진 재시동 재시도
+    function resetEngineToRetry() {
+        if (!currentUser) return;
+        
+        db.collection("users").doc(currentUser.uid).get().then(doc => {
+            const money = Number(doc.data().money || 0);
+            if (money >= 100) {
+                db.collection("users").doc(currentUser.uid).update({ money: money - 100 });
+                document.getElementById('gameover-modal').style.display = 'none';
+                
+                // 엔진 내부 주요 메모리 초기화
+                score = 0;
+                document.getElementById('current-score').innerText = score;
+                entities = [];
+                spawnTimer = 0;
+                isGameOver = false;
+                gameActive = true;
+                
+                // 플레이어 안착 위치 한가운데로 소집 정렬
+                player.x = canvasWidth / 2;
+                player.targetX = canvasWidth / 2;
+                
+                initStarfield();
+                updateEngineLoop();
+            } else {
+                alert("가용 현금이 부족합니다! (100원 필요)");
+            }
+        });
+    }
+
+    // 최초 시동 엔진 통합 마운트 트랙
+    window.addEventListener('resize', resizeCanvas);
+    
+    // 오락실 구동 시동
+    initStarfield();
+    resizeCanvas();
+    setTimeout(() => {
+        updateEngineLoop();
+    }, 1200);
+</script>
+</body>
+</html>
