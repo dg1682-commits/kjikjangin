@@ -753,25 +753,32 @@ if (gearBadge) {
                         if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
                     }
                 }, 200); 
-            } else if (task.minTime) { 
-                document.getElementById('current-action-label').innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
-                document.getElementById('progress-bar').style.width = '100%';
+} else if (task.minTime) { 
+    document.getElementById('current-action-label').innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
+    
+    // 🚨 [수정] 초기 구동 및 새로고침 시에도 기존 진행도(일시정지 복구 분) 계산해서 바 반영
+    document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / task.minTime) * 100) + "%";
 
-                workIntervalRef = setInterval(() => {
-                    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
-                    if (delta >= 1) {
-                        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
-                        let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
-                        if (state.workElapsed < task.minTime) {
-                            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)}`;
-                        } else {
-                            let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
-                            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
-                        }
-                        if (state.workElapsed % 5 === 0) { saveGame(); }
-                    }
-                }, 200);
+    workIntervalRef = setInterval(() => {
+        let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
+        if (delta >= 1) {
+            let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
+            let houseMult = (task.id === 'sleep') ? HOUSES[state.houseIdx].mult : 1.0;
+            
+            // 🚨 [추가] 최소 휴식 목표 시간(minTime) 대비 현재 경과 시간 비율을 계산하여 실시간으로 바를 채움
+            let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
+            document.getElementById('progress-bar').style.width = progressPct + "%";
+
+            if (state.workElapsed < task.minTime) {
+                document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)}`;
+            } else {
+                let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
+                document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
             }
+            if (state.workElapsed % 5 === 0) { saveGame(); }
+        }
+    }, 200);
+}
         }
 
         function finishWork(job, isCanceled, actualTime) {
