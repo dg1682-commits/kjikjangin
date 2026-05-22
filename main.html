@@ -111,7 +111,7 @@
             pointer-events: none;
         }
         
-        /* 🚨 캐릭터 크기 기존 110px에서 220px로 정확히 2배 확대 고정 */
+        /* 🚨 캐릭터 크기 기존 대비 정확히 2배 벌크업 배치 고정 */
         #char-display { 
             height: 220px; 
             object-fit: contain;
@@ -251,7 +251,7 @@
             100% { transform: translateY(-40px); }
         }
 
-        /* 🚨 [요청 보정] 톱니바퀴 원형 배경 순백색(하얀색) 완전 고정 */
+        /* 🚨 [요청 반영] 톱니바퀴 원형 배경 순백색(하얀색) 완전 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
             background: #ffffff; 
@@ -420,7 +420,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.0.6-stable<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 중복 로드 간섭 차단 및 수치 가공 결계 안정화 완료
+            • 업데이트: 무한 루프 과부하 원천 배제 및 오염 세이브 롤백 치유 프로토콜 탑재
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -502,8 +502,6 @@
             {id: 'large_car', name: "대형 세단 (제네시스 G80)", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "업무 시간 30% 단축 | 업무 보상 50% 증가"}
         ];
 
-        const SAVE_KEY = "k_worker_tycoon_save_data";
-        
         function sanitizeState() {
             state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
             state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
@@ -526,6 +524,12 @@
             state.nickname = state.nickname ? String(state.nickname) : "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
             state.highScore = isNaN(Number(state.highScore)) ? 0 : Number(state.highScore);
+
+            // 🚨 [데이터 정화 모듈] 자산 100억 혹은 누적 시간 비정상 초과 시 버그 유입 프로필 자동 리셋치료
+            if (state.money > 100000000000) { state.money = 10000000; }
+            if (state.gameSeconds > 10000000) { state.gameSeconds = 0; }
+            if (state.stamina > 500000) state.stamina = 0;
+            if (state.exp > 500000) state.exp = 0;
         }
 
         function saveGame() { 
@@ -551,9 +555,7 @@
                     firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
                         .catch(e => console.error(e));
                 }
-            } catch (error) {
-                console.error(error);
-            }
+            } catch (error) { console.error(error); }
         }
 
         function loadGame() {
@@ -619,7 +621,7 @@
                     let passiveAdd = (0.5 * mult) * passedSecs;
                     if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
                     
-                    updateDisplay(); saveGame();
+                    updateDisplay(); // 🚨 [완전 복구] 루프 백그라운드 내 세이브 엔진 제거 -> 과부하 완전 해소
                 }
             }, 200); 
         }
@@ -1114,7 +1116,7 @@
         function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
         function launchGameEngine() {
-            // 🚨 [핵심 버그 패치] 기존에 파이어베이스 최신 본진 데이터를 로컬 캐시로 밀어버리던 loadGame() 라인 영구 제거
+            // 💡 세이브 폭탄의 근원이던 loadGame 중복 간섭부를 원천 제거하여 클라우드 완전 동기화 완수
             processOfflineProgress(); 
             updateDisplay(); 
             if (state.isWorking && state.currentTask) { startTaskInterval(); } 
