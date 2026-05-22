@@ -214,26 +214,18 @@
             appId: "1:138250223666:web:997b7ed4572f717354fc2b"
         };
         firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
         let currentUser = null; 
 
         if (!gameState.stocks || gameState.stocks.length !== 15 || !gameState.stockResetV3Done) {
-            gameState.stocks = INITIAL_STOCKS.map(s => ({
-                ...s,
-                history: [s.price]
-            }));
-            gameState.lastStockDayIdx = Math.floor(gameState.gameSeconds / 86400); 
+            gameState.stocks = INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }));
             gameState.stockResetV3Done = true; 
-
-            let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
-            let merged = { ...existing, ...gameState };
-            localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
+            saveStockStateToStorage();
         }
 
         gameState.stocks.forEach(s => { 
             if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
-            if(!s.history || !Array.isArray(s.history)) {
-                s.history = [s.price]; 
-            }
+            if(!s.history || !Array.isArray(s.history)) s.history = [s.price]; 
         });
 
         let currentTarget = null;
@@ -267,27 +259,6 @@
             return `${y}년 ${m+1}월 ${d+1}일 ${String(h).padStart(2,'0')}:00`;
         }
 
-        function calculateProbabilityRange() {
-            let rand = Math.random();
-            let magnitude = 0;
-            
-            if (rand < 0.50) {
-                magnitude = Math.random() * 0.05; 
-            } else if (rand < 0.80) {
-                magnitude = 0.05 + Math.random() * 0.05; 
-            } else if (rand < 0.90) {
-                magnitude = 0.10 + Math.random() * 0.05; 
-            } else if (rand < 0.95) {
-                magnitude = 0.15 + Math.random() * 0.05; 
-            } else if (rand < 0.98) {
-                magnitude = 0.20 + Math.random() * 0.05; 
-            } else {
-                magnitude = 0.25 + Math.random() * 0.05; 
-            }
-            
-            return (Math.random() < 0.53) ? magnitude : -magnitude;
-        }
-
         function togglePortfolioLayout() {
             const detailsBox = document.getElementById('account-details');
             const arrowIcon = document.getElementById('toggle-arrow');
@@ -310,11 +281,12 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
 
             if (currentUser) {
-                firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                    .catch(e => console.error("주식 원격 클라우드 실시간 저장 실패:", e));
+                db.collection("users").doc(currentUser.uid).set(merged, { merge: true })
+                    .catch(e => console.error("데이터 원격 저장 실패:", e));
             }
         }
 
+        // 🚨 [패치 1] 오프라인 주식 랜덤 변동 로직 삭제 (글로벌 시장 데이터로 대체)
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
@@ -337,28 +309,10 @@
                 }
             }
             gameState.lastSaveTime = Date.now();
-
-            let currentDayIdx = Math.floor(gameState.gameSeconds / 86400);
-            let daysPassed = currentDayIdx - gameState.lastStockDayIdx;
-            
-            if (daysPassed > 0) {
-                for (let i = 0; i < daysPassed; i++) {
-                    gameState.stocks.forEach(s => {
-                        s.prev = s.price; 
-                        let range = calculateProbabilityRange(); 
-                        s.price = Math.round(s.price * (1 + range));
-                        if (s.price < 10) s.price = 10;
-                        
-                        if (!s.history) s.history = [];
-                        s.history.push(s.price);
-                        if (s.history.length > 30) s.history.shift();
-                    });
-                }
-                gameState.lastStockDayIdx = currentDayIdx; 
-            }
             saveStockStateToStorage();
         }
 
+        // 🚨 [패치 2] 게임 루프 내 주식 변동 로직 삭제
         let lastGameTick = Date.now();
         function startGameLoop() {
             lastGameTick = Date.now();
@@ -384,31 +338,46 @@
                         }
                     }
 
-                    let currentDayIdx = Math.floor(gameState.gameSeconds / 86400);
-                    let daysPassed = currentDayIdx - gameState.lastStockDayIdx;
-                    
-                    if (daysPassed > 0) {
-                        for (let i = 0; i < daysPassed; i++) {
-                            gameState.stocks.forEach(s => {
-                                s.prev = s.price; 
-                                let range = calculateProbabilityRange(); 
-                                s.price = Math.round(s.price * (1 + range));
-                                if (s.price < 10) s.price = 10;
-                                
-                                if (!s.history) s.history = [];
-                                s.history.push(s.price);
-                                if (s.history.length > 30) s.history.shift();
-                            });
-                        }
-                        gameState.lastStockDayIdx = currentDayIdx;
-                    }
-
                     gameState.lastSaveTime = Date.now(); 
+                    saveStockStateToStorage();
+                    
+                    // 상단 UI(날짜, 보유금 등) 갱신
+                    updateAccountUI();
+                }
+            }, 1000); 
+        }
+
+        // 🚨 [패치 3 핵심] 글로벌 시장 데이터 실시간 동기화 (chart.html의 신호를 수신)
+        function syncGlobalMarket() {
+            db.collection("market_data").onSnapshot(snapshot => {
+                let dataChanged = false;
+
+                snapshot.forEach(doc => {
+                    if (doc.id === "market_status") return;
+                    let data = doc.data();
+                    let s = gameState.stocks.find(x => x.name === data.name);
+                    
+                    if (s) {
+                        if (s.price !== data.price) {
+                            s.prev = s.price; // 이전가 갱신 (증감률 계산용)
+                            s.price = data.price; // 최신 글로벌 주가 적용
+                            
+                            if (!s.history) s.history = [];
+                            s.history.push(s.price);
+                            if (s.history.length > 30) s.history.shift();
+                            
+                            dataChanged = true;
+                        }
+                    }
+                });
+                
+                // 데이터가 변경되었을 때만 UI 실시간 새로고침
+                if (dataChanged) {
                     saveStockStateToStorage();
                     updateAccountUI();
                     renderCoreView();
                 }
-            }, 1000); 
+            });
         }
 
         function updateAccountUI() {
@@ -594,8 +563,8 @@
             
             let labels = [];
             for (let i = data.length - 1; i >= 0; i--) {
-                if (i === 0) labels.push("오늘");
-                else labels.push(`${i}일 전`);
+                if (i === 0) labels.push("현재");
+                else labels.push(`${i}턴 전`);
             }
             
             const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
@@ -700,7 +669,7 @@
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
-                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 마도 완료!`);
+                    showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매도 완료!`);
                 } else {
                     return showCustomAlert("주문 실패", "보유 수량 부족!");
                 }
@@ -722,36 +691,40 @@
             renderCoreView();
         }
 
-        // 🚨 [버그 해결] 브라우저 세션 컨텍스트 강제 완전 차단 후 즉각 라우팅 전환 처리
         function goBack(e) {
             e.preventDefault();
-            saveStockStateToStorage(); // 뒤로 가기 직전 데이터 실시간 저장 안정망 작동
-            location.replace('main.html'); // 해시(#) 제거 및 렉 없는 리플레이스 전환
+            saveStockStateToStorage(); 
+            location.replace('main.html'); 
         }
 
         window.onload = () => {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-
-                    firebase.firestore().collection("users").doc(user.uid).get()
+                    db.collection("users").doc(user.uid).get()
                         .then((doc) => {
                             if (doc.exists) {
                                 let cloudData = doc.data();
                                 gameState = { ...gameState, ...cloudData };
                                 localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
                             }
+                            
+                            // 시스템 기동
                             processStockOfflineProgress(); 
                             updateAccountUI(); 
                             renderCoreView(); 
                             startGameLoop(); 
+                            
+                            // 글로벌 시장 동기화 셋업
+                            syncGlobalMarket();
                         })
                         .catch((err) => {
-                            console.error("주식 클라우드 동기화 로드 장해:", err);
+                            console.error("클라우드 로드 장해:", err);
                             processStockOfflineProgress(); 
                             updateAccountUI(); 
                             renderCoreView(); 
                             startGameLoop(); 
+                            syncGlobalMarket();
                         });
                 } else {
                     alert("로그인이 필요한 페이지입니다.");
