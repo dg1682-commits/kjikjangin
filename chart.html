@@ -100,6 +100,10 @@ async function updateMarket() {
     
     updateMarket();
     setInterval(updateMarket, 90000);
-</script>
+document.getElementById('deploy-time').innerText = new Date().toLocaleString();
+    </script>
+    <div style="margin-top: 50px; padding: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
+        <p>마지막 업데이트 배포 시간: <span id="deploy-time">확인 중...</span></p>
+    </div>
 </body>
 </html>
