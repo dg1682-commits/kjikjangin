@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>운영자 선물 센터</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
+        .box { background: #1e293b; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; border: 2px solid #a855f7; }
+        select, input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; box-sizing: border-box; }
+        button { background: #a855f7; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        h2 { text-align: center; color: #a855f7; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🎁 운영자 선물 센터</h2>
+    <label>지급 대상 유저</label>
+    <select id="user-select"><option>유저 목록 로딩 중...</option></select>
+    
+    <label>아이템 선택</label>
+    <select id="item-select">
+        <option value="money">현금 (원)</option>
+        <option value="stamina">컨디션 (수치)</option>
+        <option value="nickname">닉네임 변경권</option>
+    </select>
+    
+    <label>수량</label>
+    <input type="number" id="reward-qty" placeholder="수량을 입력하세요">
+    
+    <button onclick="sendGift()">선물 전송하기</button>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 유저 리스트 가져오기
+    async function loadUsers() {
+        const select = document.getElementById('user-select');
+        const snapshot = await db.collection("users").get();
+        select.innerHTML = '<option value="">유저를 선택하세요</option>';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            select.innerHTML += `<option value="${doc.id}">${data.nickname || '익명'} (${doc.id.substring(0,6)})</option>`;
+        });
+    }
+
+    // 선물 전송 (inbox 추가)
+    async function sendGift() {
+        const uid = document.getElementById('user-select').value;
+        const type = document.getElementById('item-select').value;
+        const qty = parseInt(document.getElementById('reward-qty').value);
+        
+        if (!uid || !qty) return alert("대상과 수량을 확인하세요!");
+
+        const mail = {
+            title: "운영자의 특별 선물",
+            rewardText: `${type === 'money' ? qty.toLocaleString()+'원' : type === 'stamina' ? '컨디션 '+qty : '닉네임 변경권 '+qty+'개'}`,
+            item: type === 'nickname' ? 'nickname' : 'etc',
+            amount: qty,
+            received: false
+        };
+
+        await db.collection("users").doc(uid).update({
+            inbox: firebase.firestore.FieldValue.arrayUnion(mail)
+        });
+        
+        alert("성공적으로 지급되었습니다!");
+    }
+
+    loadUsers();
+</script>
+</body>
+</html>
