@@ -2,24 +2,38 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>주식 시장 통제실 (데이터 복구 모드)</title>
+    <title>주식 시장 통제실 (백업 복구본)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
         #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
         .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; text-align: left; }
         .stock-card h3 { margin: 0 0 10px 0; font-size: 18px; color: #f1f5f9; }
         .stock-card p { margin: 0 0 15px 0; font-size: 20px; font-weight: bold; color: #38bdf8; }
-        input { width: 80px; padding: 8px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
-        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
+        
+        .control-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .step-btn { background: #475569; color: white; border: none; border-radius: 5px; width: 32px; height: 32px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        input[type="number"] { width: 60px; height: 32px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
+        .apply-btn { height: 32px; padding: 0 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; margin-left: auto; }
+
+        /* 대기열 스타일 */
+        .pending-container { margin-top: 40px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #f43f5e; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .pending-title { margin-top: 0; color: #f43f5e; font-size: 18px; }
+        .pending-list { list-style: none; padding: 0; margin: 0; color: #cbd5e1; font-weight: bold; }
+        .pending-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
-    <h1>📈 주식 시장 통제실</h1>
-    <div id="timer-display">연결 확인 중...</div>
+    <h1>📈 주식 시장 통제실 (백업 복구)</h1>
+    <div id="timer-display">동기화 중...</div>
     <div class="grid" id="market-list"></div>
+
+    <div class="pending-container">
+        <h3 class="pending-title">⚠️ 다음 턴 적용 대기열 (0초 반영)</h3>
+        <ul id="pending-list" class="pending-list"><li>대기 중인 조정 내역이 없습니다.</li></ul>
+    </div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
@@ -40,36 +54,52 @@
     let targetTime = 0;
     let pendingPercents = {};
 
-    async function initMarket() {
-        try {
-            // 🚨 [패치] 개별 종목 데이터만 골라서 불러오기 (market_status 무시)
-            for(let s of stocks) {
-                const doc = await db.collection("market_data").doc(s.id).get();
-                if (doc.exists && doc.data().price) {
-                    s.price = Number(doc.data().price);
-                }
-            }
+    function stepValue(id, delta) {
+        const inputEl = document.getElementById(`input-${id}`);
+        inputEl.value = (parseFloat(inputEl.value) || 0) + delta;
+    }
 
-            const statusDoc = await db.collection("market_data").doc("market_status").get();
-            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
-            targetTime = lastUpdate + 90000;
-            
-            renderUI();
-            setInterval(tick, 1000);
-            tick();
-        } catch (e) {
-            document.getElementById('timer-display').innerText = "❌ 연결 오류! 파이어베이스 설정 확인.";
+    function renderPendingList() {
+        const listEl = document.getElementById('pending-list');
+        if (!listEl) return;
+        let html = "";
+        let has = false;
+        for (let id in pendingPercents) {
+            if (pendingPercents[id] !== undefined) {
+                has = true;
+                let s = stocks.find(x => x.id === id);
+                let p = (pendingPercents[id] * 100).toFixed(2);
+                html += `<li class="pending-item"><span>${s.name}</span> <span>${p > 0 ? '+' : ''}${p}% 적용 대기</span></li>`;
+            }
         }
+        listEl.innerHTML = has ? html : "<li>대기 중인 조정 내역이 없습니다.</li>";
+    }
+
+    function applyManualPercent(id) {
+        let val = document.getElementById(`input-${id}`).value;
+        if (!val) return;
+        pendingPercents[id] = parseFloat(val) / 100;
+        document.getElementById(`input-${id}`).value = "";
+        renderPendingList();
+    }
+
+    async function initMarket() {
+        for(let s of stocks) {
+            const doc = await db.collection("market_data").doc(s.id).get();
+            if (doc.exists) s.price = Number(doc.data().price);
+        }
+        const statusDoc = await db.collection("market_data").doc("market_status").get();
+        let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
+        targetTime = lastUpdate + 90000;
+        renderUI();
+        setInterval(tick, 1000);
+        tick();
     }
 
     async function tick() {
-        let now = Date.now();
-        let remaining = Math.floor((targetTime - now) / 1000);
-        if (remaining <= 0) {
-            await updateMarket();
-        } else {
-            document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
-        }
+        let remaining = Math.floor((targetTime - Date.now()) / 1000);
+        if (remaining <= 0) await updateMarket();
+        else document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
     }
 
     async function updateMarket() {
@@ -78,11 +108,12 @@
             let change = (pendingPercents[s.id] !== undefined) ? s.price * pendingPercents[s.id] : s.price * (Math.random() - 0.5) * 0.05;
             s.price = Math.max(10, Math.floor(s.price + change));
             pendingPercents[s.id] = undefined;
-            await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price, updatedAt: now });
+            await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
         await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
         targetTime = now + 90000;
         renderUI();
+        renderPendingList();
     }
 
     function renderUI() {
@@ -90,17 +121,14 @@
             <div class="stock-card">
                 <h3>${s.name}</h3>
                 <p>${s.price.toLocaleString()}원</p>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <input type="number" id="input-${s.id}" placeholder="%">
-                    <button class="apply-btn" onclick="applyPercent('${s.id}')">적용</button>
+                <div class="control-group">
+                    <button class="step-btn" onclick="stepValue('${s.id}', -1)">-</button>
+                    <input type="number" id="input-${s.id}" placeholder="0">
+                    <button class="step-btn" onclick="stepValue('${s.id}', 1)">+</button>
+                    <button class="apply-btn" onclick="applyManualPercent('${s.id}')">적용</button>
                 </div>
             </div>
         `).join('');
-    }
-
-    function applyPercent(id) {
-        let val = document.getElementById(`input-${id}`).value;
-        if(val) { pendingPercents[id] = parseFloat(val) / 100; alert(id + " 예약됨!"); }
     }
 
     initMarket();
