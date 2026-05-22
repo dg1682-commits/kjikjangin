@@ -2,97 +2,104 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>눈치눈치 - 부장님 무빙 패치</title>
+    <title>눈치눈치 - 모바일 최적화 패치</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { margin: 0; background: #0f172a; color: white; font-family: 'Pretendard', sans-serif; text-align: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
+        body { margin: 0; background: #0f172a; color: white; font-family: 'Pretendard', sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; touch-action: manipulation; }
         
-        /* [패치] 무빙하는 부장님 컨테이너 */
-        #boss-container { position: absolute; top: 20%; width: 100px; height: 100px; transition: left 0.5s linear; }
+        /* [최적화] 부장님 캐릭터 이동 영역 */
+        #boss-container { position: absolute; top: 15%; left: -150px; width: 120px; height: 120px; z-index: 10; transition: left 0.5s linear; }
         #boss-img { width: 100%; height: 100%; object-fit: contain; }
         
-        .score-board { font-size: 28px; margin-top: 20px; color: #06b6d4; font-weight: bold; }
-        .work-btn { position: absolute; bottom: 100px; padding: 40px 80px; font-size: 32px; background: #f59e0b; border: none; border-radius: 25px; cursor: pointer; color: white; font-weight: 900; }
+        .score-board { margin-top: 50px; font-size: 20px; color: #06b6d4; font-weight: bold; width: 100%; }
+        .work-btn { width: 80%; height: 180px; font-size: 32px; background: #f59e0b; border: none; border-radius: 25px; cursor: pointer; color: white; font-weight: 900; margin-top: auto; margin-bottom: 50px; }
+        .work-btn:active { transform: scale(0.95); }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #1e293b; padding: 40px; border-radius: 25px; border: 4px solid #f43f5e; width: 80%; }
-        .modal-btn { width: 100%; padding: 20px; font-size: 20px; border-radius: 15px; margin: 10px 0; font-weight: 800; cursor: pointer; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: #1e293b; padding: 30px; border-radius: 25px; border: 4px solid #f43f5e; width: 85%; }
+        .modal-btn { width: 100%; padding: 15px; font-size: 18px; border-radius: 12px; margin: 10px 0; font-weight: 800; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="score-board">BEST: <span id="best-score">0</span> | 점수: <span id="current-score">0</span></div>
 
-<div id="boss-container" style="left: -100px;">
+<div id="boss-container">
     <img id="boss-img" src="캐릭터/60대.png" alt="부장님">
 </div>
 
+<div id="status-text" style="margin-top: 100px; font-size: 20px;">업무 중...</div>
 <button class="work-btn" onclick="work()">업무 클릭!</button>
 
 <div id="gameover-modal" class="modal-overlay">
     <div class="modal-content">
         <h2 style="color: #f43f5e;">게임 오버!</h2>
-        <p id="result-text"></p>
-        <button class="modal-btn" style="background:#06b6d4;" onclick="retryGame()">재시도 (100원)</button>
-        <button class="modal-btn" style="background:#64748b;" onclick="location.replace('game.html')">나가기</button>
+        <p id="result-text" style="font-size: 18px;"></p>
+        <button class="modal-btn" style="background:#06b6d4; color:white;" onclick="retryGame()">재시도 (100원)</button>
+        <button class="modal-btn" style="background:#64748b; color:white;" onclick="location.replace('game.html')">나가기</button>
     </div>
 </div>
 
 <script>
+    const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    let score = 0, highScore = 0, currentUser = null;
-    let isWatching = false; // 중앙에 멈춰서 쳐다보는 중인지 판별
+    let currentUser = null, score = 0, highScore = 0, isWatching = false;
 
-    // 부장님 무빙 로직
+    firebase.auth().onAuthStateChanged(user => { if (user) { currentUser = user; db.collection("users").doc(user.uid).get().then(doc => { if(doc.exists) { highScore = doc.data().highScore || 0; document.getElementById('best-score').innerText = highScore; } }); } });
+
     function moveBoss() {
         const boss = document.getElementById('boss-container');
-        const speed = Math.random() * 1000 + 500; // 랜덤 속도
+        const screenWidth = window.innerWidth;
+        const duration = Math.random() * 2000 + 1000;
         
-        // 왼쪽 -> 오른쪽
-        boss.style.transition = `left ${speed/1000}s linear`;
-        boss.style.left = "110%";
+        boss.style.transition = `left ${duration/1000}s linear`;
+        boss.style.left = (screenWidth + 100) + "px";
         
-        // 중앙 도착 시 쳐다보기 (약 50% 지점)
         setTimeout(() => {
             isWatching = true;
-            document.getElementById('boss-img').style.transform = "scale(1.5)"; // 쳐다볼 때 확대
-        }, speed / 2);
+            document.getElementById('status-text').innerText = '부장님이 쳐다본다!!';
+            document.getElementById('boss-img').style.transform = "scale(1.2)";
+        }, duration * 0.4);
 
-        // 다시 이동 시작
         setTimeout(() => {
             isWatching = false;
+            document.getElementById('status-text').innerText = '업무 중...';
             document.getElementById('boss-img').style.transform = "scale(1)";
-            boss.style.left = "-100px";
-            setTimeout(moveBoss, 1000);
-        }, speed / 2 + 1500); // 1.5초간 쳐다봄
+            boss.style.left = "-150px";
+            setTimeout(moveBoss, 500);
+        }, duration * 0.4 + 1200);
     }
 
-    // [중략: Firebase 연동 로직은 이전과 동일하게 유지]
-    // (위의 전체 코드에서 사용한 Firebase 연동 부분과 gameOver 로직을 그대로 사용하시면 됩니다.)
-    
     function work() {
-        if (isWatching) {
-            gameOver();
-        } else {
+        if (isWatching) { gameOver(); } 
+        else {
             score += 10;
             document.getElementById('current-score').innerText = score;
+            if (score > highScore) { highScore = score; document.getElementById('best-score').innerText = highScore; db.collection("users").doc(currentUser.uid).update({ highScore: highScore }); }
         }
     }
-    
-    // 페이지 로드 시 무빙 시작
-    window.onload = () => {
-        firebase.auth().onAuthStateChanged(user => {
-            if(user) { 
-                currentUser = user; 
-                moveBoss(); 
-            }
+
+    function gameOver() {
+        const earnings = Math.floor(score * 1.2);
+        document.getElementById('result-text').innerText = `점수: ${score}점\n획득: ${earnings.toLocaleString()}원`;
+        document.getElementById('gameover-modal').style.display = 'flex';
+        if (score > 0) { db.collection("users").doc(currentUser.uid).get().then(doc => { const currentMoney = Number(doc.data().money || 0); db.collection("users").doc(currentUser.uid).update({ money: currentMoney + earnings }); }); }
+        score = 0; document.getElementById('current-score').innerText = score;
+    }
+
+    function retryGame() {
+        db.collection("users").doc(currentUser.uid).get().then(doc => {
+            const money = Number(doc.data().money || 0);
+            if (money >= 100) { db.collection("users").doc(currentUser.uid).update({ money: money - 100 }); document.getElementById('gameover-modal').style.display = 'none'; } 
+            else { alert("돈이 부족합니다!"); }
         });
-    };
-    
-    // (고민 중이신 Firebase 보상 연동 로직은 이전 코드의 gameOver() 함수를 그대로 활용하세요!)
+    }
+
+    window.onload = () => { setTimeout(moveBoss, 1000); };
 </script>
 </body>
 </html>
