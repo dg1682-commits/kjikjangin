@@ -177,10 +177,19 @@
             const statusDoc = await db.collection("market_data").doc("market_status").get();
             let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
             
-            await db.collection("market_data").doc("market_status").set({
-                lastUpdate: lastUpdate,
-                activeNews: localDraftNews
-            }, { merge: true });
+let newsTimestamp = Date.now();
+localDraftNews.timestamp = newsTimestamp; // activeNews에도 동기화용 심어줌
+
+await db.collection("market_data").doc("market_news").set({
+    newsList: firebase.firestore.FieldValue.arrayUnion({
+        title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
+        rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
+        timestamp: newsTimestamp,
+        articleBody: localDraftNews.text,
+        userName: "운영총괄팀",
+        isExpired: false // 🚨 만료 플래그 신설
+    })
+}, { merge: true });
 
 // 🚨 [변경] 규칙 차단을 우회하기 위해 이미 열려있는 market_data 컬렉션의 통합 문서에 배열로 누적합니다.
 await db.collection("market_data").doc("market_news").set({
@@ -289,6 +298,22 @@ await db.collection("market_data").doc("market_news").set({
             await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
 
+        // 🚨 [추가] 뉴스 가속 버프가 완전히 종료(turnsLeft === 0)되었다면 newsList 배열을 역추적해 해당 기사 취소선 플래그 전환
+        if (activeNews && activeNews.turnsLeft === 0) {
+            try {
+                const newsDoc = await db.collection("market_data").doc("market_news").get();
+                if (newsDoc.exists && newsDoc.data().newsList) {
+                    let list = newsDoc.data().newsList;
+                    list.forEach(n => {
+                        if (n.timestamp === activeNews.timestamp) {
+                            n.isExpired = true;
+                        }
+                    });
+                    await db.collection("market_data").doc("market_news").set({ newsList: list }, { merge: true });
+                }
+            } catch (e) { console.error("뉴스 종료 처리 실패:", e); }
+        }
+        
         let nextUpdateBase = lastUpdate + (missedTurns * 90000);
         if (now - nextUpdateBase > 90000) nextUpdateBase = now;
         
