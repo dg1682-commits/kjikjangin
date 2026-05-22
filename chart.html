@@ -69,7 +69,8 @@
         alert(`${id} 종목 다음 변동 타임에 ${percentStr}% 강제 정률 조정 대기 완료!`);
     }
 
-    async function initMarket() {
+async function initMarket() {
+        document.getElementById('timer-display').innerText = "서버 기준 시간 가져오는 중...";
         try {
             // 1. 서버 주가 실시간 동기화
             const snapshot = await db.collection("market_data").get();
@@ -80,14 +81,23 @@
                 }
             });
 
-            // 2. 마지막 갱신 시간 검사
+            // 2. 🚨 [핵심 수정] 마지막 갱신 시간 검사 및 강제 기록
             const statusDoc = await db.collection("market_data").doc("market_status").get();
-            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
             
-            targetTime = lastUpdate + 90000;
+            if (statusDoc.exists && statusDoc.data().lastUpdate) {
+                // 기록이 있으면 그 시간부터 이어서 계산
+                let lastUpdate = statusDoc.data().lastUpdate;
+                targetTime = lastUpdate + 90000;
+            } else {
+                // 기록이 없으면(최초 실행), 지금 당장 파이어베이스에 시작 시간을 박아버림!
+                let now = Date.now();
+                await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
+                targetTime = now + 90000;
+            }
+            
             renderUI();
 
-            // 타이머 무조건 구동
+            // 타이머 구동
             setInterval(tick, 1000);
             tick();
         } catch (error) {
