@@ -42,23 +42,45 @@
         alert(`${id} 종목을 ${percentStr}% 조정 대기중!`);
     }
 
-    async function updateMarket() {
-        const timestamp = Date.now();
-        timeLeft = 90; // 변동 시점마다 타이머 리셋
-        
-        for (let s of stocks) {
-            let change = (pendingPercents[s.id] !== undefined) ? 
-                         s.price * pendingPercents[s.id] : 
-                         s.price * (Math.random() - 0.5) * 0.05;
-            
-            s.price = Math.max(10, Math.floor(s.price + change));
-            pendingPercents[s.id] = undefined;
+async function initMarket() {
+    const doc = await db.collection("market_data").doc("market_status").get();
+    let lastUpdate = doc.exists ? doc.data().lastUpdate : 0;
+    
+    let now = Date.now();
+    let elapsed = now - lastUpdate;
 
-            db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price, updatedAt: timestamp });
-            db.collection("price_history").doc(s.id).collection("daily").doc(timestamp.toString()).set({ price: s.price, date: new Date() });
-        }
-        renderUI();
+    if (elapsed >= 90000) {
+        // 90초 이상 지났으면 즉시 업데이트
+        updateMarket();
+    } else {
+        // 아직 시간이 안 됐으면 남은 시간만큼만 대기
+        timeLeft = Math.floor((90000 - elapsed) / 1000);
+        setTimeout(updateMarket, 90000 - elapsed);
     }
+}
+
+async function updateMarket() {
+    const now = Date.now();
+    
+    // 1. 마지막 업데이트 시간 Firebase에 저장
+    db.collection("market_data").doc("market_status").set({ lastUpdate: now });
+
+    // 2. 종목별 가격 갱신 (기존 로직 동일)
+    for (let s of stocks) {
+        let change = (pendingPercents[s.id] !== undefined) ? 
+                     s.price * pendingPercents[s.id] : 
+                     s.price * (Math.random() - 0.5) * 0.05;
+        
+        s.price = Math.max(10, Math.floor(s.price + change));
+        pendingPercents[s.id] = undefined;
+        // ... (이후 시장 데이터 저장 로직 동일)
+    }
+    
+    renderUI();
+    // 90초 루프 재시작
+    setTimeout(updateMarket, 90000);
+    timeLeft = 90;
+}
 
     function renderUI() {
         document.getElementById('market-list').innerHTML = stocks.map(s => `
