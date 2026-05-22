@@ -429,7 +429,7 @@
         let currentUser = null;
         const SAVE_KEY = "k_worker_game_save";
 
-        // 🚨 기본 세팅 금액 천만 원 -> 10만 원(100000)으로 수정 완수
+        // 초기 베이스 스탯 금액 10만원 설정 고정
         let state = {
             money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
@@ -530,14 +530,15 @@
         }
 
         function sanitizeState() {
-            state.money = isNaN(Number(state.money)) ? 100000 : Number(state.money);
+            // 강제 리셋 상한 임계치 전면 제거 (순수 타입 에러 및 음수 자산만 10만원 스위칭 보정)
+            state.money = (isNaN(Number(state.money)) || Number(state.money) < 0) ? 100000 : Number(state.money);
             state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
             state.exp = isNaN(Number(state.exp)) ? 0 : Number(state.exp);
             state.rankIdx = isNaN(Number(state.rankIdx)) ? 0 : Number(state.rankIdx);
             if (state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
             state.condition = isNaN(Number(state.condition)) ? 100 : Number(state.condition);
             state.maxCondition = isNaN(Number(state.maxCondition)) ? 100 : Number(state.maxCondition);
-            state.gameSeconds = isNaN(Number(state.gameSeconds)) ? 0 : Number(state.gameSeconds);
+            state.gameSeconds = (isNaN(Number(state.gameSeconds)) || state.gameSeconds < 0) ? 0 : Number(state.gameSeconds);
             state.rentDayCounter = isNaN(Number(state.rentDayCounter)) ? 0 : Number(state.rentDayCounter);
             state.debuffTimeLeft = isNaN(Number(state.debuffTimeLeft)) ? 0 : Number(state.debuffTimeLeft);
             state.timeMult = isNaN(Number(state.timeMult)) ? 1.0 : Number(state.timeMult);
@@ -549,16 +550,9 @@
             state.nickname = state.nickname ? String(state.nickname) : "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
 
-            // 🚨 [버그 척결] 클릭 무한소수점 확장으로 자산이 강제 초기화되던 치명적인 글자수 조건문(length > 12) 전면 삭제!
-            if (state.money < 0 || state.money > 1000000000000000) { 
-                state.money = 100000; 
-            }
             if (state.maxCondition <= 0) state.maxCondition = 100;
             if (state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
-            
-            // 🚨 [버그 척결] 플레이 타임 누적 시 무조건 날짜가 강제 리셋되던 비현실적인 상한선 조건 삭제!
-            if (isNaN(state.gameSeconds) || state.gameSeconds < 0) { state.gameSeconds = 0; }
         }
 
         function saveGame(forceCloud = false) { 
@@ -1156,29 +1150,50 @@
             startGameLoop(); 
         }
 
-        // 🚨 파이어베이스에서 기존 데이터 유실 없이 강제적으로 연동하여 상단 레이어UI를 갱신하는 윈도우 로드 모듈 복구
+        // 🚨 클라우드(Firebase) 데이터를 절대 기준으로 삼아 상단 UI 레이어 전체 스탯을 완벽 동기화하는 모듈
         window.onload = () => {
             try {
                 if (typeof firebase !== 'undefined') {
                     firebase.auth().onAuthStateChanged((user) => {
                         if (user) {
                             currentUser = user; 
+                            
+                            // 1. 디바이스 로컬 세이브 캐시를 기본 베이스로 확보
+                            loadGame(); 
+                            
+                            // 2. 파이어베이스 데이터베이스 접근 및 엄격한 1:1 오버라이트 (임의 숫자 강제 주입 절대 금지)
                             firebase.firestore().collection("users").doc(user.uid).get()
                                 .then((doc) => {
                                     if (doc.exists) {
                                         let cloudData = doc.data();
-                                        // 파이어베이스에 기존 저장된 모든 스탯, 재화, 날짜 정보를 유실 없이 강제 할당
-                                        state = { ...state, ...cloudData };
-                                    } else {
-                                        loadGame(); 
+                                        
+                                        // 클라우드 정보가 있는 항목만 강제 치환 매핑 (유실 완전 차단)
+                                        if(cloudData.money !== undefined) state.money = Number(cloudData.money);
+                                        if(cloudData.stamina !== undefined) state.stamina = Number(cloudData.stamina);
+                                        if(cloudData.exp !== undefined) state.exp = Number(cloudData.exp);
+                                        if(cloudData.rankIdx !== undefined) state.rankIdx = Number(cloudData.rankIdx);
+                                        if(cloudData.condition !== undefined) state.condition = Number(cloudData.condition);
+                                        if(cloudData.maxCondition !== undefined) state.maxCondition = Number(cloudData.maxCondition);
+                                        if(cloudData.houseIdx !== undefined) state.houseIdx = Number(cloudData.houseIdx);
+                                        if(cloudData.carIdx !== undefined) state.carIdx = Number(cloudData.carIdx);
+                                        if(cloudData.gameSeconds !== undefined) state.gameSeconds = Number(cloudData.gameSeconds);
+                                        if(cloudData.rentDayCounter !== undefined) state.rentDayCounter = Number(cloudData.rentDayCounter);
+                                        if(cloudData.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(cloudData.debuffTimeLeft);
+                                        if(cloudData.timeMult !== undefined) state.timeMult = Number(cloudData.timeMult);
+                                        if(cloudData.lastSaveTime !== undefined) state.lastSaveTime = Number(cloudData.lastSaveTime);
+                                        if(cloudData.nickname !== undefined) state.nickname = String(cloudData.nickname);
+                                        if(cloudData.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(cloudData.nicknameChangeCount);
+                                        if(Array.isArray(cloudData.ownedItems)) state.ownedItems = cloudData.ownedItems;
+                                        if(cloudData.highScore !== undefined) state.highScore = Number(cloudData.highScore);
                                     }
+                                    
                                     sanitizeState(); 
                                     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
                                     launchGameEngine(); 
                                 })
                                 .catch((err) => {
-                                    console.error("클라우드 연동 실패, 로컬 데이터 구동 우회:", err);
-                                    loadGame();
+                                    console.error("클라우드 통신 실패, 세이브 캐시로 대체 구동:", err);
+                                    sanitizeState();
                                     launchGameEngine();
                                 });
                         } else { 
@@ -1191,7 +1206,7 @@
                     launchGameEngine();
                 }
             } catch (e) {
-                console.error("파이어베이스 인증 모듈 치명적 오류, 로컬 세이브로 강제 복구 가동:", e);
+                console.error("인증 파이프라인 치명적 오류, 로컬 모드로 리다이렉트:", e);
                 loadGame();
                 launchGameEngine();
             }
