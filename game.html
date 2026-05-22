@@ -69,12 +69,14 @@
         }
         .carousel-track::-webkit-scrollbar { display: none; } 
 
-        .arcade-card {
+.arcade-card {
             width: 240px; height: 300px; flex-shrink: 0;
             scroll-snap-align: center; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: transparent; border: none; 
-            border-radius: 0; margin: 0 20px; transition: transform 0.3s;
+            border-radius: 0; 
+            margin: 0 5px; /* 🚨 기존 20px에서 5px로 줄여 오락기 사이를 바짝 좁힙니다! */
+            transition: transform 0.3s;
             position: relative;
             cursor: pointer; 
         }
