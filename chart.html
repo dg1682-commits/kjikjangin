@@ -62,7 +62,10 @@
         <textarea id="news-textarea" placeholder="여기에 자동 생성된 보도 기사가 채워집니다. 직접 수정도 가능합니다." style="width:100%; height:100px; padding:12px; font-size:14px; line-height:1.5; margin-bottom:15px; resize: none;"></textarea>
         <button class="news-btn" style="width:100%; background: #10b981; height: 45px; font-size: 15px;" onclick="submitNewsFlash()">📰 속보 전송 및 5턴 트렌드 가속 강제 주입</button>
     </div>
-
+<div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #334155; display: flex; gap: 10px;">
+            <button class="news-btn" style="flex: 1; background: #64748b; height: 35px; font-size: 13px;" onclick="expireAllPastNews()">⏳ 이전 뉴스 일괄 취소선(만료) 처리</button>
+            <button class="news-btn" style="flex: 1; background: #ef4444; height: 35px; font-size: 13px;" onclick="deleteAllNews()">🗑️ 뉴스룸 전체 기사 비우기 (초기화)</button>
+        </div>
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
@@ -209,7 +212,37 @@ async function submitNewsFlash() {
         window.isNewsSubmitting = false;
     }
 }
+// 🚨 [추가] 1. 과거 뉴스 전체에 일괄 취소선([효과 종료]) 도장 찍기
+    async function expireAllPastNews() {
+        if (!confirm("현재 뉴스룸에 올라와 있는 모든 기사에 취소선([효과 종료])을 일괄 적용하시겠습니까?")) return;
+        try {
+            const newsDoc = await db.collection("market_data").doc("market_news").get();
+            if (newsDoc.exists && newsDoc.data().newsList) {
+                let list = newsDoc.data().newsList;
+                // 내부 모든 기사의 만료 상태를 true로 변경
+                list.forEach(n => n.isExpired = true);
+                await db.collection("market_data").doc("market_news").set({ newsList: list }, { merge: true });
+                alert("✅ 모든 과거 기사에 취소선이 정상 반영되었습니다!");
+            } else {
+                alert("정리할 기사가 없습니다.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("만료 처리 중 오류가 발생했습니다.");
+        }
+    }
 
+    // 🚨 [추가] 2. 뉴스룸 데이터베이스 깔끔하게 공장 초기화 (완전 삭제)
+    async function deleteAllNews() {
+        if (!confirm("💥 진짜로 뉴스룸의 모든 기사를 흔적도 없이 삭제하시겠습니까?\n(유저 화면에서 모든 뉴스가 사라집니다. 복구 불가)")) return;
+        try {
+            await db.collection("market_data").doc("market_news").set({ newsList: [] });
+            alert("🗑️ 뉴스룸 데이터가 깨끗하게 초기화되었습니다!");
+        } catch (e) {
+            console.error(e);
+            alert("데이터 초기화 중 오류가 발생했습니다.");
+        }
+    }
     async function initMarket() {
         // 드롭다운 종목 바인딩 연동 추가
         const selectEl = document.getElementById('news-stock-select');
