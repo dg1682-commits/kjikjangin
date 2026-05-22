@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>주식 시장 통제실 (백업 복구본)</title>
+    <title>주식 시장 통제실 (마스터 제어 센터)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; padding-bottom: 60px; }
         #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
         .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; text-align: left; }
@@ -15,24 +15,52 @@
         
         .control-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
         .step-btn { background: #475569; color: white; border: none; border-radius: 5px; width: 32px; height: 32px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        input[type="number"] { width: 60px; height: 32px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
+        input[type="number"], select, textarea { border-radius: 5px; border: none; background: #334155; color: white; font-weight: bold; box-sizing: border-box; }
+        input[type="number"] { width: 60px; height: 32px; text-align: center; }
         .apply-btn { height: 32px; padding: 0 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; margin-left: auto; }
 
         /* 대기열 스타일 */
-        .pending-container { margin-top: 40px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #f43f5e; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .pending-container { margin-top: 30px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #f43f5e; max-width: 600px; margin-left: auto; margin-right: auto; }
         .pending-title { margin-top: 0; color: #f43f5e; font-size: 18px; }
         .pending-list { list-style: none; padding: 0; margin: 0; color: #cbd5e1; font-weight: bold; }
         .pending-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; }
+
+        /* 📰 뉴스 메이커 스타일 명세 고유 결합 */
+        .news-maker-box { margin-top: 30px; padding: 25px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #a855f7; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .news-flex-row { display: flex; gap: 12px; margin-bottom: 15px; }
+        .news-select { flex: 1; height: 42px; padding: 0 10px; font-size: 14px; cursor: pointer; }
+        .news-btn { height: 42px; background: #a855f7; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: opacity 0.1s; }
+        .news-btn:active { opacity: 0.8; }
     </style>
 </head>
 <body>
     <h1>📈 주식 시장 통제실 (백업 복구)</h1>
+    
+    <div id="active-news-status"></div>
     <div id="timer-display">동기화 중...</div>
+    
     <div class="grid" id="market-list"></div>
 
     <div class="pending-container">
         <h3 class="pending-title">⚠️ 다음 턴 적용 대기열 (0초 반영)</h3>
         <ul id="pending-list" class="pending-list"><li>대기 중인 조정 내역이 없습니다.</li></ul>
+    </div>
+
+    <div class="news-maker-box">
+        <h3 style="margin-top:0; color:#a855f7; font-size:18px;">📰 실시간 속보 뉴스 메이커 (5턴 트렌드 제어)</h3>
+        <div class="news-flex-row">
+            <select id="news-stock-select" class="news-select">
+                <option value="">영향을 줄 종목 선택</option>
+            </select>
+            <select id="news-type-select" class="news-select" style="max-width: 150px;">
+                <option value="up">📈 호재 (폭등)</option>
+                <option value="down">📉 악재 (폭락)</option>
+            </select>
+            <button class="news-btn" style="padding: 0 16px;" onclick="generateNewsDraft()">기사 초안 작성</button>
+        </div>
+        
+        <textarea id="news-textarea" placeholder="여기에 자동 생성된 보도 기사가 채워집니다. 직접 수정도 가능합니다." style="width:100%; height:100px; padding:12px; font-size:14px; line-height:1.5; margin-bottom:15px; resize: none;"></textarea>
+        <button class="news-btn" style="width:100%; background: #10b981; height: 45px; font-size: 15px;" onclick="submitNewsFlash()">📰 속보 전송 및 5턴 트렌드 가속 강제 주입</button>
     </div>
 
 <script>
@@ -53,6 +81,7 @@
 
     let targetTime = 0;
     let pendingPercents = {};
+    let localDraftNews = null; // 대기열 임시 오브젝트 바인딩 용
 
     function stepValue(id, delta) {
         const inputEl = document.getElementById(`input-${id}`);
@@ -83,15 +112,116 @@
         renderPendingList();
     }
 
+    // 🚨 [추가] 현재 마켓에 작동중인 글로벌 특보 트렌드 유무 디스플레이 인터페이스
+    function renderActiveNewsUI(activeNews) {
+        const container = document.getElementById('active-news-status');
+        if (!container) return;
+        if (activeNews && activeNews.turnsLeft > 0) {
+            let s = stocks.find(x => x.id === activeNews.stockId);
+            container.innerHTML = `
+                <div style="background: ${activeNews.type === 'up' ? '#10b981' : '#ef4444'}; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 20px; font-size:15px; color:#fff;">
+                    📢 현재 전 유저 강제 적용 중인 특보: [${s ? s.name : activeNews.stockId}] (${activeNews.type === 'up' ? '호재 폭등 폭풍 버프' : '악재 디버프 대폭락'}) - 잔여 가속: ${activeNews.turnsLeft}턴 남음
+                </div>`;
+        } else {
+            container.innerHTML = `
+                <div style="background: #334155; padding: 12px; border-radius: 8px; color: #94a3b8; font-weight: bold; margin-bottom: 20px; font-size:14px;">
+                    📭 활성화된 글로벌 뉴스 특보가 없습니다. (일반 인공지능 자율 시장 모드)
+                </div>`;
+        }
+    }
+
+    // 🚨 [추가] 인공지능 뉴스 기사 내용 임의 자동 빌더 시스템
+    function generateNewsDraft() {
+        const stockId = document.getElementById('news-stock-select').value;
+        const type = document.getElementById('news-type-select').value;
+        if(!stockId) return alert("버프/디버프를 부여할 종목을 먼저 선택해주세요!");
+        
+        let s = stocks.find(x => x.id === stockId);
+        
+        const upTemplates = [
+            `[속보]외신 보도에 따르면 글로벌 유통 대기업이 ${s.name}의 독점 기술 부품을 향후 3년간 전량 선방영 수급 계약을 체결했다는 특보가 타전되었습니다. 이로 인해 강력한 실적 우상향 대폭등 모멘텀이 기대됩니다.`,
+            `[특보]${s.name}이 예상을 뛰어넘는 초격차 신제품 혁신에 대성공하며 북미 시장 점유율 1위를 탈환했습니다. 해외 기관 투자자들의 공격적인 자금 유입으로 인해 대규모 우상향 가속 선이 포착되었습니다.`
+        ];
+        
+        const downTemplates = [
+            `[공지]${s.name}의 핵심 원자재 공급망에 예기치 못한 차질이 생기며 공장 가동률이 40% 이하로 급감했습니다. 이번 분기 실적이 반토막 날 것이라는 내부 기밀 보고서가 유출되어 매도 물량이 쏟아지고 있습니다.`,
+            `[경고]글로벌 시장 규제 위원회가 ${s.name}의 주력 유통 사업 부문에 사상 최대 규모의 반독점 규제 과징금을 전격 예고했습니다. 미래 성장성에 심각한 급브레이크가 걸리며 투자 심리가 급격히 냉각 중입니다.`
+        ];
+        
+        let pool = type === 'up' ? upTemplates : downTemplates;
+        let selectedText = pool[Math.floor(Math.random() * pool.length)];
+        
+        document.getElementById('news-textarea').value = selectedText;
+        
+        localDraftNews = {
+            stockId: stockId,
+            type: type,
+            turnsLeft: 5,
+            text: selectedText
+        };
+    }
+
+    // 🚨 [추가] 전송 버튼 클릭 시 5턴 주가 락인 동기화 및 유저용 사내뉴스(news.html) 컬렉션 강제 인젝션
+    async function submitNewsFlash() {
+        if(!localDraftNews || document.getElementById('news-textarea').value.trim() === "") {
+            return alert("먼저 기사 초안 작성 버튼을 눌러 뉴스 내용을 생성해주세요!");
+        }
+        
+        localDraftNews.text = document.getElementById('news-textarea').value.trim();
+        let s = stocks.find(x => x.id === localDraftNews.stockId);
+        
+        if(!confirm(`[${s.name}] 종목의 주가를 향후 5턴(7분 30초) 동안 폭등/폭락시킬 속보 뉴스를 진짜로 발행하시겠습니까?`)) return;
+
+        try {
+            // 1. 파이어베이스 시계(market_status) 도큐먼트에 5턴 락 상태 저장
+            const statusDoc = await db.collection("market_data").doc("market_status").get();
+            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
+            
+            await db.collection("market_data").doc("market_status").set({
+                lastUpdate: lastUpdate,
+                activeNews: localDraftNews
+            }, { merge: true });
+
+            // 2. 유저들이 확인하는 사내 뉴스 채널(news.html용 연동 컬렉션)에도 실시간 원격 강제 삽입
+            await db.collection("news_articles").add({
+                title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
+                rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
+                item: "news",
+                timestamp: Date.now(),
+                articleBody: localDraftNews.text,
+                userName: "운영총괄팀"
+            });
+
+            renderActiveNewsUI(localDraftNews);
+            alert("📰 뉴스룸 특보 발행 완료! 유저들의 news.html 및 실시간 주가 변동에 5턴 가속 배율이 즉시 강제 반영됩니다.");
+            document.getElementById('news-textarea').value = "";
+            localDraftNews = null;
+        } catch (e) {
+            console.error(e);
+            alert("전송 오류 발생");
+        }
+    }
+
     async function initMarket() {
+        // 드롭다운 종목 바인딩 연동 추가
+        const selectEl = document.getElementById('news-stock-select');
+        selectEl.innerHTML = '<option value="">영향을 줄 종목 선택</option>';
+        
         for(let s of stocks) {
             const doc = await db.collection("market_data").doc(s.id).get();
             if (doc.exists) s.price = Number(doc.data().price);
+            selectEl.innerHTML += `<option value="${s.id}">${s.name}</option>`;
         }
+        
         const statusDoc = await db.collection("market_data").doc("market_status").get();
         let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
+        let activeNews = (statusDoc.exists && statusDoc.data().activeNews) ? statusDoc.data().activeNews : null;
+        
         targetTime = lastUpdate + 90000;
         renderUI();
+        renderActiveNewsUI(activeNews);
+        renderPendingList();
+        
         setInterval(tick, 1000);
         tick();
     }
@@ -102,57 +232,76 @@
         else document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
     }
 
-    // 🚨 [로직 보완 마스터 패치] 꺼져 있던 동안의 공백 시간을 실시간 역추적하여 자동 정산하는 마켓 엔진
+    // 🚨 [엔진 전면 고도화 개편] 5턴 뉴스 특보 배율을 순차 복리 연산하는 고성능 시뮬레이터 알고리즘
     async function updateMarket() {
         const now = Date.now();
-        
-        // 1. 현재 파이어베이스에 보존되어 있던 마지막 업데이트 최종 타임스탬프 로드
         const statusDoc = await db.collection("market_data").doc("market_status").get();
         let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : now - 90000;
+        let activeNews = (statusDoc.exists && statusDoc.data().activeNews) ? statusDoc.data().activeNews : null;
         
-        // 2. 흘러간 현실 시간(ms)을 기준으로 누락되었던 90초 단위의 공백 턴수 일괄 계산
         let elapsedMs = now - lastUpdate;
         let missedTurns = Math.floor(elapsedMs / 90000);
         
-        // 상시 오픈 상태에서 실시간 정상 스케줄러로 호출되었다면 1턴 처리
         if (missedTurns < 1) missedTurns = 1;
-        
-        // 오랫동안 꺼두었을 때 브라우저 과부하 및 파이어베이스 요청 한도 초과 방지 보완용 안전 가드선 설정 (최대 200턴)
         if (missedTurns > 200) missedTurns = 200;
 
-        // 3. 누락된 턴수만큼 순차적인 시뮬레이션 가동 (누적 연산 반영)
+        // 누락되거나 다가온 턴수만큼 정밀 연속 연산
         for (let turn = 0; turn < missedTurns; turn++) {
             for (let s of stocks) {
-                // 운영자의 수동 배율 조정 지정값은 오직 '첫 번째 공백 턴'에만 선반영하고, 다음 연속 턴들부터는 정상적인 변동성(±5%) 알고리즘으로 전환
-                let change = (turn === 0 && pendingPercents[s.id] !== undefined) 
-                    ? s.price * pendingPercents[s.id] 
-                    : s.price * (Math.random() - 0.5) * 0.05;
+                let change = 0;
+                
+                // 조건 1. 운영자의 1회성 강제 수동 배율(대기열)이 최우선권 가짐
+                if (turn === 0 && pendingPercents[s.id] !== undefined) {
+                    change = s.price * pendingPercents[s.id];
+                } 
+                // 조건 2. 뉴스룸 특보 5턴 락인 버프/디버프 가속이 켜져 있는가?
+                else if (activeNews && activeNews.stockId === s.id && activeNews.turnsLeft > 0) {
+                    if (activeNews.type === 'up') {
+                        // 호재 발생: 5턴 동안 매 턴 무조건 +1% ~ +6% 사이 폭등 확정 그래프
+                        change = s.price * ((Math.random() * 0.05) + 0.01); 
+                    } else {
+                        // 악재 발생: 5턴 동안 매 턴 무조건 -1% ~ -6% 사이 폭락 확정 그래프
+                        change = s.price * (-(Math.random() * 0.05) - 0.01); 
+                    }
+                } 
+                // 조건 3. 아무런 이벤트가 없는 일반 자연 무작위 변동 상태 (±2.5%)
+                else {
+                    change = s.price * (Math.random() - 0.5) * 0.05;
+                }
                 
                 s.price = Math.max(10, Math.floor(s.price + change));
             }
             
-            // 첫 번째 연산이 끝나면 수동 대기열 컬렉션 안전 초기화
+            // 1회성 대기열 전송 완료 초기화
             if (turn === 0) {
                 for (let s of stocks) pendingPercents[s.id] = undefined;
             }
+            
+            // 한 턴이 정상 가동 정산될 때마다 글로벌 뉴스 타이머 역카운트 1회 차감
+            if (activeNews && activeNews.turnsLeft > 0) {
+                activeNews.turnsLeft--;
+            }
         }
 
-        // 4. 최종 합산 및 동기화가 완수된 각 종목의 주가를 파이어베이스에 일괄 배포 업데이트
+        // 연산 결과 파이어베이스 글로벌 노드 배포
         for (let s of stocks) {
             await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
 
-        // 5. 다음 루프를 추적하기 위한 마켓 타임스탬프 기준점 갱신 및 타깃 세팅
         let nextUpdateBase = lastUpdate + (missedTurns * 90000);
-        if (now - nextUpdateBase > 90000) {
-            nextUpdateBase = now;
-        }
+        if (now - nextUpdateBase > 90000) nextUpdateBase = now;
         
-        await db.collection("market_data").doc("market_status").set({ lastUpdate: nextUpdateBase });
+        // 최종 시계 정보 및 잔여 뉴스 정보 최신화 오버라이트
+        await db.collection("market_data").doc("market_status").set({ 
+            lastUpdate: nextUpdateBase,
+            activeNews: activeNews 
+        });
+        
         targetTime = nextUpdateBase + 90000;
         
         renderUI();
         renderPendingList();
+        renderActiveNewsUI(activeNews);
     }
 
     function renderUI() {
@@ -166,8 +315,7 @@
                     <button class="step-btn" onclick="stepValue('${s.id}', 1)">+</button>
                     <button class="apply-btn" onclick="applyManualPercent('${s.id}')">적용</button>
                 </div>
-            </div>
-        `).join('');
+            </div>`).join('');
     }
 
     initMarket();
