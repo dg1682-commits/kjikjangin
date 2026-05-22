@@ -111,7 +111,7 @@
             pointer-events: none;
         }
         
-        /* 🚨 [요청 반영] 캐릭터 크기 기존 110px에서 220px로 정확히 2배 확대 */
+        /* 🚨 캐릭터 크기 기존 110px에서 220px로 정확히 2배 확대 고정 */
         #char-display { 
             height: 220px; 
             object-fit: contain;
@@ -251,7 +251,7 @@
             100% { transform: translateY(-40px); }
         }
 
-        /* 톱니바퀴 원형 배경 순백색(하얀색) 전면 고정 */
+        /* 🚨 [요청 보정] 톱니바퀴 원형 배경 순백색(하얀색) 완전 고정 */
         .settings-floating-btn {
             position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
             background: #ffffff; 
@@ -420,7 +420,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.0.6-stable<br>
             • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 캐릭터 업무 고정 유지 결계 가동 및 2배율 벌크업 패치 완료
+            • 업데이트: 중복 로드 간섭 차단 및 수치 가공 결계 안정화 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -525,6 +525,7 @@
             state.lastSaveTime = isNaN(parsedLastSave) || parsedLastSave <= 0 ? Date.now() : parsedLastSave;
             state.nickname = state.nickname ? String(state.nickname) : "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
+            state.highScore = isNaN(Number(state.highScore)) ? 0 : Number(state.highScore);
         }
 
         function saveGame() { 
@@ -548,10 +549,10 @@
 
                 if (currentUser) {
                     firebase.firestore().collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                        .catch(e => console.error("클라우드 백업 전송 실패:", e));
+                        .catch(e => console.error(e));
                 }
             } catch (error) {
-                console.error("세이브 예외 우회:", error);
+                console.error(error);
             }
         }
 
@@ -560,44 +561,24 @@
             if(saved) {
                 try {
                     let parsed = JSON.parse(saved);
-                    if(parsed.money !== undefined) state.money = Number(parsed.money);
-                    if(parsed.stamina !== undefined) state.stamina = Number(parsed.stamina);
-                    if(parsed.exp !== undefined) state.exp = Number(parsed.exp);
-                    if(parsed.rankIdx !== undefined) state.rankIdx = Number(parsed.rankIdx);
-                    if(parsed.condition !== undefined) state.condition = Number(parsed.condition);
-                    if(parsed.maxCondition !== undefined) state.maxCondition = Number(parsed.maxCondition);
-                    if(parsed.houseIdx !== undefined) state.houseIdx = Number(parsed.houseIdx);
-                    if(parsed.carIdx !== undefined) state.carIdx = Number(parsed.carIdx);
-                    if(parsed.gameSeconds !== undefined) state.gameSeconds = Number(parsed.gameSeconds);
-                    if(parsed.rentDayCounter !== undefined) state.rentDayCounter = Number(parsed.rentDayCounter);
-                    if(parsed.debuffTimeLeft !== undefined) state.debuffTimeLeft = Number(parsed.debuffTimeLeft);
-                    if(parsed.timeMult !== undefined) state.timeMult = Number(parsed.timeMult);
-                    if(parsed.lastSaveTime !== undefined) state.lastSaveTime = Number(parsed.lastSaveTime);
-                    if(parsed.nickname !== undefined) state.nickname = String(parsed.nickname);
-                    if(parsed.nicknameChangeCount !== undefined) state.nicknameChangeCount = Number(parsed.nicknameChangeCount);
-                    if(Array.isArray(parsed.ownedItems)) state.ownedItems = parsed.ownedItems;
-                } catch(e) {
-                    console.error("로드 오류:", e);
-                }
+                    state = { ...state, ...parsed };
+                } catch(e) { console.error(e); }
             }
             sanitizeState();
         }
 
         function processOfflineProgress() {
-            if (!state.lastSaveTime || state.lastSaveTime <= 0) {
-                state.lastSaveTime = Date.now();
-                return;
-            }
+            sanitizeState();
             let deltaTime = Math.floor((Date.now() - state.lastSaveTime) / 1000);
             if (isNaN(deltaTime) || deltaTime <= 10) return;
             
             deltaTime = Math.min(deltaTime, 43200);
-            state.gameSeconds += deltaTime * 540;
+            state.gameSeconds = Number(state.gameSeconds) + (deltaTime * 540);
             if (state.debuffTimeLeft > 0) state.debuffTimeLeft = Math.max(0, state.debuffTimeLeft - deltaTime);
             
             let mult = getIncomeMultiplier(state.stamina);
             let passiveEarned = Math.floor(0.5 * mult * deltaTime);
-            state.money += passiveEarned;
+            if (!isNaN(passiveEarned)) state.money = Number(state.money) + passiveEarned;
             
             if (state.isWorking) {
                 state.isWorking = false;
@@ -611,15 +592,6 @@
                 }, 500);
             }
         }
-
-        function formatMMSS(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
-        function formatWorkTime(s) { const m = Math.floor(s / 60); const ss = s % 60; return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; }
-        function formatTextTime(seconds) {
-            if(seconds >= 60) { const m = Math.floor(seconds/60); const s = seconds%60; return s > 0 ? `${m}분 ${s}초` : `${m}분`; }
-            return `${seconds}초`;
-        }
-
-        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
 
         function clickCharacter() {
             if(state.debuffTimeLeft > 0) return;
@@ -671,17 +643,17 @@
             document.getElementById('stat-click-rate').innerText = `👆 클릭 +${(0.6 * mult).toFixed(1)}`;
             
             let condPct = (state.condition / state.maxCondition * 100);
-            document.getElementById('condition-fill').style.width = (isNaN(condPct) ? 100 : condPct) + '%';
+            document.getElementById('condition-fill').style.width = (isNaN(condPct) || condPct < 0 ? 100 : condPct) + '%';
             document.getElementById('val-condition').innerText = Math.floor(state.condition);
             document.getElementById('val-max-condition').innerText = Math.floor(state.maxCondition);
             
             let stamPct = (state.stamina / 10000 * 100);
-            document.getElementById('stamina-fill').style.width = Math.min(100, (isNaN(stamPct) ? 0 : stamPct)) + '%';
+            document.getElementById('stamina-fill').style.width = Math.min(100, (isNaN(stamPct) || stamPct < 0 ? 0 : stamPct)) + '%';
             document.getElementById('val-stamina').innerText = Math.floor(state.stamina);
 
             let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
             let expPct = (state.exp / reqExp * 100);
-            document.getElementById('exp-fill').style.width = Math.min(100, (isNaN(expPct) ? 0 : expPct)) + '%';
+            document.getElementById('exp-fill').style.width = Math.min(100, (isNaN(expPct) || expPct < 0 ? 0 : expPct)) + '%';
             document.getElementById('val-exp').innerText = Math.floor(state.exp);
             document.getElementById('val-req-exp').innerText = reqExp;
 
@@ -859,14 +831,14 @@
         function buyCar(idx) {
             let car = CARS[idx];
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
-            if (state.money < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
+            if (Number(state.money) < car.price) return showAlert("잔액 부족", `차량 구매에 필요한 소집 자금이 부족합니다.\n필요 자금: ${car.price.toLocaleString()}원`);
 
             let desc = `🚗 [${car.name}] 신차 인도 청구서\n\n`;
             desc += `차량 가격: ${car.price.toLocaleString()}원\n`;
             desc += `-----------------------------\n효과: ${car.desc}\n\n이 차량을 계약하시겠습니까?`;
 
             showConfirm("차량을 구매하시겠습니까?", desc, () => {
-                state.money -= car.price;
+                state.money = Number(state.money) - Number(car.price);
                 state.carIdx = idx;
                 showAlert("구매 성공", `${car.name} 인도가 완료되었습니다!\n출퇴근 및 출장 속도 가속화 버프가 즉시 적용됩니다.`);
                 updateDisplay(); closeSheet(); saveGame();
@@ -891,14 +863,10 @@
             closeSheet(); startTaskInterval();
         }
 
-        // 🚨 [버그 패치 완료] 업무 지시 중에도 캐릭터 레이어가 투명화 및 사라지지 않도록 결계 설정
         function startTaskInterval() {
             if (!state.isWorking || !state.currentTask) return;
             let task = state.currentTask;
             document.getElementById('progress-wrapper').style.display = 'flex';
-            
-            // 💡 [기존 버그 코드 제거] 기존에 캐릭터 레이어를 강제로 지우던 코드를 주석 삭제하여 실시간 노출 유지
-            // document.getElementById('coin-container').style.display = 'none'; 
             
             let lastWorkTick = Date.now();
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
@@ -950,13 +918,13 @@
             if(job.risk && !isCanceled) {
                 if(Math.random() < job.risk) {
                     let lostPct = Math.floor(Math.random() * 10) + 1; 
-                    let lostMoney = Math.floor(state.money * (lostPct / 100));
+                    let lostMoney = Math.floor(Number(state.money) * (lostPct / 100));
                     
-                    if (lostMoney < 100 && state.money > 0) {
-                        lostMoney = Math.min(state.money, 100);
+                    if (lostMoney < 100 && Number(state.money) > 0) {
+                        lostMoney = Math.min(Number(state.money), 100);
                     }
 
-                    state.money = Math.max(0, state.money - lostMoney); 
+                    state.money = Math.max(0, Number(state.money) - lostMoney); 
                     state.debuffTimeLeft = 180; 
                     showAlert("적발됨!", `딴짓하다 부장님께 걸렸습니다!\n부장님이 지갑을 검사하여 보유 현금의 ${lostPct}%인 📉${lostMoney.toLocaleString()}원을 삭감했습니다.\n3분간 업무 정지 페널티!`);
                 } else {
@@ -970,10 +938,11 @@
                     else if (rand < 0.99) { pct = Math.floor(Math.random() * 39) + 61; } 
                     else { pct = 100; }
 
-                    let earn = Math.floor(state.money * (pct / 100));
+                    let earn = Math.floor(Number(state.money) * (pct / 100));
                     if (earn < 100) earn = 100; 
 
-                    state.money += earn; state.exp = Math.max(0, state.exp - 1); 
+                    state.money = Number(state.money) + earn; 
+                    state.exp = Math.max(0, Number(state.exp) - 1); 
                     showAlert("완전 범죄", `성공적으로 딴짓을 마쳤습니다.\n부장님 몰래 주식 창을 켜서 보유 현금의 ${pct}%인 💰${earn.toLocaleString()}원을 벌고 업무력 1이 깎였습니다.`);
                 }
                 updateDisplay(); saveGame(); return;
@@ -981,7 +950,7 @@
 
             let ratio = isCanceled ? (state.workElapsed / actualTime) : 1;
             let costDeducted = Math.floor(job.conditionCost * ratio);
-            state.condition = Math.max(0, state.condition - costDeducted);
+            state.condition = Math.max(0, Number(state.condition) - costDeducted);
 
             let baseMoney = job.money + RANKS[state.rankIdx].bonus;
             let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
@@ -989,7 +958,8 @@
             let earnedMoney = Math.floor(totalMoney * ratio);
             let earnedExp = Math.floor(job.exp * ratio);
 
-            state.money += earnedMoney; state.exp += earnedExp;
+            state.money = Number(state.money) + Number(earnedMoney); 
+            state.exp = Number(state.exp) + Number(earnedExp);
             
             if(isCanceled) {
                 showAlert("작업 취소", `중도 취소했습니다.\n\n진행 비율 정산에 따라\n💰 수익: ${earnedMoney.toLocaleString()}원\n📉 컨디션 소모: ${costDeducted}`);
@@ -1028,7 +998,7 @@
                 } else {
                     msg += `\n\n⚠️ 최소 시간(${formatTextTime(rest.minTime)})을 채우지 못해 컨디션 회복에 실패했습니다.`;
                 }
-                state.stamina += gainedStamina;
+                state.stamina = Number(state.stamina) + gainedStamina;
                 resetUI(); showAlert("휴식 정산", msg); updateDisplay(); saveGame(); return;
             }
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
@@ -1045,9 +1015,10 @@
 
         function buyBuff(i) {
             let b = BUFFS[i];
-            if(state.money >= b.price) {
-                if (state.condition >= state.maxCondition) return showAlert("사용 불가", "이미 컨디션이 최상 상태입니다!");
-                state.money -= b.price; state.condition = Math.min(state.maxCondition, state.condition + b.effect);
+            if(Number(state.money) >= b.price) {
+                if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("사용 불가", "이미 컨디션이 최상 상태입니다!");
+                state.money = Number(state.money) - Number(b.price); 
+                state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
                 showAlert("버프 사용", `${b.name} 복용 완료!\n현재 컨디션이 +${b.effect} 회복되었습니다.`);
                 updateDisplay(); closeSheet(); saveGame();
             } else {
@@ -1058,8 +1029,9 @@
         function buyShop(i) {
             let s = SHOPS[i];
             if (state.ownedItems.includes(s.id)) return showAlert("안내", "이미 보유 중인 장비입니다.");
-            if(state.money >= s.price) {
-                state.money -= s.price; state.ownedItems.push(s.id); state.timeMult *= s.mult;
+            if(Number(state.money) >= s.price) {
+                state.money = Number(state.money) - Number(s.price); 
+                state.ownedItems.push(s.id); state.timeMult *= s.mult;
                 showAlert("쇼핑 완료", `${s.name} 장착 완료!`);
                 updateDisplay(); openSheet('shop'); saveGame();
             } else {
@@ -1073,7 +1045,7 @@
             
             let initialCost = house.deposit + house.moveCost;
             if (house.id === 'goshi') initialCost += house.rent; 
-            if (state.money < initialCost) return showAlert("잔액 부족", `계약에 필요한 최소 자금이 부족합니다.\n필요 자금: ${initialCost.toLocaleString()}원`);
+            if (Number(state.money) < initialCost) return showAlert("잔액 부족", `계약에 필요한 최소 자금이 부족합니다.\n필요 자금: ${initialCost.toLocaleString()}원`);
 
             let desc = `🏠 [${house.name}] 계약 청구서\n\n`;
             desc += house.type === "매매" ? `매매가: ${house.deposit.toLocaleString()}원\n` : `보증금: ${house.deposit.toLocaleString()}원\n`;
@@ -1081,7 +1053,8 @@
             desc += `이사비용: ${house.moveCost.toLocaleString()}원\n-----------------------------\n총 ${initialCost.toLocaleString()}원이 청구됩니다. 이사하시겠습니까?`;
 
             showConfirm("이사를 시작하시겠습니까?", desc, () => {
-                state.money -= initialCost; state.houseIdx = idx;
+                state.money = Number(state.money) - Number(initialCost); 
+                state.houseIdx = idx;
                 showAlert("이사 성공", `${house.name}(으)로 이사를 완료했습니다!\n수면 시 체력 획득량이 ${house.mult}배로 적용됩니다.`);
                 updateDisplay(); closeSheet(); saveGame();
             });
@@ -1089,10 +1062,11 @@
         
         function buyNickname() {
             let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
-            if(state.money >= price) {
+            if(Number(state.money) >= price) {
                 let n = prompt("새 이름:");
                 if(n && n.trim() !== "") { 
-                    state.money -= price; state.nickname = n.trim(); state.nicknameChangeCount++; 
+                    state.money = Number(state.money) - Number(price); 
+                    state.nickname = n.trim(); state.nicknameChangeCount++; 
                     showAlert("명찰 변경 완료", `성공한 직장인의 상징, [${state.nickname}] 명찰을 달았습니다!`);
                     updateDisplay(); closeSheet(); saveGame();
                 }
@@ -1102,18 +1076,21 @@
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; }
+        
         function showAlert(t, d) { 
             document.getElementById('alert-title').innerText = t; 
             document.getElementById('alert-desc').innerText = d; 
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn" onclick="closeAlert()">확인</button>`;
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block'; 
         }
+        
         function showConfirm(title, desc, onConfirm) {
             document.getElementById('alert-title').innerText = title; document.getElementById('alert-desc').innerText = desc;
             document.getElementById('alert-btn-box').innerHTML = `<button class="alert-btn cancel" onclick="closeAlert()">취소</button><button class="alert-btn" id="confirm-ok-btn">확인</button>`;
             document.getElementById('confirm-ok-btn').onclick = () => { onConfirm(); closeAlert(); };
             document.getElementById('alert-overlay').style.display = 'block'; document.getElementById('alert-modal').style.display = 'block';
         }
+        
         function closeAlert() { document.getElementById('alert-overlay').style.display = 'none'; document.getElementById('alert-modal').style.display = 'none'; }
 
         function toggleSettingsBubble(e) {
@@ -1137,7 +1114,7 @@
         function closeVersionModal() { document.getElementById("version-modal").style.display = "none"; }
 
         function launchGameEngine() {
-            loadGame(); 
+            // 🚨 [핵심 버그 패치] 기존에 파이어베이스 최신 본진 데이터를 로컬 캐시로 밀어버리던 loadGame() 라인 영구 제거
             processOfflineProgress(); 
             updateDisplay(); 
             if (state.isWorking && state.currentTask) { startTaskInterval(); } 
