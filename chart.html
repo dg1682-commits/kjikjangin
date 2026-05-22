@@ -2,78 +2,108 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>주식 시장 통제실 & 운영자 선물 센터</title>
+    <title>주식 시장 통제실 (데이터 복구 모드)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
-        .admin-box { background: #1e293b; padding: 20px; border-radius: 12px; margin-top: 30px; border: 2px solid #a855f7; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto; }
-        select, input, button { padding: 10px; margin: 5px; border-radius: 5px; border: none; }
+        #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
         .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; text-align: left; }
+        .stock-card h3 { margin: 0 0 10px 0; font-size: 18px; color: #f1f5f9; }
+        .stock-card p { margin: 0 0 15px 0; font-size: 20px; font-weight: bold; color: #38bdf8; }
+        input { width: 80px; padding: 8px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
+        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>📈 주식 시장 통제실 & 운영자 센터</h1>
-    <div id="timer-display">동기화 중...</div>
+    <h1>📈 주식 시장 통제실</h1>
+    <div id="timer-display">연결 확인 중...</div>
     <div class="grid" id="market-list"></div>
-
-    <div class="admin-box">
-        <h2 style="color: #a855f7;">🎁 운영자 선물 전송</h2>
-        <select id="user-select"><option value="">유저 선택 중...</option></select>
-        <select id="item-select">
-            <option value="money">현금(원)</option>
-            <option value="stamina">컨디션(수치)</option>
-            <option value="nickname">닉네임 변경권</option>
-        </select>
-        <input type="number" id="reward-qty" placeholder="수량">
-        <button onclick="sendGift()" style="background:#a855f7; color:white; font-weight:bold;">선물 전송</button>
-    </div>
 
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // 유저 리스트 로드
-    async function loadUserList() {
-        const select = document.getElementById('user-select');
-        const snapshot = await db.collection("users").get();
-        select.innerHTML = '<option value="">유저 선택</option>';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            select.innerHTML += `<option value="${doc.id}">${data.nickname || '익명'} (${doc.id.substring(0,6)})</option>`;
-        });
+    const stocks = [
+        { id: "nvda", name: "애비디아", price: 353189 }, { id: "aapl", name: "파인애플", price: 446539 },
+        { id: "tsla", name: "테슐라", price: 664130 }, { id: "brk", name: "요크셔 했어웨이", price: 1089420000 },
+        { id: "nbr", name: "NBR", price: 8510000 }, { id: "shib", name: "시바보드", price: 7050000 },
+        { id: "hdo", name: "효도중공업", price: 4600000 }, { id: "skh", name: "SK바이닉스", price: 1864000 },
+        { id: "hanwha", name: "하놔에어로스페이스", price: 1315000 }, { id: "sec", name: "사성전기", price: 982000 },
+        { id: "mirae", name: "미래차", price: 756000 }, { id: "hanmi", name: "한미중반도체", price: 409500 },
+        { id: "os", name: "오성전자", price: 277000 }, { id: "cocoa", name: "코코아", price: 92400 },
+        { id: "sksec", name: "OK증권", price: 1250 }
+    ];
+
+    let targetTime = 0;
+    let pendingPercents = {};
+
+    async function initMarket() {
+        try {
+            // 🚨 [패치] 개별 종목 데이터만 골라서 불러오기 (market_status 무시)
+            for(let s of stocks) {
+                const doc = await db.collection("market_data").doc(s.id).get();
+                if (doc.exists && doc.data().price) {
+                    s.price = Number(doc.data().price);
+                }
+            }
+
+            const statusDoc = await db.collection("market_data").doc("market_status").get();
+            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
+            targetTime = lastUpdate + 90000;
+            
+            renderUI();
+            setInterval(tick, 1000);
+            tick();
+        } catch (e) {
+            document.getElementById('timer-display').innerText = "❌ 연결 오류! 파이어베이스 설정 확인.";
+        }
     }
 
-    // 🚨 선물 전송 핵심 함수
-    async function sendGift() {
-        const uid = document.getElementById('user-select').value;
-        const itemType = document.getElementById('item-select').value;
-        const qty = parseInt(document.getElementById('reward-qty').value);
-        
-        if (!uid || !qty) return alert("유저와 수량을 정확히 선택하세요!");
-
-        let mail = {
-            title: "운영자의 특별 선물",
-            rewardText: `${itemType === 'money' ? qty.toLocaleString()+'원' : itemType === 'stamina' ? '컨디션 '+qty : '닉네임 변경권 '+qty+'개'}`,
-            item: itemType === 'nickname' ? 'nickname' : 'etc',
-            amount: qty
-        };
-
-        await db.collection("users").doc(uid).update({
-            inbox: firebase.firestore.FieldValue.arrayUnion(mail)
-        });
-        
-        alert("선물을 성공적으로 보냈습니다!");
+    async function tick() {
+        let now = Date.now();
+        let remaining = Math.floor((targetTime - now) / 1000);
+        if (remaining <= 0) {
+            await updateMarket();
+        } else {
+            document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
+        }
     }
 
-    // ... 기존 주식 로직 동일 (initMarket, updateMarket 등) ...
-    // (이전 코드의 시장 동기화 및 갱신 로직을 그대로 사용하세요)
-    
-    // 시스템 기동
+    async function updateMarket() {
+        const now = Date.now();
+        for (let s of stocks) {
+            let change = (pendingPercents[s.id] !== undefined) ? s.price * pendingPercents[s.id] : s.price * (Math.random() - 0.5) * 0.05;
+            s.price = Math.max(10, Math.floor(s.price + change));
+            pendingPercents[s.id] = undefined;
+            await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price, updatedAt: now });
+        }
+        await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
+        targetTime = now + 90000;
+        renderUI();
+    }
+
+    function renderUI() {
+        document.getElementById('market-list').innerHTML = stocks.map(s => `
+            <div class="stock-card">
+                <h3>${s.name}</h3>
+                <p>${s.price.toLocaleString()}원</p>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="number" id="input-${s.id}" placeholder="%">
+                    <button class="apply-btn" onclick="applyPercent('${s.id}')">적용</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function applyPercent(id) {
+        let val = document.getElementById(`input-${id}`).value;
+        if(val) { pendingPercents[id] = parseFloat(val) / 100; alert(id + " 예약됨!"); }
+    }
+
     initMarket();
-    loadUserList();
 </script>
 </body>
 </html>
