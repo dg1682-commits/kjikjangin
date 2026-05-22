@@ -273,7 +273,7 @@ async function submitNewsFlash() {
         else document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
     }
 
-    // 🚨 [엔진 전면 고도화 개편] 5턴 뉴스 특보 배율을 순차 복리 연산하는 고성능 시뮬레이터 알고리즘
+    // 🚨 [엔진 전면 개편] 조기 턴 정산 차단 및 타이머 싱크 무결성 보장 버전
     async function updateMarket() {
         const now = Date.now();
         const statusDoc = await db.collection("market_data").doc("market_status").get();
@@ -283,10 +283,16 @@ async function submitNewsFlash() {
         let elapsedMs = now - lastUpdate;
         let missedTurns = Math.floor(elapsedMs / 90000);
         
-        if (missedTurns < 1) missedTurns = 1;
-        if (missedTurns > 200) missedTurns = 200;
+        // 🎯 [핵심 수정] 아직 정확히 90초가 흐르지 않았다면(0턴), 강제로 턴 정산을 수행하지 않고
+        // 다음 목표 타이머만 안전하게 기존 주기에 맞추어 리셋한 뒤 즉시 연산을 종료합니다.
+        if (missedTurns < 1) {
+            targetTime = lastUpdate + 90000;
+            let remaining = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
+            document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
+            return;
+        }
 
-        // 누락되거나 다가온 턴수만큼 정밀 연속 연산
+        // 정확히 90초 이상의 경과 시간이 물리적으로 확보되었을 때만 아래 주가 변동 루프가 실행됩니다.
         for (let turn = 0; turn < missedTurns; turn++) {
             for (let s of stocks) {
                 let change = 0;
@@ -295,17 +301,15 @@ async function submitNewsFlash() {
                 if (turn === 0 && pendingPercents[s.id] !== undefined) {
                     change = s.price * pendingPercents[s.id];
                 } 
-                // 조건 2. 뉴스룸 특보 5턴 락인 버프/디버프 가속이 켜져 있는가?
+                // 조건 2. 뉴스룸 특보 5턴 락인 버프/디버프 가속 연산
                 else if (activeNews && activeNews.stockId === s.id && activeNews.turnsLeft > 0) {
                     if (activeNews.type === 'up') {
-                        // 호재 발생: 5턴 동안 매 턴 무조건 +1% ~ +6% 사이 폭등 확정 그래프
                         change = s.price * ((Math.random() * 0.05) + 0.01); 
                     } else {
-                        // 악재 발생: 5턴 동안 매 턴 무조건 -1% ~ -6% 사이 폭락 확정 그래프
                         change = s.price * (-(Math.random() * 0.05) - 0.01); 
                     }
                 } 
-                // 조건 3. 아무런 이벤트가 없는 일반 자연 무작위 변동 상태 (±2.5%)
+                // 조건 3. 일반 자율 시장 무작위 변동 모드 (±2.5%)
                 else {
                     change = s.price * (Math.random() - 0.5) * 0.05;
                 }
@@ -313,12 +317,11 @@ async function submitNewsFlash() {
                 s.price = Math.max(10, Math.floor(s.price + change));
             }
             
-            // 1회성 대기열 전송 완료 초기화
             if (turn === 0) {
                 for (let s of stocks) pendingPercents[s.id] = undefined;
             }
             
-            // 한 턴이 정상 가동 정산될 때마다 글로벌 뉴스 타이머 역카운트 1회 차감
+            // 한 턴이 완벽히 경과 처리될 때마다 특보 잔여 타이머를 1회 안전 차감
             if (activeNews && activeNews.turnsLeft > 0) {
                 activeNews.turnsLeft--;
             }
@@ -329,10 +332,13 @@ async function submitNewsFlash() {
             await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
 
-// 🚨 [수정] 무한 루프 정산을 막고 딱 1회만 정확하게 취소선 플래그를 정산하도록 제어합니다.
+        let nextUpdateBase = lastUpdate + (missedTurns * 90000);
+        if (now - nextUpdateBase > 90000) nextUpdateBase = now;
+        
+        // 뉴스 가속 버프가 완전히 종료(turnsLeft === 0)되었다면 딱 1회만 취소선 플래그 정산
         if (activeNews && activeNews.turnsLeft === 0 && !activeNews.processedExpired) {
             try {
-                activeNews.processedExpired = true; // 중복 처리 방지 락
+                activeNews.processedExpired = true; 
                 const newsDoc = await db.collection("market_data").doc("market_news").get();
                 if (newsDoc.exists && newsDoc.data().newsList) {
                     let list = newsDoc.data().newsList;
@@ -345,10 +351,7 @@ async function submitNewsFlash() {
                 }
             } catch (e) { console.error("뉴스 종료 처리 실패:", e); }
         }
-        
-        let nextUpdateBase = lastUpdate + (missedTurns * 90000);
-        if (now - nextUpdateBase > 90000) nextUpdateBase = now;
-        
+
         // 최종 시계 정보 및 잔여 뉴스 정보 최신화 오버라이트
         await db.collection("market_data").doc("market_status").set({ 
             lastUpdate: nextUpdateBase,
