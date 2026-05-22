@@ -102,16 +102,55 @@
         else document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
     }
 
+    // 🚨 [로직 보완 마스터 패치] 꺼져 있던 동안의 공백 시간을 실시간 역추적하여 자동 정산하는 마켓 엔진
     async function updateMarket() {
         const now = Date.now();
+        
+        // 1. 현재 파이어베이스에 보존되어 있던 마지막 업데이트 최종 타임스탬프 로드
+        const statusDoc = await db.collection("market_data").doc("market_status").get();
+        let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : now - 90000;
+        
+        // 2. 흘러간 현실 시간(ms)을 기준으로 누락되었던 90초 단위의 공백 턴수 일괄 계산
+        let elapsedMs = now - lastUpdate;
+        let missedTurns = Math.floor(elapsedMs / 90000);
+        
+        // 상시 오픈 상태에서 실시간 정상 스케줄러로 호출되었다면 1턴 처리
+        if (missedTurns < 1) missedTurns = 1;
+        
+        // 오랫동안 꺼두었을 때 브라우저 과부하 및 파이어베이스 요청 한도 초과 방지 보완용 안전 가드선 설정 (최대 200턴)
+        if (missedTurns > 200) missedTurns = 200;
+
+        // 3. 누락된 턴수만큼 순차적인 시뮬레이션 가동 (누적 연산 반영)
+        for (let turn = 0; turn < missedTurns; turn++) {
+            for (let s of stocks) {
+                // 운영자의 수동 배율 조정 지정값은 오직 '첫 번째 공백 턴'에만 선반영하고, 다음 연속 턴들부터는 정상적인 변동성(±5%) 알고리즘으로 전환
+                let change = (turn === 0 && pendingPercents[s.id] !== undefined) 
+                    ? s.price * pendingPercents[s.id] 
+                    : s.price * (Math.random() - 0.5) * 0.05;
+                
+                s.price = Math.max(10, Math.floor(s.price + change));
+            }
+            
+            // 첫 번째 연산이 끝나면 수동 대기열 컬렉션 안전 초기화
+            if (turn === 0) {
+                for (let s of stocks) pendingPercents[s.id] = undefined;
+            }
+        }
+
+        // 4. 최종 합산 및 동기화가 완수된 각 종목의 주가를 파이어베이스에 일괄 배포 업데이트
         for (let s of stocks) {
-            let change = (pendingPercents[s.id] !== undefined) ? s.price * pendingPercents[s.id] : s.price * (Math.random() - 0.5) * 0.05;
-            s.price = Math.max(10, Math.floor(s.price + change));
-            pendingPercents[s.id] = undefined;
             await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
         }
-        await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
-        targetTime = now + 90000;
+
+        // 5. 다음 루프를 추적하기 위한 마켓 타임스탬프 기준점 갱신 및 타깃 세팅
+        let nextUpdateBase = lastUpdate + (missedTurns * 90000);
+        if (now - nextUpdateBase > 90000) {
+            nextUpdateBase = now;
+        }
+        
+        await db.collection("market_data").doc("market_status").set({ lastUpdate: nextUpdateBase });
+        targetTime = nextUpdateBase + 90000;
+        
         renderUI();
         renderPendingList();
     }
