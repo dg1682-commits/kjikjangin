@@ -8,9 +8,13 @@
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
         #timer-display { font-size: 24px; color: #fbbf24; margin-bottom: 20px; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
-        .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; }
-        input { width: 80px; padding: 8px; border-radius: 5px; border: none; margin-top: 5px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
+        .stock-card { background: #1e293b; padding: 20px; border-radius: 12px; border-left: 5px solid #06b6d4; text-align: left; }
+        .stock-card h3 { margin: 0 0 10px 0; font-size: 18px; color: #f1f5f9; }
+        .stock-card p { margin: 0 0 15px 0; font-size: 20px; font-weight: bold; color: #38bdf8; }
+        input { width: 80px; padding: 8px; border-radius: 5px; border: none; background: #334155; color: white; text-align: center; font-weight: bold; }
+        .apply-btn { padding: 8px 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; }
+        .apply-btn:active { background: #0284c7; }
     </style>
 </head>
 <body>
@@ -19,22 +23,36 @@
     <div class="grid" id="market-list"></div>
 
     <div style="margin-top: 50px; padding: 20px; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
-        <p>마지막 업데이트 배포 시간: <span id="deploy-time">15:06</span></p>
+        <p>마지막 업데이트 배포 시간: <span id="deploy-time">확인 중...</span></p>
     </div>
 
 <script>
-    const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+    const firebaseConfig = { 
+        apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", 
+        authDomain: "kkkjikjang.firebaseapp.com", 
+        projectId: "kkkjikjang", 
+        storageBucket: "kkkjikjang.firebasestorage.app", 
+        messagingSenderId: "138250223666", 
+        appId: "1:138250223666:web:997b7ed4572f717354fc2b" 
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const stocks = [
-        { id: "nvda", name: "애비디아", price: 353189 }, { id: "aapl", name: "파인애플", price: 446539 },
-        { id: "tsla", name: "테슐라", price: 664130 }, { id: "brk", name: "요크셔 했어웨이", price: 1089420000 },
-        { id: "nbr", name: "NBR", price: 8510000 }, { id: "shib", name: "시바보드", price: 7050000 },
-        { id: "hdo", name: "효도중공업", price: 4600000 }, { id: "skh", name: "SK바이닉스", price: 1864000 },
-        { id: "hanwha", name: "하놔에어로스페이스", price: 1315000 }, { id: "sec", name: "사성전기", price: 982000 },
-        { id: "mirae", name: "미래차", price: 756000 }, { id: "hanmi", name: "한미중반도체", price: 409500 },
-        { id: "os", name: "오성전자", price: 277000 }, { id: "cocoa", name: "코코아", price: 92400 },
+        { id: "nvda", name: "애비디아", price: 353189 }, 
+        { id: "aapl", name: "파인애플", price: 446539 },
+        { id: "tsla", name: "테슐라", price: 664130 }, 
+        { id: "brk", name: "요크셔 했어웨이", price: 1089420000 },
+        { id: "nbr", name: "NBR", price: 8510000 }, 
+        { id: "shib", name: "시바보드", price: 7050000 },
+        { id: "hdo", name: "효도중공업", price: 4600000 }, 
+        { id: "skh", name: "SK바이닉스", price: 1864000 },
+        { id: "hanwha", name: "하놔에어로스페이스", price: 1315000 }, 
+        { id: "sec", name: "사성전기", price: 982000 },
+        { id: "mirae", name: "미래차", price: 756000 }, 
+        { id: "hanmi", name: "한미중반도체", price: 409500 },
+        { id: "os", name: "오성전자", price: 277000 }, 
+        { id: "cocoa", name: "코코아", price: 92400 },
         { id: "sksec", name: "OK증권", price: 1250 }
     ];
 
@@ -42,72 +60,124 @@
     let pendingPercents = {};
 
     function applyManualPercent(id, percentStr) {
+        if (!percentStr || isNaN(percentStr)) {
+            pendingPercents[id] = undefined;
+            return;
+        }
         pendingPercents[id] = parseFloat(percentStr) / 100;
-        alert(`${id} 종목을 ${percentStr}% 조정 대기중!`);
+        alert(`${id} 종목 다음 변동 타임에 ${percentStr}% 강제 정률 조정 대기 완료!`);
     }
 
     async function initMarket() {
-        // Firebase에서 현재 저장된 주가 불러오기
-        const snapshot = await db.collection("market_data").get();
-        snapshot.forEach(doc => {
-            let s = stocks.find(st => st.id === doc.id);
-            if(s) s.price = doc.data().price;
-        });
+        try {
+            // 1. 서버에 이미 축적된 최신 주가 불러와 동기화
+            const snapshot = await db.collection("market_data").get();
+            snapshot.forEach(doc => {
+                if (doc.id !== "market_status") {
+                    let s = stocks.find(st => st.id === doc.id);
+                    if (s && doc.data().price) s.price = Number(doc.data().price);
+                }
+            });
 
-        // 시장 상태 체크
-        const statusDoc = await db.collection("market_data").doc("market_status").get();
-        let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : 0;
-        let elapsed = Date.now() - lastUpdate;
+            // 2. 서버의 마지막 업데이트 시간과 연동하여 타이머 복구
+            const statusDoc = await db.collection("market_data").doc("market_status").get();
+            let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : 0;
+            let elapsed = Date.now() - lastUpdate;
 
-        if (elapsed >= 90000) {
-            updateMarket();
-        } else {
-            timeLeft = Math.floor((90000 - elapsed) / 1000);
-            setTimeout(updateMarket, 90000 - elapsed);
+            renderUI();
+
+            if (elapsed >= 90000) {
+                // 90초 초과 경과 시 즉각 시장 갱신
+                await updateMarket();
+            } else {
+                // 경과하지 않은 남은 시간만큼 타이머 할당 후 대기 구동
+                timeLeft = Math.floor((90000 - elapsed) / 1000);
+                setTimeout(updateMarket, 90000 - elapsed);
+            }
+        } catch (error) {
+            console.error("시장 데이터 초기화 실패:", error);
+            renderUI();
         }
-        renderUI();
     }
 
     async function updateMarket() {
         const now = Date.now();
-        db.collection("market_data").doc("market_status").set({ lastUpdate: now });
-
-        for (let s of stocks) {
-            let change = (pendingPercents[s.id] !== undefined) ? 
-                         s.price * pendingPercents[s.id] : 
-                         s.price * (Math.random() - 0.5) * 0.05;
-            
-            s.price = Math.max(10, Math.floor(s.price + change));
-            pendingPercents[s.id] = undefined;
-
-            db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
-            db.collection("price_history").doc(s.id).collection("daily").doc(now.toString()).set({ price: s.price, date: new Date() });
-        }
         
-        renderUI();
-        timeLeft = 90;
-        setTimeout(updateMarket, 90000);
+        try {
+            // 1. 동기화 기준 타임스탬프 기록 고정
+            await db.collection("market_data").doc("market_status").set({ lastUpdate: now });
+
+            // 2. 15개 전 종목 데이터 연산 및 원격 저장
+            for (let s of stocks) {
+                let change;
+                if (pendingPercents[s.id] !== undefined) {
+                    change = s.price * pendingPercents[s.id];
+                    pendingPercents[s.id] = undefined; // 반영 후 초기화
+                } else {
+                    // 기본 랜덤 변동폭 범위 (-2.5% ~ +2.5%)
+                    change = s.price * (Math.random() - 0.5) * 0.05;
+                }
+
+                s.price = Math.max(10, Math.floor(s.price + change));
+
+                // 원격 데이터 저장 실행
+                await db.collection("market_data").doc(s.id).set({
+                    name: s.name,
+                    price: s.price,
+                    updatedAt: now
+                });
+
+                // 30일 히스토리 이력 적립
+                await db.collection("price_history").doc(s.id).collection("daily").doc(now.toString()).set({
+                    price: s.price,
+                    date: new Date()
+                });
+            }
+            
+            renderUI();
+            timeLeft = 90;
+            setTimeout(updateMarket, 90000);
+        } catch (error) {
+            console.error("시장 변동성 업데이트 에러:", error);
+            timeLeft = 90;
+            setTimeout(updateMarket, 90000);
+        }
     }
 
     function renderUI() {
-        document.getElementById('market-list').innerHTML = stocks.map(s => `
+        const listEl = document.getElementById('market-list');
+        if (!listEl) return;
+        
+        listEl.innerHTML = stocks.map(s => `
             <div class="stock-card">
                 <h3>${s.name}</h3>
-                <p style="font-size: 18px; font-weight:bold;">${s.price.toLocaleString()}원</p>
-                <input type="number" placeholder="예: 5" onchange="applyManualPercent('${s.id}', this.value)"> %
+                <p>${s.price.toLocaleString()}원</p>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="number" id="input-${s.id}" placeholder="% 입력">
+                    <span style="font-weight: bold;">%</span>
+                    <button class="apply-btn" onclick="applyManualPercent('${s.id}', document.getElementById('input-${s.id}').value)">적용</button>
+                </div>
             </div>
         `).join('');
     }
-    
-    // 타이머 가동
+
+    // 1초 단위 실시간 독립 카운트다운 타이머 루프
     setInterval(() => {
-        timeLeft--;
-        if (timeLeft >= 0) document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${timeLeft}초 남음`;
+        if (timeLeft > 0) {
+            timeLeft--;
+        }
+        const timerEl = document.getElementById('timer-display');
+        if (timerEl) {
+            timerEl.innerText = `다음 시장 변동까지: ${timeLeft}초 남음`;
+        }
     }, 1000);
-    
-    // 시작
+
+    // 전체 시스템 기동 초기화
     initMarket();
-    document.getElementById('deploy-time').innerText = new Date().toLocaleString();
+    
+    // 배포 완료 로그 갱신
+    const deployEl = document.getElementById('deploy-time');
+    if (deployEl) deployEl.innerText = new Date().toLocaleString();
 </script>
 </body>
 </html>
