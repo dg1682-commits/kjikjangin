@@ -363,9 +363,9 @@
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
-            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 500000) state.stamina = 0;
+            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 5000000000) state.stamina = 0;
             state.exp = Number(state.exp);
-            if (isNaN(state.exp) || state.exp < 0 || state.exp > 500000) state.exp = 0;
+            if (isNaN(state.exp) || state.exp < 0 || state.exp > 5000000000) state.exp = 0;
             state.rankIdx = Number(state.rankIdx);
             if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
             state.maxCondition = Number(state.maxCondition);
@@ -374,7 +374,7 @@
             if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
             state.gameSeconds = Number(state.gameSeconds);
-            if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000) state.gameSeconds = 0;
+            if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000000) state.gameSeconds = 0;
             state.houseIdx = Number(state.houseIdx);
             if (isNaN(state.houseIdx) || state.houseIdx < 0) state.houseIdx = 0;
             state.carIdx = Number(state.carIdx);
