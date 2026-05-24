@@ -96,7 +96,7 @@
         }
         #progress-container { flex-grow: 1; height: 14px; background: #e2e8f0; border-radius: 7px; overflow: hidden; }
         #progress-bar { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.3s linear;}
-        #time-left { font-size: 12px; color: var(--text-main); font-weight: 800; min-width: 55px; text-align: right;}
+        #time-left { font-size: 12px; color: var(--text-main); font-weight: 800; min-width: 140px; text-align: right;}
         #cancel-btn { background: var(--danger); color: white; padding: 6px 12px; font-size: 11px; margin: 0; }
 
         #coin-container {
@@ -329,7 +329,7 @@
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
             • 배포 버전: v1.3.0-Stability<br>
             • 패치 날짜: 2026-05-24<br>
-            • 업데이트: <b>휴식 취소 락(Lock) 차단 버그 완전 정화</b>, 업무 지시 경험치 배지 및 체력바 천 단위 분리 콤마(,) 마운트 완료
+            • 업데이트: <b>휴식 취소 영구 락 오류 완치</b>, 체력 무한 성산 한도 1억 상향, 가독성 실시간 전산 마감 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -363,7 +363,8 @@
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
-            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 500000) state.stamina = 0;
+            // 🚨 [1번 완치] 체력 상한 방어선을 1억으로 확장하여 랭킹 오작동 초기화 버그를 사전 예방
+            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 100000000) state.stamina = 0;
             state.exp = Number(state.exp);
             if (isNaN(state.exp) || state.exp < 0 || state.exp > 500000) state.exp = 0;
             state.rankIdx = Number(state.rankIdx);
@@ -520,7 +521,6 @@
             
             let stamPct = (state.stamina / 10000 * 100);
             document.getElementById('stamina-fill').style.width = Math.min(100, stamPct) + '%';
-            // 🚨 [3번 완료] 체력바에 실시간 천 단위 콤마(,) 마운트
             document.getElementById('val-stamina').innerText = Math.floor(state.stamina).toLocaleString();
 
             let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
@@ -588,14 +588,14 @@
                 header.innerText = "업무 지시";
                 JOBS.forEach((job, i) => {
                     let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult * carTimeMult);
-                    // 🚨 [2번 완료] 업무 지시 목록 출력 시 성공 대가인 업무력(보라색 배지)을 전격 추가 명시
+                    // 🚨 [2번 완료] 이스케이프 문자 오타를 깔끔하게 일반 세로줄(|)로 보정 렌더링
                     if(job.id === 'cheat') {
                         content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name" style="color:var(--danger);">${job.name}</span><span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | <span style="color:#8b5cf6; font-weight:800;">업무력: ${job.exp}</span></span></div><div class="item-price-box"><span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span></div></div>`;
                     } else {
                         let baseTotal = job.money + RANKS[state.rankIdx].bonus;
                         let expected = baseTotal * mult * carIncomeMult;
                         let bonus = Math.floor(expected - baseTotal);
-                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name">${job.name}</span><span class="item-sub">시간: ${formatTextTime(actualTime)} \| <span style="color:var(--condition-color); font-weight:800;">소모: ${job.conditionCost}</span> \| <span style="color:#8b5cf6; font-weight:800;">업무력: +${job.exp}</span></span></div><div class="item-price-box"><span class="item-price">기본 ${baseTotal.toLocaleString()}원</span><span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span></div></div>`;
+                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name">${job.name}</span><span class="item-sub">시간: ${formatTextTime(actualTime)} | <span style="color:var(--condition-color); font-weight:800;">소모: ${job.conditionCost}</span> | <span style="color:#8b5cf6; font-weight:800;">업무력: +${job.exp}</span></span></div><div class="item-price-box"><span class="item-price">기본 ${baseTotal.toLocaleString()}원</span><span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span></div></div>`;
                     }
                 });
             } else if(type === 'rest') {
@@ -820,7 +820,6 @@
                 if (state.workElapsed >= rest.minTime) state.condition = 100; 
                 state.stamina = Number(state.stamina) + gainedStamina;
                 
-                // 🚨 [1번 완치] 정산 후 UI 리셋부에서 타이머 인프라를 원천 초기화(null)하여 리세팅 락 현상을 완벽 차단
                 resetUI(); 
                 showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina).toLocaleString()} 상승`); 
                 updateDisplay(); saveGame(true); return;
@@ -830,14 +829,13 @@
             finishWork(state.currentTask, true, actualTime);
         }
 
-        // 🚨 [1번 패치 핵심 모듈] 구문 락을 유발하던 타이머 캐시를 완전하게 정리하는 고도화 클리닝 팩토리
         function resetUI() { 
             state.isWorking = false; 
             state.currentTask = null; 
             state.workElapsed = 0;
             if (workIntervalRef) {
                 clearInterval(workIntervalRef);
-                workIntervalRef = null; // 영구 락 현상의 범인이었던 구문을 null로 전격 클리닝
+                workIntervalRef = null; 
             }
             document.getElementById('progress-wrapper').style.display = 'none'; 
             document.getElementById('current-action-label').innerText = "대기 중..."; 
