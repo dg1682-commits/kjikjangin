@@ -259,7 +259,7 @@
                 <div class="header-left">
                     <div class="stat-row"><div class="stat-label-left">컨디션</div><div class="bar-container"><div id="condition-fill" class="bar-fill condition"></div><div class="bar-text"><span id="val-condition">100</span> / <span id="val-max-condition">100</span></div></div></div>
                     <div class="stat-row"><div class="stat-label-left">체력</div><div class="bar-container"><div id="stamina-fill" class="bar-fill"></div><div class="bar-text"><span id="val-stamina">0</span></div></div></div>
-                    <div class="stat-row"><div class="stat-label-left">업무력</div><div class="bar-container"><div id="exp-fill" class="bar-fill exp"></div><div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">8000</span></div></div></div>
+                    <div class="stat-row"><div class="stat-label-left">업무력</div><div class="bar-container"><div id="exp-fill" class="bar-fill exp"></div><div class="bar-text"><span id="val-exp">0</span> / <span id="val-req-exp">800</span></div></div></div>
                 </div>
                 
                 <div class="header-right">
@@ -327,9 +327,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.2.2-SpeedUp<br>
+            • 배포 버전: v1.3.0-Stability<br>
             • 패치 날짜: 2026-05-24<br>
-            • 업데이트: 오락실 세션 데이터 무결성 연동 보존, <b>휴식 분당 체력 10배 및 100년 산삼 스탯 전환 패치 완료</b>
+            • 업데이트: <b>휴식 취소 락(Lock) 차단 버그 완전 정화</b>, 업무 지시 경험치 배지 및 체력바 천 단위 분리 콤마(,) 마운트 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -343,11 +343,8 @@
             inbox: [], nicknameTickets: 0
         };
 
-        // 🚨 [6번 교정 완료] 차장 커트라인을 2560에서 25600으로 정확히 보정하여 계급 역전 현상을 원천 차단했습니다.
         const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 800, bonus: 500}, {name: "사원", req: 3200, bonus: 1000}, {name: "주임", req: 6400, bonus: 2500}, {name: "대리", req: 9600, bonus: 4000}, {name: "과장", req: 16000, bonus: 7000}, {name: "차장", req: 25600, bonus: 10000}, {name: "부장", req: 38400, bonus: 15000}, {name: "사장", req: 153600, bonus: 50000}];
         const JOBS = [{id: 'coffee', name: "커피 타오기", time: 5, money: 20, exp: 2, conditionCost: 1}, {id: 'receipt', name: "영수증 풀칠하기", time: 30, money: 125, exp: 15, conditionCost: 7}, {id: 'font', name: "보고서 폰트 수정", time: 60, money: 250, exp: 40, conditionCost: 17}, {id: 'basic', name: "기본 업무", time: 180, money: 750, exp: 100, conditionCost: 23}, {id: 'dog', name: "부장님 강아지 산책", time: 300, money: 1250, exp: 50, conditionCost: 27}, {id: 'dinner', name: "거래처 회식 참석", time: 480, money: 2000, exp: 400, conditionCost: 37}, {id: 'out', name: "타 지역 출장", time: 600, money: 2500, exp: 600, conditionCost: 57}, {id: 'cheat', name: "딴짓(주식보기)", time: 10, money: [100, 1000], exp: -1, risk: 0.30, conditionCost: 0}];
-        
-        // 🚨 [4번 보존] 분당 체력 충전량(rate) 수치 10배 정밀 유지
         const RESTS = [{id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 30, conditionBonus: 5}, {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 80, conditionBonus: 10}, {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 200, conditionBonus: 15}, {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 350, conditionBonus: 30}];
         const BUFFS = [{id: 'water', name: "냉수 한 잔", price: 500, effect: 1}, {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4}, {id: 'bacchus', name: "박카스", price: 2500, effect: 8}, {id: 'hot6', name: "핫식스", price: 3500, effect: 12}, {id: 'soju', name: "참이슬", price: 5000, effect: 20}, {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40}, {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70}, {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}];
         const SHOPS = [{id: 'slipper', name: "다이소 슬리퍼", price: 5000, mult: 0.995, desc: "시간 0.5% 단축"}, {id: 'glasses', name: "블루라이트 안경", price: 35000, mult: 0.981, desc: "시간 1.9% 단축"}, {id: 'keyboard', name: "무소음 적축", price: 150000, mult: 0.955, desc: "시간 4.5% 단축"}, {id: 'chair', name: "허먼밀러 의자", price: 1800000, mult: 0.887, desc: "시간 11.3% 단축"}, {id: 'suit', name: "이태리 정장", price: 4500000, mult: 0.824, desc: "시간 17.6% 단축"}];
@@ -404,10 +401,8 @@
             try {
                 sanitizeState();
                 state.lastSaveTime = Date.now(); 
-                
                 let saveState = { ...state };
                 delete saveState.workInterval; 
-
                 localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
 
                 if (currentUser) {
@@ -525,7 +520,8 @@
             
             let stamPct = (state.stamina / 10000 * 100);
             document.getElementById('stamina-fill').style.width = Math.min(100, stamPct) + '%';
-            document.getElementById('val-stamina').innerText = Math.floor(state.stamina);
+            // 🚨 [3번 완료] 체력바에 실시간 천 단위 콤마(,) 마운트
+            document.getElementById('val-stamina').innerText = Math.floor(state.stamina).toLocaleString();
 
             let reqExp = RANKS[state.rankIdx+1] ? RANKS[state.rankIdx+1].req : RANKS[state.rankIdx].req;
             let expPct = (state.exp / reqExp * 100);
@@ -592,13 +588,14 @@
                 header.innerText = "업무 지시";
                 JOBS.forEach((job, i) => {
                     let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult * carTimeMult);
+                    // 🚨 [2번 완료] 업무 지시 목록 출력 시 성공 대가인 업무력(보라색 배지)을 전격 추가 명시
                     if(job.id === 'cheat') {
-                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name" style="color:var(--danger);">${job.name}</span><span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}%</span></div><div class="item-price-box"><span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span></div></div>`;
+                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name" style="color:var(--danger);">${job.name}</span><span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | <span style="color:#8b5cf6; font-weight:800;">업무력: ${job.exp}</span></span></div><div class="item-price-box"><span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span></div></div>`;
                     } else {
                         let baseTotal = job.money + RANKS[state.rankIdx].bonus;
                         let expected = baseTotal * mult * carIncomeMult;
                         let bonus = Math.floor(expected - baseTotal);
-                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name">${job.name}</span><span class="item-sub">시간: ${formatTextTime(actualTime)} | <span style="color:var(--condition-color); font-weight:800;">소모: ${job.conditionCost}</span></span></div><div class="item-price-box"><span class="item-price">기본 ${baseTotal.toLocaleString()}원</span><span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span></div></div>`;
+                        content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name">${job.name}</span><span class="item-sub">시간: ${formatTextTime(actualTime)} \| <span style="color:var(--condition-color); font-weight:800;">소모: ${job.conditionCost}</span> \| <span style="color:#8b5cf6; font-weight:800;">업무력: +${job.exp}</span></span></div><div class="item-price-box"><span class="item-price">기본 ${baseTotal.toLocaleString()}원</span><span class="item-bonus">+${bonus.toLocaleString()}원 (배수)</span></div></div>`;
                     }
                 });
             } else if(type === 'rest') {
@@ -606,8 +603,7 @@
                 RESTS.forEach((rest, i) => {
                     let houseMult = HOUSES[state.houseIdx].mult;
                     let effPercent = Math.round(houseMult * 100);
-                    
-                    content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px; line-height: 1.4;">분당 체력 +${rest.rate}<br><span style="color: var(--success); font-weight: 800;">수면 효율: ${effPercent}%</span></span></div></div>`;
+                    content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px; line-height: 1.4;">분당 체력 +${rest.rate.toLocaleString()}<br><span style="color: var(--success); font-weight: 800;">수면 효율: ${effPercent}%</span></span></div></div>`;
                 });
             } else if(type === 'buff') {
                 header.innerText = "약국 아이템";
@@ -679,31 +675,21 @@
                     state.nickname = n.trim();
                     state.nicknameChangeCount++;
                     showAlert("변경 완료", `황금 명찰이 [${state.nickname}] 이름으로 새롭게 교체되었습니다!`);
-                } else {
-                    return; 
-                }
+                } else { return; }
             } else if (item.item === 'money' || (item.rewardText && item.rewardText.includes('원'))) {
                 let amt = Number(item.amount);
-                if(isNaN(amt) || !amt) {
-                    amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
-                }
+                if(isNaN(amt) || !amt) { amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0; }
                 state.money = Number(state.money) + amt;
                 showAlert("수령 완료", `${amt.toLocaleString()}원이 정상 입금되었습니다.`);
             } else if (item.item === 'stamina' || item.item === 'condition' || (item.rewardText && (item.rewardText.includes('체력') || item.rewardText.includes('컨디션')))) {
                 let amt = Number(item.amount);
-                if(isNaN(amt) || !amt) {
-                    amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0;
-                }
+                if(isNaN(amt) || !amt) { amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0; }
                 state.stamina = Number(state.stamina) + amt;
                 showAlert("수령 완료", `체력 수치가 +${amt.toLocaleString()} 상승했습니다.`);
-            } else {
-                showAlert("수령 완료", "아이템 수령이 완료되었습니다.");
-            }
+            } else { showAlert("수령 완료", "아이템 수령이 완료되었습니다."); }
 
             state.inbox.splice(idx, 1);
-            saveGame(true); 
-            updateDisplay();
-            openSheet('mailbox'); 
+            saveGame(true); updateDisplay(); openSheet('mailbox'); 
         }
 
         function buyCar(idx) {
@@ -729,8 +715,7 @@
 
         function executeWorkStart(job) {
             state.isWorking = true; state.currentTask = job; state.workElapsed = 0;
-            closeSheet(); startTaskInterval();
-            saveGame(true); 
+            closeSheet(); startTaskInterval(); saveGame(true); 
         }
 
         function startTaskInterval() {
@@ -754,7 +739,6 @@
                         document.getElementById('time-left').innerText = `${formatMMSS(remain)} 남음`;
                         
                         if (state.workElapsed % 3 === 0) { saveGame(); }
-
                         if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
                     }
                 }, 200); 
@@ -766,7 +750,6 @@
                     let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
                     if (delta >= 1) {
                         let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
-                        
                         let houseMult = HOUSES[state.houseIdx].mult;
                         
                         let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
@@ -774,9 +757,9 @@
 
                         let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
                         if (state.workElapsed < task.minTime) {
-                            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)} (+${curStamina})`;
+                            document.getElementById('time-left').innerText = `완료까지: ${formatMMSS(task.minTime - state.workElapsed)} (+${curStamina.toLocaleString()})`;
                         } else {
-                            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
+                            document.getElementById('time-left').innerText = `체력 +${curStamina.toLocaleString()} (${formatWorkTime(state.workElapsed)} 경과)`;
                         }
                         if (state.workElapsed % 5 === 0) { saveGame(); }
                     }
@@ -824,28 +807,41 @@
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중입니다!");
             if(state.isWorking) return showAlert("안내", "먼저 진행중인 작업을 취소하세요.");
             state.isWorking = true; state.currentTask = rest; state.workElapsed = 0;
-            closeSheet(); startTaskInterval();
-            saveGame(true);
+            closeSheet(); startTaskInterval(); saveGame(true);
         }
 
         function cancelWork() {
             if(!state.isWorking || !state.currentTask) return;
-            if (state.currentTask.id === 'cheat') { clearInterval(workIntervalRef); resetUI(); showAlert("작업 취소", "딴짓 취소."); saveGame(true); return; }
+            if (state.currentTask.id === 'cheat') { resetUI(); showAlert("작업 취소", "딴짓 취소."); saveGame(true); return; }
             if(state.currentTask.minTime) { 
-                clearInterval(workIntervalRef); let rest = state.currentTask; 
+                let rest = state.currentTask; 
                 let houseMult = HOUSES[state.houseIdx].mult;
-                
                 let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
                 if (state.workElapsed >= rest.minTime) state.condition = 100; 
                 state.stamina = Number(state.stamina) + gainedStamina;
-                resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
+                
+                // 🚨 [1번 완치] 정산 후 UI 리셋부에서 타이머 인프라를 원천 초기화(null)하여 리세팅 락 현상을 완벽 차단
+                resetUI(); 
+                showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina).toLocaleString()} 상승`); 
+                updateDisplay(); saveGame(true); return;
             }
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
             let actualTime = Math.ceil(state.currentTask.time * state.timeMult * carTimeMult);
             finishWork(state.currentTask, true, actualTime);
         }
 
-        function resetUI() { state.isWorking = false; state.currentTask = null; document.getElementById('progress-wrapper').style.display = 'none'; document.getElementById('current-action-label').innerText = "대기 중..."; }
+        // 🚨 [1번 패치 핵심 모듈] 구문 락을 유발하던 타이머 캐시를 완전하게 정리하는 고도화 클리닝 팩토리
+        function resetUI() { 
+            state.isWorking = false; 
+            state.currentTask = null; 
+            state.workElapsed = 0;
+            if (workIntervalRef) {
+                clearInterval(workIntervalRef);
+                workIntervalRef = null; // 영구 락 현상의 범인이었던 구문을 null로 전격 클리닝
+            }
+            document.getElementById('progress-wrapper').style.display = 'none'; 
+            document.getElementById('current-action-label').innerText = "대기 중..."; 
+        }
 
         function buyBuff(i) {
             let b = BUFFS[i];
@@ -888,9 +884,7 @@
             if (state.nicknameTickets > 0) {
                 let n = prompt("새 이름 (변경권 사용 중):", state.nickname);
                 if (n && n.trim() !== "") {
-                    state.nicknameTickets--; 
-                    state.nickname = n.trim();
-                    state.nicknameChangeCount++;
+                    state.nicknameTickets--; state.nickname = n.trim(); state.nicknameChangeCount++;
                     updateDisplay(); closeSheet(); saveGame(true);
                     showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
                 }
@@ -899,9 +893,7 @@
                 if(Number(state.money) >= price) {
                     let n = prompt(`새 이름 (비용: ${price.toLocaleString()}원):`);
                     if(n && n.trim() !== "") { 
-                        state.money = Number(state.money) - Number(price); 
-                        state.nickname = n.trim(); 
-                        state.nicknameChangeCount++; 
+                        state.money = Number(state.money) - Number(price); state.nickname = n.trim(); state.nicknameChangeCount++; 
                         updateDisplay(); closeSheet(); saveGame(true); 
                         showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
                     }
@@ -930,8 +922,7 @@
             document.getElementById('nickname-overlay').style.display = 'none';
             document.getElementById('nickname-modal').style.display = 'none';
             
-            updateDisplay();
-            saveGame(true); 
+            updateDisplay(); saveGame(true); 
             showAlert("입사 완료", `${state.nickname}님, K-직장에 오신 것을 환영합니다!`);
         }
 
@@ -945,10 +936,8 @@
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    
-                    firebase.firestore().collection("users").doc(user.uid).onSnapshot((doc) => {
+                    db.collection("users").doc(user.uid).onSnapshot((doc) => {
                         let needsNickname = false; 
-
                         if (doc.exists) {
                             let cloudData = doc.data();
                             if (!cloudData.nickname) needsNickname = true;
@@ -970,76 +959,49 @@
                             state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
                             state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
                             state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
-                            
                             state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
                             state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
 
                             if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
                             if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
                             if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
-                        } else {
-                            needsNickname = true;
-                        }
+                        } else { needsNickname = true; }
                         
                         sanitizeState(); 
-                        
                         let saveState = { ...state };
                         delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
                         localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
                         
-                        if (!workIntervalRef) {
-                            launchGameEngine(); 
-                        } else {
-                            updateDisplay(); 
-                        }
-
+                        if (!workIntervalRef) { launchGameEngine(); } else { updateDisplay(); }
                         if (needsNickname) {
                             document.getElementById('nickname-overlay').style.display = 'block';
                             document.getElementById('nickname-modal').style.display = 'block';
                         }
-                    }, (err) => {
-                        console.error(err);
-                        if (!workIntervalRef) launchGameEngine();
-                    });
+                    }, (err) => { console.error(err); if (!workIntervalRef) launchGameEngine(); });
                 } else { location.href = 'index.html'; }
             });
         };
 
         function initNewsBadgeRealtime() {
             if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') {
-                setTimeout(initNewsBadgeRealtime, 300);
-                return;
+                setTimeout(initNewsBadgeRealtime, 300); return;
             }
-            
             try {
                 firebase.firestore().collection("market_data").doc("market_news").onSnapshot(doc => {
                     const newsBadge = document.getElementById('news-badge');
                     if (!newsBadge) return;
-                    
                     if (doc.exists && doc.data().newsList && doc.data().newsList.length > 0) {
                         let newsList = doc.data().newsList;
-                        
                         let latest = Math.max(...newsList.map(n => Number(n.timestamp) || 0));
                         window.latestNewsTimestamp = latest; 
-                        
                         let lastRead = localStorage.getItem('k_worker_last_read_news');
-                        
                         if (!lastRead || Number(lastRead) < latest) {
-                            newsBadge.style.display = 'inline-block';
-                            newsBadge.innerText = 'N';
-                        } else {
-                            newsBadge.style.display = 'none';
-                        }
+                            newsBadge.style.display = 'inline-block'; newsBadge.innerText = 'N';
+                        } else { newsBadge.style.display = 'none'; }
                     }
-                }, err => { 
-                    console.warn("뉴스 스트림 세션 접속 대기 중...", err); 
-                });
-            } catch (e) {
-                console.error("뉴스 배지 초기화 중 예외 발생, 0.5초 후 재시도:", e);
-                setTimeout(initNewsBadgeRealtime, 500);
-            }
+                }, err => { console.warn("뉴스 대기 중...", err); });
+            } catch (e) { setTimeout(initNewsBadgeRealtime, 500); }
         }
-
         initNewsBadgeRealtime();
     </script>
 </body>
