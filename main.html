@@ -327,9 +327,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.3.0-Stability<br>
+            • 배포 버전: v1.3.5-Infinity<br>
             • 패치 날짜: 2026-05-24<br>
-            • 업데이트: <b>휴식 취소 영구 락 오류 완치</b>, 체력 무한 성산 한도 1억 상향, 가독성 실시간 전산 마감 완료
+            • 업데이트: <b>업무력 및 날짜 리셋 상한 리밋 완전 박멸</b>, 휴식 리프레시 락 무결성 검증 통과 완료
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -359,14 +359,15 @@
         let workIntervalRef = null;
         let lastCloudSaveTime = 0; 
 
+        // 🚨 [통합 대교정] 유저들의 소중한 데이터를 포맷시키던 유령 상한 리밋 조건식 완전 분쇄 소멸 완료
         function sanitizeState() {
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
-            // 🚨 [1번 완치] 체력 상한 방어선을 1억으로 확장하여 랭킹 오작동 초기화 버그를 사전 예방
             if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 100000000) state.stamina = 0;
             state.exp = Number(state.exp);
-            if (isNaN(state.exp) || state.exp < 0 || state.exp > 500000) state.exp = 0;
+            // 🚨 무한 축적 가능하도록 상한선 가드 전격 철폐 리셋 방지
+            if (isNaN(state.exp) || state.exp < 0) state.exp = 0;
             state.rankIdx = Number(state.rankIdx);
             if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
             state.maxCondition = Number(state.maxCondition);
@@ -375,7 +376,8 @@
             if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
             state.gameSeconds = Number(state.gameSeconds);
-            if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000) state.gameSeconds = 0;
+            // 🚨 플레이 시간 25시간 돌파 시 0년 1월로 타임리프 되던 시한폭탄 조건 삭제 완료
+            if (isNaN(state.gameSeconds) || state.gameSeconds < 0) state.gameSeconds = 0;
             state.houseIdx = Number(state.houseIdx);
             if (isNaN(state.houseIdx) || state.houseIdx < 0) state.houseIdx = 0;
             state.carIdx = Number(state.carIdx);
@@ -588,7 +590,6 @@
                 header.innerText = "업무 지시";
                 JOBS.forEach((job, i) => {
                     let actualTime = job.id === 'cheat' ? job.time : Math.ceil(job.time * state.timeMult * carTimeMult);
-                    // 🚨 [2번 완료] 이스케이프 문자 오타를 깔끔하게 일반 세로줄(|)로 보정 렌더링
                     if(job.id === 'cheat') {
                         content.innerHTML += `<div class="list-item" onclick="doWork(${i})"><div class="item-info"><span class="item-name" style="color:var(--danger);">${job.name}</span><span class="item-sub">시간: ${actualTime}초 | 리스크: ${(job.risk*100)}% | <span style="color:#8b5cf6; font-weight:800;">업무력: ${job.exp}</span></span></div><div class="item-price-box"><span class="item-price" style="color:#d97706;">보유 현금의 1% ~ 100%</span></div></div>`;
                     } else {
@@ -915,11 +916,9 @@
             const input = inputEl.value.trim();
             if (!input) return alert("이름을 입력해주세요!");
             if (input.length > 8) return alert("이름은 8자 이내로 입력해주세요.");
-            
             state.nickname = input;
             document.getElementById('nickname-overlay').style.display = 'none';
             document.getElementById('nickname-modal').style.display = 'none';
-            
             updateDisplay(); saveGame(true); 
             showAlert("입사 완료", `${state.nickname}님, K-직장에 오신 것을 환영합니다!`);
         }
