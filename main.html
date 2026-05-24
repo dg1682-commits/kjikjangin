@@ -778,6 +778,7 @@ function saveGame(forceCloud = false) {
         }
 
         function finishWork(job, isCanceled, actualTime) {
+            let elapsed = state.workElapsed; 
             clearInterval(workIntervalRef); resetUI();
             
             if(job.risk && !isCanceled) {
@@ -794,10 +795,11 @@ function saveGame(forceCloud = false) {
                     state.money = Number(state.money) + earn; state.exp = Math.max(0, Number(state.exp) - 1); 
                     showAlert("완전 범죄", `주식을 몰래 켜서 💰${earn.toLocaleString()}원을 벌었습니다!`);
                 }
+                state.workElapsed = 0;
                 updateDisplay(); saveGame(true); return;
             }
 
-            let ratio = isCanceled ? (state.workElapsed / actualTime) : 1;
+            let ratio = isCanceled ? (elapsed / actualTime) : 1;
             let costDeducted = Math.floor(job.conditionCost * ratio);
             state.condition = Math.max(0, Number(state.condition) - costDeducted);
 
@@ -809,6 +811,7 @@ function saveGame(forceCloud = false) {
 
             state.money = Number(state.money) + Number(earnedMoney); state.exp = Number(state.exp) + Number(earnedExp);
             showAlert(isCanceled ? "작업 취소" : "업무 완료", `💰 수익: +${earnedMoney.toLocaleString()}원\n📉 소모 컨디션: ${costDeducted}`);
+            state.workElapsed = 0;
             updateDisplay(); saveGame(true);
         }
 
@@ -831,6 +834,7 @@ function saveGame(forceCloud = false) {
                 state.stamina = Number(state.stamina) + gainedStamina;
                 
                 resetUI(); 
+                state.workElapsed = 0;
                 showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina).toLocaleString()} 상승`); 
                 updateDisplay(); saveGame(true); return;
             }
@@ -842,7 +846,6 @@ function saveGame(forceCloud = false) {
         function resetUI() { 
             state.isWorking = false; 
             state.currentTask = null; 
-            state.workElapsed = 0;
             if (workIntervalRef) {
                 clearInterval(workIntervalRef);
                 workIntervalRef = null; 
