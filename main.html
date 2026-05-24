@@ -352,10 +352,11 @@
         const CARS = [{id: 'light_car', name: "K-경차", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "시간 5% 단축 | 보상 5% 증가"}, {id: 'small_car', name: "소형 세단", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "시간 10% 단축 | 보상 12% 증가"}, {id: 'mid_car', name: "중형 SUV", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "시간 18% 단축 | 보상 25% 증가"}, {id: 'large_car', name: "대형 세단", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "시간 30% 단축 | 보상 50% 증가"}];
 
 const SAVE_KEY = "k_worker_tycoon_save_data";
-        const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
+const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+        
+        let isCloudDataLoaded = false; // 🚨 [추가] 서버 데이터를 읽어왔는지 감시하는 안전 장치
         let currentUser = null;
         let workIntervalRef = null;
         let lastCloudSaveTime = 0; 
@@ -401,14 +402,21 @@ const SAVE_KEY = "k_worker_tycoon_save_data";
             if (isNaN(state.workElapsed) || state.workElapsed < 0) state.workElapsed = 0;
         }
 
-        function saveGame(forceCloud = false) { 
-            try {
-                sanitizeState();
-                state.lastSaveTime = Date.now(); 
-                let saveState = { ...state };
-                delete saveState.workInterval; 
-                localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
+function saveGame(forceCloud = false) { 
+    try {
+        sanitizeState();
+        state.lastSaveTime = Date.now(); 
+        
+        // 🚨 [수정] 돈 액수와 상관없이, 서버 데이터를 정상적으로 가져오기 전이라면 저장을 전면 차단합니다!
+        if (!isCloudDataLoaded) {
+            console.warn("[전산 가드] 서버 데이터 로드 대기 중... 저장을 보류합니다.");
+            return; 
+        }
 
+        let saveState = { ...state };
+        delete saveState.workInterval; 
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); 
+        
                 if (currentUser) {
                     let now = Date.now();
                     if (forceCloud || (now - lastCloudSaveTime > 10000)) {
@@ -966,6 +974,7 @@ const SAVE_KEY = "k_worker_tycoon_save_data";
                         } else { needsNickname = true; }
                         
                         sanitizeState(); 
+                        isCloudDataLoaded = true;
                         let saveState = { ...state };
                         delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
                         localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
