@@ -277,12 +277,12 @@
             </div>
         </div>
 
-<div id="coin-container">
-    <div id="debuff-label"></div>
-    <img id="char-display" src="캐릭터/20대.png" alt="캐릭터" onclick="clickCharacter()">
-    <div id="current-action-label">대기 중...</div>
-    <div class="click-notice" id="click-notice">💡 터치해서 돈 벌기!</div>
-</div>
+        <div id="coin-container">
+            <div id="debuff-label"></div>
+            <img id="char-display" src="캐릭터/20대.png" alt="캐릭터" onclick="clickCharacter()">
+            <div id="current-action-label">대기 중...</div>
+            <div class="click-notice" id="click-notice">💡 터치해서 돈 벌기!</div>
+        </div>
     </div>
 
     <div class="modal-overlay" id="overlay" onclick="closeSheet()"></div>
@@ -305,15 +305,14 @@
         <input type="text" id="initial-nickname-input" placeholder="예: 김주임" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid var(--accent-color); border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box;">
         <button class="alert-btn" style="width: 100%;" onclick="submitInitialNickname()">내 자리로 가기 (입사)</button>
     </div>
-<div class="news-floating-btn" onclick="if(window.latestNewsTimestamp){ localStorage.setItem('k_worker_last_read_news', window.latestNewsTimestamp); } location.href='news.html'" style="position: fixed; bottom: 20px; left: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 900;" ontouchstart="">
-    <img src="메인배경/news.png" alt="뉴스" style="width: 36px; height: 36px; object-fit: contain; -webkit-user-drag: none; user-select: none;">
-    
-    <span id="news-badge" style="display:none; position: absolute; top: 0px; right: 0px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
-</div>
-<div class="settings-floating-btn" onclick="toggleSettingsBubble(event)" style="position: fixed; bottom: 20px; right: 20px;">
-    ⚙️
-    <span id="gear-badge" style="display:none; position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
-</div>
+    <div class="news-floating-btn" onclick="if(window.latestNewsTimestamp){ localStorage.setItem('k_worker_last_read_news', window.latestNewsTimestamp); } location.href='news.html'" style="position: fixed; bottom: 20px; left: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 900;" ontouchstart="">
+        <img src="메인배경/news.png" alt="뉴스" style="width: 36px; height: 36px; object-fit: contain; -webkit-user-drag: none; user-select: none;">
+        <span id="news-badge" style="display:none; position: absolute; top: 0px; right: 0px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
+    </div>
+    <div class="settings-floating-btn" onclick="toggleSettingsBubble(event)" style="position: fixed; bottom: 20px; right: 20px;">
+        ⚙️
+        <span id="gear-badge" style="display:none; position: absolute; top: -2px; right: -2px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
+    </div>
     
     <div class="settings-bubble-modal" id="settings-bubble">
         <div class="settings-item" onclick="openSheet('mailbox')">
@@ -328,9 +327,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: v1.1.5-Mailbox<br>
-            • 패치 날짜: 2026-05-22<br>
-            • 업데이트: 1조 금액 짤림 방어, 강제 닉네임, 그리고 <b>운영자 푸시 우편함 시스템</b> 탑재
+            • 배포 버전: var(--text-light)<br>
+            • 패치 날짜: 2026-05-24<br>
+            • 업데이트: 오락실 진행 포맷 방어, <b>휴식 효율 10배 및 100년 산삼 체력 전환 패치</b> 완결판
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -344,9 +343,12 @@
             inbox: [], nicknameTickets: 0
         };
 
-        const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 8000, bonus: 500}, {name: "사원", req: 32000, bonus: 1000}, {name: "주임", req: 64000, bonus: 2500}, {name: "대리", req: 96000, bonus: 4000}, {name: "과장", req: 160000, bonus: 7000}, {name: "차장", req: 256000, bonus: 10000}, {name: "부장", req: 384000, bonus: 15000}, {name: "사장", req: 1536000, bonus: 50000}];
+        // 🚨 [6번 완료] 승진을 위한 필요 업무력을 정확히 기존 시세의 10분의 1로 칼질 하향
+        const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 800, bonus: 500}, {name: "사원", req: 3200, bonus: 1000}, {name: "주임", req: 6400, bonus: 2500}, {name: "대리", req: 9600, bonus: 4000}, {name: "과장", req: 16000, bonus: 7000}, {name: "차장", req: 2560, bonus: 10000}, {name: "부장", req: 38400, bonus: 15000}, {name: "사장", req: 153600, bonus: 50000}];
         const JOBS = [{id: 'coffee', name: "커피 타오기", time: 5, money: 20, exp: 2, conditionCost: 1}, {id: 'receipt', name: "영수증 풀칠하기", time: 30, money: 125, exp: 15, conditionCost: 7}, {id: 'font', name: "보고서 폰트 수정", time: 60, money: 250, exp: 40, conditionCost: 17}, {id: 'basic', name: "기본 업무", time: 180, money: 750, exp: 100, conditionCost: 23}, {id: 'dog', name: "부장님 강아지 산책", time: 300, money: 1250, exp: 50, conditionCost: 27}, {id: 'dinner', name: "거래처 회식 참석", time: 480, money: 2000, exp: 400, conditionCost: 37}, {id: 'out', name: "타 지역 출장", time: 600, money: 2500, exp: 600, conditionCost: 57}, {id: 'cheat', name: "딴짓(주식보기)", time: 10, money: [100, 1000], exp: -1, risk: 0.30, conditionCost: 0}];
-        const RESTS = [{id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 3, conditionBonus: 5}, {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 8, conditionBonus: 10}, {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 20, conditionBonus: 15}, {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 35, conditionBonus: 30}];
+        
+        // 🚨 [4번 완료] 휴식 시 기본 분당 체력 충전량(rate) 수치를 기존 대비 정확히 10배 파격 인상
+        const RESTS = [{id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 30, conditionBonus: 5}, {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 80, conditionBonus: 10}, {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 200, conditionBonus: 15}, {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 350, conditionBonus: 30}];
         const BUFFS = [{id: 'water', name: "냉수 한 잔", price: 500, effect: 1}, {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4}, {id: 'bacchus', name: "박카스", price: 2500, effect: 8}, {id: 'hot6', name: "핫식스", price: 3500, effect: 12}, {id: 'soju', name: "참이슬", price: 5000, effect: 20}, {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40}, {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70}, {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}];
         const SHOPS = [{id: 'slipper', name: "다이소 슬리퍼", price: 5000, mult: 0.995, desc: "시간 0.5% 단축"}, {id: 'glasses', name: "블루라이트 안경", price: 35000, mult: 0.981, desc: "시간 1.9% 단축"}, {id: 'keyboard', name: "무소음 적축", price: 150000, mult: 0.955, desc: "시간 4.5% 단축"}, {id: 'chair', name: "허먼밀러 의자", price: 1800000, mult: 0.887, desc: "시간 11.3% 단축"}, {id: 'suit', name: "이태리 정장", price: 4500000, mult: 0.824, desc: "시간 17.6% 단축"}];
         const HOUSES = [{id: 'home', name: "부모님 집", deposit: 0, rent: 0, moveCost: 0, mult: 1.0, type: "기본"}, {id: 'goshi', name: "고시원", deposit: 0, rent: 50000, moveCost: 10000, mult: 1.2, type: "월세"}, {id: 'oneroom', name: "원룸", deposit: 20000000, rent: 500000, moveCost: 200000, mult: 1.5, type: "월세"}, {id: 'officetel_w', name: "오피스텔 (월세)", deposit: 40000000, rent: 1500000, moveCost: 80000, mult: 2.5, type: "월세"}, {id: 'officetel_j', name: "오피스텔 (전세)", deposit: 150000000, rent: 0, moveCost: 80000, mult: 2.5, type: "전세"}, {id: 'apt_w', name: "아파트 (월세)", deposit: 120000000, rent: 2500000, moveCost: 2500000, mult: 5.0, type: "월세"}, {id: 'apt_j', name: "아파트 (전세)", deposit: 650000000, rent: 0, moveCost: 2500000, mult: 5.0, type: "전세"}, {id: 'apt_m', name: "아파트 (매매)", deposit: 800000000, rent: 0, moveCost: 2500000, mult: 10.0, type: "매매"}, {id: 'river_w', name: "한강뷰 아파트 (월세)", deposit: 1200000000, rent: 10000000, moveCost: 6500000, mult: 12.0, type: "월세"}, {id: 'river_j', name: "한강뷰 아파트 (전세)", deposit: 2200000000, rent: 0, moveCost: 6500000, mult: 12.0, type: "전세"}, {id: 'river_m', name: "한강뷰 아파트 (매매)", deposit: 2500000000, rent: 0, moveCost: 6500000, mult: 17.0, type: "매매"}];
@@ -361,9 +363,8 @@
         let lastCloudSaveTime = 0; 
 
         function sanitizeState() {
-state.money = Number(state.money);
-// 🚨 데이터 오류(NaN) 시에만 최소 방어선(0원)을 잡고, 0원이 되더라도 천만 원을 주입하지 않고 그대로 유지합니다.
-if (isNaN(state.money) || state.money < 0) state.money = 0;
+            state.money = Number(state.money);
+            if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
             if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 500000) state.stamina = 0;
             state.exp = Number(state.exp);
@@ -373,8 +374,7 @@ if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.maxCondition = Number(state.maxCondition);
             if (isNaN(state.maxCondition) || state.maxCondition <= 0) state.maxCondition = 100;
             state.condition = Number(state.condition);
-// 🚨 컨디션이 0 이하로 떨어져도 자동으로 풀충전(100)하지 않고 0으로 냅둡니다. (직접 휴식을 하도록 유도)
-if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
+            if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
             state.gameSeconds = Number(state.gameSeconds);
             if (isNaN(state.gameSeconds) || state.gameSeconds < 0 || state.gameSeconds > 50000000) state.gameSeconds = 0;
@@ -554,19 +554,17 @@ if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
                     badge.style.display = 'none';
                 }
             }
-            // 🚨 [추가] 톱니바퀴 알림 배지 실시간 검사 및 출력
-let gearBadge = document.getElementById('gear-badge');
-if (gearBadge) {
-    let hasNewMail = state.inbox && state.inbox.length > 0; // 우편함에 아이템이 있는가?
-    let hasNewNotice = localStorage.getItem('k_worker_notice_read') !== 'v1.1.5'; // 공지사항을 아직 안 읽었는가?
+            let gearBadge = document.getElementById('gear-badge');
+            if (gearBadge) {
+                let hasNewMail = state.inbox && state.inbox.length > 0; 
+                let hasNewNotice = localStorage.getItem('k_worker_notice_read') !== 'v1.1.5'; 
 
-    // 둘 중 하나라도 만족하면 톱니바퀴에 N 표시 활성화
-    if (hasNewMail || hasNewNotice) {
-        gearBadge.style.display = 'inline-block';
-    } else {
-        gearBadge.style.display = 'none';
-    }
-}
+                if (hasNewMail || hasNewNotice) {
+                    gearBadge.style.display = 'inline-block';
+                } else {
+                    gearBadge.style.display = 'none';
+                }
+            }
         }
 
         function goToStock() {
@@ -604,19 +602,22 @@ if (gearBadge) {
                     }
                 });
             } else if(type === 'rest') {
-    header.innerText = "휴식 및 컨디션 관리";
-    RESTS.forEach((rest, i) => {
-        // 🚨 현재 거주 중인 부동산의 효율 배율을 퍼센트(%)로 정밀 환산 (예: 1.5배 -> 150%)
-        let houseMult = HOUSES[state.houseIdx].mult;
-        let effPercent = Math.round(houseMult * 100);
-        
-        // 🚨 글자 겹침 방지를 위해 line-height를 추가하고 <br> 밑에 수면 효율 문구를 바인딩합니다.
-        content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px; line-height: 1.4;">분당 체력 +${rest.rate}<br><span style="color: var(--success); font-weight: 800;">수면 효율: ${effPercent}%</span></span></div></div>`;
-    });
-} else if(type === 'buff') {
+                header.innerText = "휴식 및 컨디션 관리";
+                RESTS.forEach((rest, i) => {
+                    let houseMult = HOUSES[state.houseIdx].mult;
+                    let effPercent = Math.round(houseMult * 100);
+                    
+                    content.innerHTML += `<div class="list-item" onclick="startRest(${i})"><div class="item-info"><span class="item-name">${rest.name}</span><span class="item-sub">최소: ${formatTextTime(rest.minTime)} (완치)</span></div><div class="item-price-box"><span class="item-price" style="font-size:11px; line-height: 1.4;">분당 체력 +${rest.rate}<br><span style="color: var(--success); font-weight: 800;">수면 효율: ${effPercent}%</span></span></div></div>`;
+                });
+            } else if(type === 'buff') {
                 header.innerText = "약국 아이템";
                 BUFFS.forEach((buff, i) => {
-                    content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name">${buff.name}</span><span class="item-sub" style="color:var(--condition-color);">컨디션 +${buff.effect.toLocaleString()} 회복</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
+                    // 🚨 [5번 완료] 약국 리스트 출력 창에서 100년 산삼 전용 체력 상승 명세 커스텀 출력
+                    if (buff.id === 'wild') {
+                        content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name" style="color:#facc15;">💎 ${buff.name}</span><span class="item-sub" style="color:var(--success);">즉시 체력 스탯 +${buff.effect.toLocaleString()} 영구 증가</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
+                    } else {
+                        content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name">${buff.name}</span><span class="item-sub" style="color:var(--condition-color);">컨디션 +${buff.effect.toLocaleString()} 회복</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
+                    }
                 });
             } else if(type === 'shop') {
                 header.innerText = "쇼핑몰 (단축)";
@@ -650,7 +651,6 @@ if (gearBadge) {
                     content.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-sub); font-weight: bold;">도착한 우편이 없습니다.</div>`;
                 } else {
                     state.inbox.forEach((mail, i) => {
-                        // 🚨 [패치 핵심] 전역 .item-price-box의 pointer-events: none을 무력화하기 위해 style="pointer-events: auto;" 인라인 주입
                         content.innerHTML += `
                         <div class="list-item" style="cursor: default;">
                             <div class="item-info">
@@ -759,34 +759,30 @@ if (gearBadge) {
                         if(state.workElapsed >= actualTime) finishWork(task, false, actualTime);
                     }
                 }, 200); 
-} else if (task.minTime) { 
-    document.getElementById('current-action-label').innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
-    
-    // 🚨 [수정] 초기 구동 및 새로고침 시에도 기존 진행도(일시정지 복구 분) 계산해서 바 반영
-    document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / task.minTime) * 100) + "%";
+            } else if (task.minTime) { 
+                document.getElementById('current-action-label').innerText = `💤 ${task.name}\n(최소 ${formatTextTime(task.minTime)})`;
+                document.getElementById('progress-bar').style.width = Math.min(100, (state.workElapsed / task.minTime) * 100) + "%";
 
-    workIntervalRef = setInterval(() => {
-    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
-    if (delta >= 1) {
-        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
-        
-        // 🚨 [수정] id 제약을 과감히 철폐하고 현재 부동산 고유 배율을 전격 다이렉트 바인딩합니다.
-        let houseMult = HOUSES[state.houseIdx].mult;
-        
-        let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
-        document.getElementById('progress-bar').style.width = progressPct + "%";
+                workIntervalRef = setInterval(() => {
+                    let now = Date.now(); let delta = (now - lastWorkTick) / 1000;
+                    if (delta >= 1) {
+                        let passedSecs = Math.floor(delta); state.workElapsed += passedSecs; lastWorkTick += passedSecs * 1000;
+                        
+                        let houseMult = HOUSES[state.houseIdx].mult;
+                        
+                        let progressPct = Math.min(100, (state.workElapsed / task.minTime) * 100);
+                        document.getElementById('progress-bar').style.width = progressPct + "%";
 
-        // 🚨 [UI 개선] 유저가 실시간 체력 충전 현황을 볼 수 있게 완료 전이라도 실시간 누적 체력을 우측에 표기합니다.
-        let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
-        if (state.workElapsed < task.minTime) {
-            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)} (+${curStamina})`;
-        } else {
-            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
-        }
-        if (state.workElapsed % 5 === 0) { saveGame(); }
-    }
-}, 200);
-}
+                        let curStamina = Math.floor((state.workElapsed / 60) * task.rate * houseMult);
+                        if (state.workElapsed < task.minTime) {
+                            document.getElementById('time-left').innerText = `완료까지: ${formatWorkTime(task.minTime - state.workElapsed)} (+${curStamina})`;
+                        } else {
+                            document.getElementById('time-left').innerText = `체력 +${curStamina} (${formatWorkTime(state.workElapsed)} 경과)`;
+                        }
+                        if (state.workElapsed % 5 === 0) { saveGame(); }
+                    }
+                }, 200);
+            }
         }
 
         function finishWork(job, isCanceled, actualTime) {
@@ -837,16 +833,14 @@ if (gearBadge) {
             if(!state.isWorking || !state.currentTask) return;
             if (state.currentTask.id === 'cheat') { clearInterval(workIntervalRef); resetUI(); showAlert("작업 취소", "딴짓 취소."); saveGame(true); return; }
             if(state.currentTask.minTime) { 
-    clearInterval(workIntervalRef); let rest = state.currentTask; 
-    
-    // 🚨 [수정] 최종 정산 시에도 부동산 수면 효율 배율이 100% 온전하게 곱해지도록 수정합니다.
-    let houseMult = HOUSES[state.houseIdx].mult;
-    
-    let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
-    if (state.workElapsed >= rest.minTime) state.condition = 100; 
-    state.stamina = Number(state.stamina) + gainedStamina;
-    resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
-}
+                clearInterval(workIntervalRef); let rest = state.currentTask; 
+                let houseMult = HOUSES[state.houseIdx].mult;
+                
+                let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
+                if (state.workElapsed >= rest.minTime) state.condition = 100; 
+                state.stamina = Number(state.stamina) + gainedStamina;
+                resetUI(); showAlert("휴식 정산", `체력 +${Math.floor(gainedStamina)} 상승`); updateDisplay(); saveGame(true); return;
+            }
             let carTimeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].timeMult : 1.0;
             let actualTime = Math.ceil(state.currentTask.time * state.timeMult * carTimeMult);
             finishWork(state.currentTask, true, actualTime);
@@ -857,9 +851,18 @@ if (gearBadge) {
         function buyBuff(i) {
             let b = BUFFS[i];
             if(Number(state.money) >= b.price) {
-                if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
-                state.money = Number(state.money) - Number(b.price); state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
-                showAlert("사용 완료", `${b.name} 복용 완료!`); updateDisplay(); closeSheet(); saveGame(true);
+                // 🚨 [5번 완료] 100년 산삼 복용 시 컨디션 대신 체력(+100)을 영구 즉시 충전 처리
+                if (b.id === 'wild') {
+                    state.money = Number(state.money) - Number(b.price);
+                    state.stamina = Number(state.stamina) + Number(b.effect);
+                    showAlert("사용 완료", `${b.name} 복용 완료! (체력 수치가 +${b.effect} 영구 상승했습니다.)`);
+                } else {
+                    if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
+                    state.money = Number(state.money) - Number(b.price); 
+                    state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
+                    showAlert("사용 완료", `${b.name} 복용 완료!`);
+                }
+                updateDisplay(); closeSheet(); saveGame(true);
             } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
         }
         
@@ -1003,16 +1006,14 @@ if (gearBadge) {
                 } else { location.href = 'index.html'; }
             });
         };
-// 🚨 [고도화 완결판] 미선언 에러 및 로딩 지연을 완벽하게 방어하는 실시간 뉴스 배지 엔진
+
         function initNewsBadgeRealtime() {
-            // 파이어베이스 라이브러리 및 Firestore 기능이 아직 메모리에 준비 안 됐다면 0.3초 후 재시도
             if (typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') {
                 setTimeout(initNewsBadgeRealtime, 300);
                 return;
             }
             
             try {
-                // db 변수 대신 firebase.firestore()를 다이렉트로 호출하여 ReferenceError를 완벽하게 차단합니다.
                 firebase.firestore().collection("market_data").doc("market_news").onSnapshot(doc => {
                     const newsBadge = document.getElementById('news-badge');
                     if (!newsBadge) return;
@@ -1020,13 +1021,11 @@ if (gearBadge) {
                     if (doc.exists && doc.data().newsList && doc.data().newsList.length > 0) {
                         let newsList = doc.data().newsList;
                         
-                        // 등록된 뉴스 중 가장 최근 타임스탬프 도출 (정수형 변환 보장)
                         let latest = Math.max(...newsList.map(n => Number(n.timestamp) || 0));
-                        window.latestNewsTimestamp = latest; // 클릭 시 대조용 전역 변수 바인딩
+                        window.latestNewsTimestamp = latest; 
                         
                         let lastRead = localStorage.getItem('k_worker_last_read_news');
                         
-                        // 뉴스를 한 번도 안 봤거나, 통제실에서 새로 쏜 기사가 더 최신 시간이면 N 배지 즉시 활성화
                         if (!lastRead || Number(lastRead) < latest) {
                             newsBadge.style.display = 'inline-block';
                             newsBadge.innerText = 'N';
@@ -1043,7 +1042,6 @@ if (gearBadge) {
             }
         }
 
-        // 엔진 안전 구동 시동
         initNewsBadgeRealtime();
     </script>
 </body>
