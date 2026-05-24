@@ -352,9 +352,9 @@
         const CARS = [{id: 'light_car', name: "K-경차", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "시간 5% 단축 | 보상 5% 증가"}, {id: 'small_car', name: "소형 세단", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "시간 10% 단축 | 보상 12% 증가"}, {id: 'mid_car', name: "중형 SUV", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "시간 18% 단축 | 보상 25% 증가"}, {id: 'large_car', name: "대형 세단", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "시간 30% 단축 | 보상 50% 증가"}];
 
 const SAVE_KEY = "k_worker_tycoon_save_data";
-        const firebaseConfig = { apiKey: "AIzaSyDr6T...", ... };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); // 🚨 이 한 줄을 똑같이 추가해 주세요!
+const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
         let currentUser = null;
         let workIntervalRef = null;
