@@ -327,9 +327,9 @@
     <div class="center-info-modal" id="version-modal">
         <div style="font-size:15px; font-weight:900; color:var(--neon-cyan); margin-bottom:8px;">K-직장인 키우기 빌드 정보</div>
         <div style="font-size:13px; color:#94a3b8; line-height:1.6; text-align:left; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;">
-            • 배포 버전: var(--text-light)<br>
+            • 배포 버전: v1.2.2-SpeedUp<br>
             • 패치 날짜: 2026-05-24<br>
-            • 업데이트: 오락실 진행 포맷 방어, <b>휴식 효율 10배 및 100년 산삼 체력 전환 패치</b> 완결판
+            • 업데이트: 오락실 세션 데이터 무결성 연동 보존, <b>휴식 분당 체력 10배 및 100년 산삼 스탯 전환 패치 완료</b>
         </div>
         <button class="center-info-btn" onclick="closeVersionModal()">닫기</button>
     </div>
@@ -343,11 +343,11 @@
             inbox: [], nicknameTickets: 0
         };
 
-        // 🚨 [6번 완료] 승진을 위한 필요 업무력을 정확히 기존 시세의 10분의 1로 칼질 하향
-        const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 800, bonus: 500}, {name: "사원", req: 3200, bonus: 1000}, {name: "주임", req: 6400, bonus: 2500}, {name: "대리", req: 9600, bonus: 4000}, {name: "과장", req: 16000, bonus: 7000}, {name: "차장", req: 2560, bonus: 10000}, {name: "부장", req: 38400, bonus: 15000}, {name: "사장", req: 153600, bonus: 50000}];
+        // 🚨 [6번 교정 완료] 차장 커트라인을 2560에서 25600으로 정확히 보정하여 계급 역전 현상을 원천 차단했습니다.
+        const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 800, bonus: 500}, {name: "사원", req: 3200, bonus: 1000}, {name: "주임", req: 6400, bonus: 2500}, {name: "대리", req: 9600, bonus: 4000}, {name: "과장", req: 16000, bonus: 7000}, {name: "차장", req: 25600, bonus: 10000}, {name: "부장", req: 38400, bonus: 15000}, {name: "사장", req: 153600, bonus: 50000}];
         const JOBS = [{id: 'coffee', name: "커피 타오기", time: 5, money: 20, exp: 2, conditionCost: 1}, {id: 'receipt', name: "영수증 풀칠하기", time: 30, money: 125, exp: 15, conditionCost: 7}, {id: 'font', name: "보고서 폰트 수정", time: 60, money: 250, exp: 40, conditionCost: 17}, {id: 'basic', name: "기본 업무", time: 180, money: 750, exp: 100, conditionCost: 23}, {id: 'dog', name: "부장님 강아지 산책", time: 300, money: 1250, exp: 50, conditionCost: 27}, {id: 'dinner', name: "거래처 회식 참석", time: 480, money: 2000, exp: 400, conditionCost: 37}, {id: 'out', name: "타 지역 출장", time: 600, money: 2500, exp: 600, conditionCost: 57}, {id: 'cheat', name: "딴짓(주식보기)", time: 10, money: [100, 1000], exp: -1, risk: 0.30, conditionCost: 0}];
         
-        // 🚨 [4번 완료] 휴식 시 기본 분당 체력 충전량(rate) 수치를 기존 대비 정확히 10배 파격 인상
+        // 🚨 [4번 보존] 분당 체력 충전량(rate) 수치 10배 정밀 유지
         const RESTS = [{id: 'toilet', name: "화장실 쪽잠", minTime: 60, rate: 30, conditionBonus: 5}, {id: 'roof', name: "회사 옥상 멍때리기", minTime: 300, rate: 80, conditionBonus: 10}, {id: 'gym', name: "동네 헬스장", minTime: 900, rate: 200, conditionBonus: 15}, {id: 'sleep', name: "집에서 딥슬립", minTime: 1800, rate: 350, conditionBonus: 30}];
         const BUFFS = [{id: 'water', name: "냉수 한 잔", price: 500, effect: 1}, {id: 'coffee', name: "믹스 커피", price: 1500, effect: 4}, {id: 'bacchus', name: "박카스", price: 2500, effect: 8}, {id: 'hot6', name: "핫식스", price: 3500, effect: 12}, {id: 'soju', name: "참이슬", price: 5000, effect: 20}, {id: 'photo', name: "첫사랑 사진", price: 7000, effect: 40}, {id: 'ginseng', name: "홍삼 스틱", price: 10000, effect: 70}, {id: 'wild', name: "100년 산삼", price: 13000, effect: 100}];
         const SHOPS = [{id: 'slipper', name: "다이소 슬리퍼", price: 5000, mult: 0.995, desc: "시간 0.5% 단축"}, {id: 'glasses', name: "블루라이트 안경", price: 35000, mult: 0.981, desc: "시간 1.9% 단축"}, {id: 'keyboard', name: "무소음 적축", price: 150000, mult: 0.955, desc: "시간 4.5% 단축"}, {id: 'chair', name: "허먼밀러 의자", price: 1800000, mult: 0.887, desc: "시간 11.3% 단축"}, {id: 'suit', name: "이태리 정장", price: 4500000, mult: 0.824, desc: "시간 17.6% 단축"}];
@@ -576,7 +576,7 @@
         function goToCar() { openSheet('car'); }
 
         function openSheet(type) {
-            if(state.debuffTimeLeft > 0 && type === 'work') return showAlert("업무 불가", "혼나는 중이라 일을 지시받을 수 없습니다!");
+            if(state.debuffTimeLeft > 0 && type === 'work') return showAlert("업무 불가", "혼나는 중입니다!");
             const sheet = document.getElementById('bottom-sheet');
             const content = document.getElementById('sheet-content');
             const header = document.getElementById('sheet-header');
@@ -612,7 +612,6 @@
             } else if(type === 'buff') {
                 header.innerText = "약국 아이템";
                 BUFFS.forEach((buff, i) => {
-                    // 🚨 [5번 완료] 약국 리스트 출력 창에서 100년 산삼 전용 체력 상승 명세 커스텀 출력
                     if (buff.id === 'wild') {
                         content.innerHTML += `<div class="list-item" onclick="buyBuff(${i})"><div class="item-info"><span class="item-name" style="color:#facc15;">💎 ${buff.name}</span><span class="item-sub" style="color:var(--success);">즉시 체력 스탯 +${buff.effect.toLocaleString()} 영구 증가</span></div><div class="item-price-box"><span class="item-price">${buff.price.toLocaleString()}원</span></div></div>`;
                     } else {
@@ -851,7 +850,6 @@
         function buyBuff(i) {
             let b = BUFFS[i];
             if(Number(state.money) >= b.price) {
-                // 🚨 [5번 완료] 100년 산삼 복용 시 컨디션 대신 체력(+100)을 영구 즉시 충전 처리
                 if (b.id === 'wild') {
                     state.money = Number(state.money) - Number(b.price);
                     state.stamina = Number(state.stamina) + Number(b.effect);
