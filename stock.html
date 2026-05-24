@@ -9,16 +9,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        /* 주임님 원본 증권사 앱 테마 스타일 100% 보존 */
         :root { 
             --bg-main: #ffffff; 
             --bg-sub: #f3f4f6; 
             --text-main: #111827; 
             --text-sub: #6b7280; 
             --text-light: #9ca3af; 
-            --stock-up: #ef4444;   /* 상승 (빨강) */
-            --stock-down: #3b82f6; /* 하락 (파랑) */
-            --stock-even: #4b5563; /* 보합 (회색) */
+            --stock-up: #ef4444;   
+            --stock-down: #3b82f6; 
+            --stock-even: #4b5563; 
             --border-light: #f3f4f6; 
             --accent-color: #0ea5e9; 
         }
@@ -32,7 +31,6 @@
 
         main { padding-top: 60px; padding-bottom: 100px; overflow-y: auto; height: 100%; }
 
-        /* 나의 총 자산 영역 상단 고정 (Sticky) 레이아웃 보존 */
         .account-section { 
             position: sticky; 
             top: 0; 
@@ -44,7 +42,6 @@
         .account-title { font-size: 14px; color: var(--text-sub); font-weight: 600; margin-bottom: 8px; transition: color 0.2s; }
         .account-balance { font-size: 32px; font-weight: 900; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 15px; }
         
-        /* 다단 자산 리포트 플렉스 레이아웃 보존 */
         .account-details { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-sub); background: var(--bg-sub); padding: 14px 15px; border-radius: 12px; font-weight: 600; }
         .account-detail-row { display: flex; justify-content: space-between; align-items: center; }
         .val-cash { color: var(--text-main); font-weight: 800; }
@@ -60,12 +57,10 @@
         .stock-price-box { display: flex; flex-direction: column; align-items: flex-end; }
         .stock-price { font-size: 16px; font-weight: 800; }
 
-        /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
         .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
-        /* 하단 메뉴 바 확장(80px) 디자인 보존 */
         .bottom-nav { 
             position: fixed; 
             bottom: 0; 
@@ -104,7 +99,7 @@
 
     <main>
         <section class="account-section">
-            <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">0년 1월 1일 00:00</div>
+            <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">동기화 중...</div>
             <div class="account-title" id="account-title">나의 총 자산</div>
             <div class="account-balance" id="total-asset">0원</div>
             
@@ -205,14 +200,7 @@
             { name: "OK증권", price: 1250, prev: 1250 }
         ];
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk",
-            authDomain: "kkkjikjang.firebaseapp.com",
-            projectId: "kkkjikjang",
-            storageBucket: "kkkjikjang.firebasestorage.app",
-            messagingSenderId: "138250223666",
-            appId: "1:138250223666:web:997b7ed4572f717354fc2b"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         let currentUser = null; 
@@ -231,8 +219,8 @@
         let currentTarget = null;
         let currentTab = "list";
         let chartInstance = null; 
-        let marketCheckCounter = 0; // 파이어베이스 부하 조절용 카운터
-        let lastMarketUpdate = Date.now(); // 🚨 [추가] 글로벌 마켓 시계 기록용 변수
+        let marketCheckCounter = 0; 
+        let lastMarketUpdate = Date.now(); 
 
         function showCustomAlert(title, message) {
             const titleEl = document.getElementById('custom-alert-title');
@@ -248,9 +236,7 @@
             if (modalEl) modalEl.style.display = 'none';
         }
 
-        function getIncomeMultiplier(s) { 
-            return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); 
-        }
+        function getIncomeMultiplier(s) { return s <= 10000 ? Math.pow(1.0002, s) : 7.38 + ((s - 10000) * 0.0005); }
 
         function getGameDateString() {
             const totalMin = Math.floor(Number(gameState.gameSeconds || 0) / 60);
@@ -265,7 +251,6 @@
             const detailsBox = document.getElementById('account-details');
             const arrowIcon = document.getElementById('toggle-arrow');
             const textLabel = document.getElementById('toggle-text');
-            
             if (detailsBox.style.display === 'none') {
                 detailsBox.style.display = 'flex';
                 arrowIcon.innerText = '▲';
@@ -281,131 +266,95 @@
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...gameState };
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
-
             if (currentUser) {
-                db.collection("users").doc(currentUser.uid).set(merged, { merge: true })
-                    .catch(e => console.error("데이터 원격 저장 실패:", e));
+                db.collection("users").doc(currentUser.uid).set(merged, { merge: true }).catch(e => console.error(e));
             }
         }
 
         function processStockOfflineProgress() {
             gameState.gameSeconds = Number(gameState.gameSeconds || 0);
             gameState.money = Number(gameState.money || 0);
-            
             let deltaTime = 0;
             if (gameState.lastSaveTime) {
                 deltaTime = Math.floor((Date.now() - gameState.lastSaveTime) / 1000);
                 if (deltaTime > 10) {
                     gameState.gameSeconds += (deltaTime * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * deltaTime; 
-                    
-                    if (gameState.isWorking && gameState.currentTask) {
-                        if (gameState.currentTask.time) {
-                            let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
-                            gameState.workElapsed = Math.min(actualTime, (gameState.workElapsed || 0) + deltaTime);
-                        } else if (gameState.currentTask.minTime) {
-                            gameState.workElapsed = (gameState.workElapsed || 0) + deltaTime;
-                        }
-                    }
                 }
             }
             gameState.lastSaveTime = Date.now();
             saveStockStateToStorage();
         }
 
-        // 🚨 [자율 분산형 주가 틱 구동 시스템] 
-        // 관리자가 컴퓨터를 꺼두어도 게임 중인 유저들이 서로 연대하여 90초 타이머 마다 주가를 강제 자동 갱신해주는 공유 엔진
-        // 🚨 [엔진 전면 고도화] 유저 분산형 틱 연동 및 뉴스 문서 오염 방지 가드 탑재 버전
+        // 🚨 [3번 완료] 자율 분산형 틱 변동의 평균 난수를 -0.44로 전격 보정하여 장기 우상향 마켓 포맷 형성
         async function checkAndTickGlobalMarket() {
             try {
                 const statusDoc = await db.collection("market_data").doc("market_status").get();
                 if (!statusDoc.exists) return;
                 
                 let lastUpdate = statusDoc.data().lastUpdate;
-                let activeNews = statusDoc.data().activeNews || null; // 📢 통제실 글로벌 특보 데이터 동기화
+                let activeNews = statusDoc.data().activeNews || null; 
                 let now = Date.now();
                 
-                // 마지막 시장 업데이트 시간으로부터 90초(90000ms) 이상 지났다면?
                 if (now - lastUpdate >= 90000) {
                     let missedTurns = Math.floor((now - lastUpdate) / 90000);
                     if (missedTurns < 1) missedTurns = 1;
-                    if (missedTurns > 25) missedTurns = 25; // 동시 접속 트래픽 폭주 및 한도 방어 상한 가드
+                    if (missedTurns > 25) missedTurns = 25; 
                     
                     const snapshot = await db.collection("market_data").get();
                     let batch = db.batch();
                     
                     snapshot.forEach(doc => {
-                        // 🚨 [치명적 버그 방어] 주식 종목이 아닌 시계 및 뉴스룸 데이터는 주가 정산 대상에서 전격 제외 처리
                         if (doc.id === "market_status" || doc.id === "market_news") return;
                         
                         let data = doc.data();
                         let currentPrice = Number(data.price);
-                        
-                        // 🚨 종목별 턴 연산 시 특보 잔여 턴수 추적을 위한 가상 로컬 시계 바인딩
                         let localTurnsLeft = (activeNews && activeNews.stockId === doc.id) ? activeNews.turnsLeft : 0;
                         
                         for (let turn = 0; turn < missedTurns; turn++) {
                             let change = 0;
-                            
-                            // 조건 1. 현재 연산 중인 종목에 통제실 특보 버프/디버프 가속이 살아있는가?
                             if (activeNews && activeNews.stockId === doc.id && localTurnsLeft > 0) {
                                 if (activeNews.type === 'up') {
-                                    change = currentPrice * ((Math.random() * 0.05) + 0.01); // 호재 폭등 가속 (+1% ~ +6%)
+                                    change = currentPrice * ((Math.random() * 0.05) + 0.01); 
                                 } else {
-                                    change = currentPrice * (-(Math.random() * 0.05) - 0.01); // 악재 폭락 디버프 (-1% ~ -6%)
+                                    change = currentPrice * (-(Math.random() * 0.05) - 0.01); 
                                 }
                                 localTurnsLeft--;
-                            } 
-                            // 조건 2. 아무런 이벤트가 없는 일반 자율 시장 무작위 변동 모드 (±2.5%)
-                            else {
-                                change = currentPrice * (Math.random() - 0.5) * 0.05;
+                            } else {
+                                // 🚨 [3번 반영] 기존 -0.5 구조에서 -0.44 구조로 전향하여 +0.3%의 지속 우상향 성장 랠리 탑재
+                                change = currentPrice * (Math.random() - 0.44) * 0.05;
                             }
-                            
                             currentPrice = Math.max(10, Math.floor(currentPrice + change));
                         }
                         
-                        batch.set(db.collection("market_data").doc(doc.id), {
-                            name: data.name,
-                            price: currentPrice
-                        }, { merge: true });
+                        batch.set(db.collection("market_data").doc(doc.id), { name: data.name, price: currentPrice }, { merge: true });
                     });
                     
-                    // 정산된 누적 턴수만큼 글로벌 특보 잔여 턴수 안전 차감 연산
                     if (activeNews && activeNews.turnsLeft > 0) {
                         activeNews.turnsLeft = Math.max(0, activeNews.turnsLeft - missedTurns);
                     }
                     
-                    // 🚨 유저가 켜놓은 브라우저 틱에서 5턴이 완수 종료되었을 때도 뉴스룸 취소선 자동 정산 연대 지원
                     if (activeNews && activeNews.turnsLeft === 0 && !activeNews.processedExpired) {
                         try {
-                            activeNews.processedExpired = true; // 중복 정산 차단 락
+                            activeNews.processedExpired = true; 
                             const newsDoc = await db.collection("market_data").doc("market_news").get();
                             if (newsDoc.exists && newsDoc.data().newsList) {
                                 let list = newsDoc.data().newsList;
                                 list.forEach(n => {
-                                    if (Number(n.timestamp) === Number(activeNews.timestamp)) {
-                                        n.isExpired = true;
-                                    }
+                                    if (Number(n.timestamp) === Number(activeNews.timestamp)) n.isExpired = true;
                                 });
                                 batch.set(db.collection("market_data").doc("market_news"), { newsList: list }, { merge: true });
                             }
-                        } catch (e) { console.error("유저 노드 뉴스 종료 처리 실패:", e); }
+                        } catch (e) { console.error(e); }
                     }
                     
                     let nextUpdateBase = lastUpdate + (missedTurns * 90000);
                     if (now - nextUpdateBase > 90000) nextUpdateBase = now;
                     
-                    // 마켓 통합 시계 정보 리셋 및 잔여 특보 정보 오버라이트 동기화
-                    batch.set(db.collection("market_data").doc("market_status"), { 
-                        lastUpdate: nextUpdateBase,
-                        activeNews: activeNews
-                    }, { merge: true });
-                    
+                    batch.set(db.collection("market_data").doc("market_status"), { lastUpdate: nextUpdateBase, activeNews: activeNews }, { merge: true });
                     await batch.commit();
                 }
-            } catch (e) { 
-                console.warn("마켓 동시 틱 충돌 방지 우회 패스"); 
-            }
+            } catch (e) { console.warn("마켓 동시 틱 우회"); }
         }
 
         let lastGameTick = Date.now();
@@ -420,27 +369,15 @@
 
                     gameState.gameSeconds = Number(gameState.gameSeconds || 0);
                     gameState.money = Number(gameState.money || 0);
-
                     gameState.gameSeconds += (passedSecs * 540); 
                     gameState.money += (0.5 * getIncomeMultiplier(gameState.stamina || 0)) * passedSecs; 
 
-                    if (gameState.isWorking && gameState.currentTask) {
-                        if (gameState.currentTask.time) {
-                            let actualTime = gameState.currentTask.id === 'cheat' ? gameState.currentTask.time : Math.ceil(gameState.currentTask.time * (gameState.timeMult || 1.0));
-                            gameState.workElapsed = Math.min(actualTime, (gameState.workElapsed || 0) + passedSecs);
-                        } else if (gameState.currentTask.minTime) {
-                            gameState.workElapsed = (gameState.workElapsed || 0) + passedSecs;
-                        }
-                    }
-
                     gameState.lastSaveTime = Date.now(); 
                     saveStockStateToStorage();
-                    
                     updateAccountUI();
 
-                    // 🚨 3초 주기로 파이어베이스 시계를 역추적 감시하여 자동 주사위 틱 가동
                     marketCheckCounter++;
-                    if (marketCheckCounter >= 3) {
+                    if (marketCheckCounter >= 2) { // 🚨 리얼타임 체킹 빈도를 2초 간격으로 가속
                         marketCheckCounter = 0;
                         checkAndTickGlobalMarket();
                     }
@@ -448,31 +385,26 @@
             }, 1000); 
         }
 
-function syncGlobalMarket() {
-    db.collection("market_data").onSnapshot(snapshot => {
-        let dataChanged = false;
-
-        snapshot.forEach(doc => {
-            // 🚨 [수정 완료] 주식 리스트 스냅샷 로드 시 시계 데이터와 뉴스룸 통합 문서는 전산 연산에서 제외
-            if (doc.id === "market_status") {
-                let data = doc.data();
-                if (data && data.lastUpdate) { lastMarketUpdate = data.lastUpdate; }
-                return;
-            }
-            if (doc.id === "market_news") return; // 📰 뉴스 갱신 트래픽은 가볍게 무시하고 통과시킵니다.
-            
-            let data = doc.data();
-            let s = gameState.stocks.find(x => x.name === data.name);
+        function syncGlobalMarket() {
+            db.collection("market_data").onSnapshot(snapshot => {
+                let dataChanged = false;
+                snapshot.forEach(doc => {
+                    if (doc.id === "market_status") {
+                        let data = doc.data();
+                        if (data && data.lastUpdate) { lastMarketUpdate = data.lastUpdate; }
+                        return;
+                    }
+                    if (doc.id === "market_news") return; 
                     
+                    let data = doc.data();
+                    let s = gameState.stocks.find(x => x.name === data.name);
                     if (s) {
                         if (s.price !== data.price) {
                             s.prev = s.price; 
                             s.price = data.price; 
-                            
                             if (!s.history) s.history = [];
                             s.history.push(s.price);
                             if (s.history.length > 30) s.history.shift();
-                            
                             dataChanged = true;
                         }
                     }
@@ -489,7 +421,6 @@ function syncGlobalMarket() {
         function updateAccountUI() {
             let stockAsset = 0;   
             let totalPrincipal = 0; 
-            
             for (let name in gameState.holdings) {
                 let qty = Number(gameState.holdings[name] || 0);
                 if (qty > 0) {
@@ -499,13 +430,11 @@ function syncGlobalMarket() {
                 }
             }
             let totalAsset = gameState.money + stockAsset;
-            
             let totalProfitLoss = stockAsset - totalPrincipal;
             let totalProfitRate = totalPrincipal > 0 ? ((totalProfitLoss / totalPrincipal) * 100).toFixed(2) : "0.00";
             let sign = totalProfitLoss > 0 ? "+" : "";
             let color = totalProfitLoss > 0 ? "var(--stock-up)" : (totalProfitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
             
-            const accountTitleEl = document.getElementById('account-title');
             const totalAssetEl = document.getElementById('total-asset');
             const availCashEl = document.getElementById('available-cash');
             const totalPrincipalEl = document.getElementById('total-principal');
@@ -513,35 +442,14 @@ function syncGlobalMarket() {
             const totalProfitLossEl = document.getElementById('total-profit-loss');
             const totalProfitRateEl = document.getElementById('total-profit-rate');
             const gameDateEl = document.getElementById('game-date');
-            
-            if (accountTitleEl) {
-                if (currentTab === 'my') {
-                    accountTitleEl.innerText = "📊 내 투자 포트폴리오";
-                    accountTitleEl.style.color = "var(--accent-color)";
-                } else if (currentTab === 'history') {
-                    accountTitleEl.innerText = "📜 나의 거래 총 자산";
-                    accountTitleEl.style.color = "var(--text-sub)";
-                } else {
-                    accountTitleEl.innerText = "나의 총 자산";
-                    accountTitleEl.style.color = "var(--text-sub)";
-                }
-            }
 
             if (totalAssetEl) totalAssetEl.innerText = Math.floor(totalAsset).toLocaleString() + "원";
             if (availCashEl) availCashEl.innerText = Math.floor(gameState.money).toLocaleString() + "원";
             if (totalPrincipalEl) totalPrincipalEl.innerText = Math.floor(totalPrincipal).toLocaleString() + "원";
             if (totalEvaluationEl) totalEvaluationEl.innerText = Math.floor(stockAsset).toLocaleString() + "원"; 
+            if (totalProfitLossEl) { totalProfitLossEl.innerText = `${sign}${Math.floor(totalProfitLoss).toLocaleString()}원`; totalProfitLossEl.style.color = color; }
+            if (totalProfitRateEl) { totalProfitRateEl.innerText = `${sign}${totalProfitRate}%`; totalProfitRateEl.style.color = color; }
             
-            if (totalProfitLossEl) {
-                totalProfitLossEl.innerText = `${sign}${Math.floor(totalProfitLoss).toLocaleString()}원`;
-                totalProfitLossEl.style.color = color;
-            }
-if (totalProfitRateEl) {
-                totalProfitRateEl.innerText = `${sign}${totalProfitRate}%`;
-                totalProfitRateEl.style.color = color;
-            }
-            
-            // 🚨 [수정] 기존 게임 날짜 표시를 없애고, 글로벌 마켓의 남은 시간을 실시간 초 단위 연산하여 출력합니다.
             if (gameDateEl) {
                 let remaining = Math.max(0, Math.floor(((lastMarketUpdate + 90000) - Date.now()) / 1000));
                 gameDateEl.innerText = `다음 변동 ${remaining}초 남음`;
@@ -568,7 +476,6 @@ if (totalProfitRateEl) {
                     let rate = (((s.price - s.prev) / s.prev) * 100).toFixed(2);
                     let sign = rate > 0 ? "+" : "";
                     let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
-                    
                     let myQty = Number(gameState.holdings[s.name] || 0);
                     let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유중</span>` : '';
 
@@ -576,12 +483,7 @@ if (totalProfitRateEl) {
                         <li class="stock-item" onclick="openModal('${s.name}')">
                             <div class="stock-info">
                                 <div class="stock-icon">${s.name.charAt(0)}</div>
-                                <div class="stock-name-box">
-                                    <div style="display:flex; align-items:center; gap:2px;">
-                                        <span class="stock-name">${s.name}</span>
-                                        ${ownedBadge}
-                                    </div>
-                                </div>
+                                <div class="stock-name-box"><div style="display:flex; align-items:center; gap:2px;"><span class="stock-name">${s.name}</span>${ownedBadge}</div></div>
                             </div>
                             <div class="stock-price-box">
                                 <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
@@ -596,14 +498,12 @@ if (totalProfitRateEl) {
                     if (qty > 0) {
                         let s = gameState.stocks.find(x => x.name === name);
                         if (!s) continue;
-                        
                         let principal = Number(gameState.buyPrinciples[name] || 0);
                         let evaluation = s.price * qty;
                         let profitLoss = evaluation - principal;
                         let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
                         let sign = profitLoss > 0 ? "+" : "";
                         let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
-
                         let avgPrice = Math.round(principal / qty);
 
                         list.innerHTML += `
@@ -611,22 +511,14 @@ if (totalProfitRateEl) {
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div class="stock-info">
                                         <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
-                                        <div class="stock-name-box">
-                                            <span class="stock-name">${name}</span>
-                                            <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span>
-                                        </div>
+                                        <div class="stock-name-box"><span class="stock-name">${name}</span><span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span></div>
                                     </div>
-                                    <div class="stock-price-box">
-                                        <span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Number(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span>
-                                    </div>
+                                    <div class="stock-price-box"><span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Math.floor(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span></div>
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 10px 12px; border-radius: 8px; font-weight: 600;">
                                     <div style="display: flex; justify-content: space-between;">
                                         <div>평단가: <span style="color:var(--text-main);">${avgPrice.toLocaleString()}원</span></div>
                                         <div>총 매입원금: <span style="color:var(--text-main);">${Math.floor(principal).toLocaleString()}원</span></div>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed #e5e7eb; padding-top: 4px; margin-top: 2px;">
-                                        <div>평가금액: <span style="color:var(--text-main);">${Math.floor(evaluation).toLocaleString()}원</span></div>
                                     </div>
                                 </div>
                             </li>`;
@@ -645,10 +537,7 @@ if (totalProfitRateEl) {
                             <li class="stock-item">
                                 <div class="stock-info">
                                     <div class="stock-icon" style="font-size:12px; background:var(--bg-sub); color:${typeColor};">${h.type}</div>
-                                    <div class="stock-name-box">
-                                        <span class="stock-name">${h.name}</span>
-                                        <span style="font-size:11px; color:var(--text-sub); font-weight:500;">${h.date}</span>
-                                    </div>
+                                    <div class="stock-name-box"><span class="stock-name">${h.name}</span><span style="font-size:11px; color:var(--text-sub); font-weight:500;">${h.date}</span></div>
                                 </div>
                                 <div class="stock-price-box">
                                     <span class="stock-price" style="font-size:14px; color:${typeColor};">${h.type === '매수' ? '-' : '+'}${Number(h.total || 0).toLocaleString()}원</span>
@@ -663,12 +552,10 @@ if (totalProfitRateEl) {
         function openChartModal() {
             if (!currentTarget) return;
             document.getElementById('chart-modal').style.display = 'flex';
-            
             let data = [...(currentTarget.history || [])];
             if (data.length === 0) data.push(currentTarget.price);
             
             document.getElementById('chart-modal-title').innerText = `📊 ${currentTarget.name} (최근 ${data.length}일 기록)`;
-            
             let labels = [];
             for (let i = data.length - 1; i >= 0; i--) {
                 if (i === 0) labels.push("현재");
@@ -696,27 +583,10 @@ if (totalProfitRateEl) {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { maxTicksLimit: 4, font: { size: 10, weight: 'bold' } }
-                        },
-                        y: {
-                            grid: { color: '#f3f4f6' },
-                            ticks: { font: { size: 10 } }
-                        }
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 4, font: { size: 10, weight: 'bold' } } },
+                        y: { grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } }
                     },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return ' ' + context.parsed.y.toLocaleString() + '원';
-                                }
-                            }
-                        }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -727,27 +597,18 @@ if (totalProfitRateEl) {
             currentTarget = gameState.stocks.find(s => s.name === name);
             let myQty = Number(gameState.holdings[currentTarget.name] || 0);
 
-            const modalNameEl = document.getElementById('modal-name');
-            const modalPriceEl = document.getElementById('modal-price');
-            const modalHoldingEl = document.getElementById('modal-holding');
-            const tradeQtyEl = document.getElementById('trade-qty');
-            const totalCostEl = document.getElementById('total-cost');
-            
-            if (modalNameEl) modalNameEl.innerText = currentTarget.name;
-            if (modalPriceEl) modalPriceEl.innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
-            if (modalHoldingEl) modalHoldingEl.innerText = `현재 보유량: ${myQty.toLocaleString()}주`;
-            if (tradeQtyEl) tradeQtyEl.value = "";
-            if (totalCostEl) totalCostEl.innerText = "0";
-            
-            const tradeModalEl = document.getElementById('trade-modal');
-            if (tradeModalEl) tradeModalEl.style.display = 'flex';
+            document.getElementById('modal-name').innerText = currentTarget.name;
+            document.getElementById('modal-price').innerText = `현재가: ${currentTarget.price.toLocaleString()}원`;
+            document.getElementById('modal-holding').innerText = `현재 보유량: ${myQty.toLocaleString()}주`;
+            document.getElementById('trade-qty').value = "";
+            document.getElementById('total-cost').innerText = "0";
+            document.getElementById('trade-modal').style.display = 'flex';
         }
 
         function calcTotal() {
             if (!currentTarget) return;
             let qty = document.getElementById('trade-qty').value;
-            const totalCostEl = document.getElementById('total-cost');
-            if (totalCostEl) totalCostEl.innerText = (currentTarget.price * (qty || 0)).toLocaleString();
+            document.getElementById('total-cost').innerText = (currentTarget.price * (qty || 0)).toLocaleString();
         }
 
         function trade(type) {
@@ -763,9 +624,7 @@ if (totalProfitRateEl) {
                     gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
                     gameState.buyPrinciples[currentTarget.name] = Number(gameState.buyPrinciples[currentTarget.name] || 0) + totalCost;
                     showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매수 완료!`);
-                } else {
-                    return showCustomAlert("주문 실패", "예수금 부족!");
-                }
+                } else { return showCustomAlert("주문 실패", "예수금 부족!"); }
             } else {
                 let currentQty = Number(gameState.holdings[currentTarget.name] || 0);
                 if (currentQty >= qty) {
@@ -774,23 +633,15 @@ if (totalProfitRateEl) {
                     gameState.holdings[currentTarget.name] = currentQty - qty;
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                     showCustomAlert("주문 완료", `${currentTarget.name} ${qty}주 매도 완료!`);
-                } else {
-                    return showCustomAlert("주문 실패", "보유 수량 부족!");
-                }
+                } else { return showCustomAlert("주문 실패", "보유 수량 부족!"); }
             }
 
             gameState.history.push({
-                name: currentTarget.name,
-                type: type === 'buy' ? '매수' : '매도',
-                qty: qty,
-                price: currentTarget.price,
-                total: totalCost,
-                date: getGameDateString()
+                name: currentTarget.name, type: type === 'buy' ? '매수' : '매도', qty: qty, price: currentTarget.price, total: totalCost, date: getGameDateString()
             });
 
             saveStockStateToStorage();
-            const tradeModalEl = document.getElementById('trade-modal');
-            if (tradeModalEl) tradeModalEl.style.display = 'none';
+            document.getElementById('trade-modal').style.display = 'none';
             updateAccountUI();
             renderCoreView();
         }
@@ -805,32 +656,22 @@ if (totalProfitRateEl) {
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    db.collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                let cloudData = doc.data();
-                                gameState = { ...gameState, ...cloudData };
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-                            }
-                            
-                            processStockOfflineProgress(); 
-                            updateAccountUI(); 
-                            renderCoreView(); 
-                            startGameLoop(); 
-                            syncGlobalMarket();
-                        })
-                        .catch((err) => {
-                            console.error("클라우드 로드 장해:", err);
-                            processStockOfflineProgress(); 
-                            updateAccountUI(); 
-                            renderCoreView(); 
-                            startGameLoop(); 
-                            syncGlobalMarket();
-                        });
-                } else {
-                    alert("로그인이 필요한 페이지입니다.");
-                    location.href = 'index.html';
-                }
+                    db.collection("users").doc(user.uid).get().then((doc) => {
+                        if (doc.exists) {
+                            let cloudData = doc.data();
+                            gameState = { ...gameState, ...cloudData };
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                        }
+                        processStockOfflineProgress(); 
+                        updateAccountUI(); 
+                        renderCoreView(); 
+                        startGameLoop(); 
+                        syncGlobalMarket();
+                    }).catch((err) => {
+                        console.error(err);
+                        processStockOfflineProgress(); updateAccountUI(); renderCoreView(); startGameLoop(); syncGlobalMarket();
+                    });
+                } else { location.href = 'index.html'; }
             });
         };
     </script>
