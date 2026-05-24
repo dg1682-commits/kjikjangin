@@ -752,9 +752,14 @@
                         fill: true
                     }]
                 },
-                options: {
+options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    // 🚨 [교정] 점을 정확히 누르지 않고 선 근처만 터치해도 금액이 팝업되도록 인터랙션 가드 설치
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     scales: {
                         x: {
                             grid: { display: false },
@@ -766,7 +771,15 @@
                         }
                     },
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        // 🚨 [추가] 팝업창에 세련되게 콤마(,)와 '원'이 붙어서 출력되도록 콜백 마감
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return '가격: ' + context.parsed.y.toLocaleString() + '원';
+                                }
+                            }
+                        }
                     }
                 }
             });
