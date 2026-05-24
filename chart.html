@@ -19,13 +19,11 @@
         input[type="number"] { width: 60px; height: 32px; text-align: center; }
         .apply-btn { height: 32px; padding: 0 12px; background: #0ea5e9; color: white; border-radius: 5px; cursor: pointer; border: none; font-weight: bold; margin-left: auto; }
 
-        /* 대기열 스타일 */
         .pending-container { margin-top: 30px; padding: 20px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #f43f5e; max-width: 600px; margin-left: auto; margin-right: auto; }
         .pending-title { margin-top: 0; color: #f43f5e; font-size: 18px; }
         .pending-list { list-style: none; padding: 0; margin: 0; color: #cbd5e1; font-weight: bold; }
         .pending-item { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #334155; display: flex; justify-content: space-between; }
 
-        /* 📰 뉴스 메이커 스타일 명세 고유 결합 */
         .news-maker-box { margin-top: 30px; padding: 25px; background: #1e293b; border-radius: 12px; text-align: left; border-left: 5px solid #a855f7; max-width: 600px; margin-left: auto; margin-right: auto; }
         .news-flex-row { display: flex; gap: 12px; margin-bottom: 15px; }
         .news-select { flex: 1; height: 42px; padding: 0 10px; font-size: 14px; cursor: pointer; }
@@ -34,15 +32,15 @@
     </style>
 </head>
 <body>
-    <h1>📈 주식 시장 통제실 (백업 복구)</h1>
+    <h1>📈 주식 시장 통제실 (마스터 제어 센터)</h1>
     
     <div id="active-news-status"></div>
-    <div id="timer-display">동기화 중...</div>
+    <div id="timer-display">글로벌 연대 동기화 중...</div>
     
     <div class="grid" id="market-list"></div>
 
     <div class="pending-container">
-        <h3 class="pending-title">⚠️ 다음 턴 적용 대기열 (0초 반영)</h3>
+        <h3 class="pending-title">⚠️ 다음 턴 적용 대기열</h3>
         <ul id="pending-list" class="pending-list"><li>대기 중인 조정 내역이 없습니다.</li></ul>
     </div>
 
@@ -62,10 +60,11 @@
         <textarea id="news-textarea" placeholder="여기에 자동 생성된 보도 기사가 채워집니다. 직접 수정도 가능합니다." style="width:100%; height:100px; padding:12px; font-size:14px; line-height:1.5; margin-bottom:15px; resize: none;"></textarea>
         <button class="news-btn" style="width:100%; background: #10b981; height: 45px; font-size: 15px;" onclick="submitNewsFlash()">📰 속보 전송 및 5턴 트렌드 가속 강제 주입</button>
     </div>
-<div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #334155; display: flex; gap: 10px;">
-            <button class="news-btn" style="flex: 1; background: #64748b; height: 35px; font-size: 13px;" onclick="expireAllPastNews()">⏳ 이전 뉴스 일괄 취소선(만료) 처리</button>
-            <button class="news-btn" style="flex: 1; background: #ef4444; height: 35px; font-size: 13px;" onclick="deleteAllNews()">🗑️ 뉴스룸 전체 기사 비우기 (초기화)</button>
-        </div>
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #334155; display: flex; gap: 10px;">
+        <button class="news-btn" style="flex: 1; background: #64748b; height: 35px; font-size: 13px;" onclick="expireAllPastNews()">⏳ 이전 뉴스 일괄 취소선(만료) 처리</button>
+        <button class="news-btn" style="flex: 1; background: #ef4444; height: 35px; font-size: 13px;" onclick="deleteAllNews()">🗑️ 뉴스룸 전체 기사 비우기 (초기화)</button>
+    </div>
+
 <script>
     const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
     firebase.initializeApp(firebaseConfig);
@@ -82,9 +81,10 @@
         { id: "sksec", name: "OK증권", price: 1250 }
     ];
 
-    let targetTime = 0;
+    let lastMarketUpdate = Date.now();
+    let globalActiveNews = null;
     let pendingPercents = {};
-    let localDraftNews = null; // 대기열 임시 오브젝트 바인딩 용
+    let localDraftNews = null; 
 
     function stepValue(id, delta) {
         const inputEl = document.getElementById(`input-${id}`);
@@ -115,7 +115,6 @@
         renderPendingList();
     }
 
-    // 🚨 [추가] 현재 마켓에 작동중인 글로벌 특보 트렌드 유무 디스플레이 인터페이스
     function renderActiveNewsUI(activeNews) {
         const container = document.getElementById('active-news-status');
         if (!container) return;
@@ -133,19 +132,16 @@
         }
     }
 
-    // 🚨 [추가] 인공지능 뉴스 기사 내용 임의 자동 빌더 시스템
     function generateNewsDraft() {
         const stockId = document.getElementById('news-stock-select').value;
         const type = document.getElementById('news-type-select').value;
         if(!stockId) return alert("버프/디버프를 부여할 종목을 먼저 선택해주세요!");
         
         let s = stocks.find(x => x.id === stockId);
-        
         const upTemplates = [
             `[속보]외신 보도에 따르면 글로벌 유통 대기업이 ${s.name}의 독점 기술 부품을 향후 3년간 전량 선방영 수급 계약을 체결했다는 특보가 타전되었습니다. 이로 인해 강력한 실적 우상향 대폭등 모멘텀이 기대됩니다.`,
             `[특보]${s.name}이 예상을 뛰어넘는 초격차 신제품 혁신에 대성공하며 북미 시장 점유율 1위를 탈환했습니다. 해외 기관 투자자들의 공격적인 자금 유입으로 인해 대규모 우상향 가속 선이 포착되었습니다.`
         ];
-        
         const downTemplates = [
             `[공지]${s.name}의 핵심 원자재 공급망에 예기치 못한 차질이 생기며 공장 가동률이 40% 이하로 급감했습니다. 이번 분기 실적이 반토막 날 것이라는 내부 기밀 보고서가 유출되어 매도 물량이 쏟아지고 있습니다.`,
             `[경고]글로벌 시장 규제 위원회가 ${s.name}의 주력 유통 사업 부문에 사상 최대 규모의 반독점 규제 과징금을 전격 예고했습니다. 미래 성장성에 심각한 급브레이크가 걸리며 투자 심리가 급격히 냉각 중입니다.`
@@ -153,216 +149,176 @@
         
         let pool = type === 'up' ? upTemplates : downTemplates;
         let selectedText = pool[Math.floor(Math.random() * pool.length)];
-        
         document.getElementById('news-textarea').value = selectedText;
         
-        localDraftNews = {
-            stockId: stockId,
-            type: type,
-            turnsLeft: 5,
-            text: selectedText
-        };
+        localDraftNews = { stockId: stockId, type: type, turnsLeft: 5, text: selectedText };
     }
 
-// 🚨 [수정] 더블 클릭 방지 가드 및 타이머 밀림 방지 엔진 탑재 버전
-async function submitNewsFlash() {
-    if (window.isNewsSubmitting) return; // 중복 클릭 차단 방어선
-    if (!localDraftNews || document.getElementById('news-textarea').value.trim() === "") {
-        return alert("먼저 기사 초안 작성 버튼을 눌러 뉴스 내용을 생성해주세요!");
-    }
-    
-    localDraftNews.text = document.getElementById('news-textarea').value.trim();
-    let s = stocks.find(x => x.id === localDraftNews.stockId);
-    
-    if (!confirm(`[${s.name}] 종목의 주가를 향후 5턴(7분 30초) 동안 폭등/폭락시킬 속보 뉴스를 진짜로 발행하시겠습니까?`)) return;
-
-    try {
-        window.isNewsSubmitting = true;
+    async function submitNewsFlash() {
+        if (window.isNewsSubmitting) return; 
+        if (!localDraftNews || document.getElementById('news-textarea').value.trim() === "") {
+            return alert("먼저 기사 초안 작성 버튼을 눌러 뉴스 내용을 생성해주세요!");
+        }
         
-        let newsTimestamp = Date.now();
-        localDraftNews.timestamp = newsTimestamp;
-        localDraftNews.processedExpired = false; // 만료 정산 여부 플래그 신설
+        localDraftNews.text = document.getElementById('news-textarea').value.trim();
+        let s = stocks.find(x => x.id === localDraftNews.stockId);
+        if (!confirm(`[${s.name}] 종목의 주가를 향후 5턴 동안 폭등/폭락시킬 속보 뉴스를 발행하시겠습니까?`)) return;
 
-        // 1. [핵심 수정] 속보를 쏘는 순간 시장 시계를 현재 시간으로 완전히 동기화 리셋 (새로고침 시 증발 방지)
-        await db.collection("market_data").doc("market_status").set({
-            lastUpdate: newsTimestamp,
-            activeNews: localDraftNews
-        }, { merge: true });
+        try {
+            window.isNewsSubmitting = true;
+            let newsTimestamp = Date.now();
+            localDraftNews.timestamp = newsTimestamp;
+            localDraftNews.processedExpired = false; 
 
-        // 2. 안전 경로를 통해 뉴스 통합 문서에 기사 단 1개만 안전하게 인젝션
-        await db.collection("market_data").doc("market_news").set({
-            newsList: firebase.firestore.FieldValue.arrayUnion({
-                title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
-                rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
-                timestamp: newsTimestamp,
-                articleBody: localDraftNews.text,
-                userName: "운영총괄팀",
-                isExpired: false
-            })
-        }, { merge: true });
+            let batch = db.batch();
+            batch.set(db.collection("market_data").doc("market_status"), {
+                lastUpdate: newsTimestamp, activeNews: localDraftNews
+            }, { merge: true });
 
-        renderActiveNewsUI(localDraftNews);
-        alert("📰 뉴스룸 특보 발행 완료! 유저들의 news.html 및 실시간 주가 변동에 5턴 가속 배율이 즉시 강제 반영됩니다.");
-        document.getElementById('news-textarea').value = "";
-        localDraftNews = null;
-    } catch (e) {
-        console.error(e);
-        alert("전송 오류 발생");
-    } finally {
-        window.isNewsSubmitting = false;
+            batch.set(db.collection("market_data").doc("market_news"), {
+                newsList: firebase.firestore.FieldValue.arrayUnion({
+                    title: localDraftNews.type === 'up' ? `[특보] ${s.name} 호재 발생` : `[쇼크] ${s.name} 리스크 대두`,
+                    rewardText: localDraftNews.type === 'up' ? "시장 지배력 모멘텀 확보" : "경영 실적 비상경영 체제 돌입",
+                    timestamp: newsTimestamp, articleBody: localDraftNews.text, userName: "운영총괄팀", isExpired: false
+                })
+            }, { merge: true });
+
+            await batch.commit();
+            alert("📰 뉴스룸 특보 발행 완료! 즉시 실시간 연동됩니다.");
+            document.getElementById('news-textarea').value = "";
+            localDraftNews = null;
+        } catch (e) { console.error(e); alert("전송 오류 발생"); } finally { window.isNewsSubmitting = false; }
     }
-}
-// 🚨 [추가] 1. 과거 뉴스 전체에 일괄 취소선([효과 종료]) 도장 찍기
+
     async function expireAllPastNews() {
-        if (!confirm("현재 뉴스룸에 올라와 있는 모든 기사에 취소선([효과 종료])을 일괄 적용하시겠습니까?")) return;
+        if (!confirm("현재 뉴스룸에 올라와 있는 모든 기사에 취소선을 일괄 적용하시겠습니까?")) return;
         try {
             const newsDoc = await db.collection("market_data").doc("market_news").get();
             if (newsDoc.exists && newsDoc.data().newsList) {
                 let list = newsDoc.data().newsList;
-                // 내부 모든 기사의 만료 상태를 true로 변경
                 list.forEach(n => n.isExpired = true);
                 await db.collection("market_data").doc("market_news").set({ newsList: list }, { merge: true });
                 alert("✅ 모든 과거 기사에 취소선이 정상 반영되었습니다!");
-            } else {
-                alert("정리할 기사가 없습니다.");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("만료 처리 중 오류가 발생했습니다.");
-        }
+            } else { alert("정리할 기사가 없습니다."); }
+        } catch (e) { console.error(e); alert("만료 처리 중 오류가 발생했습니다."); }
     }
 
-    // 🚨 [추가] 2. 뉴스룸 데이터베이스 깔끔하게 공장 초기화 (완전 삭제)
     async function deleteAllNews() {
-        if (!confirm("💥 진짜로 뉴스룸의 모든 기사를 흔적도 없이 삭제하시겠습니까?\n(유저 화면에서 모든 뉴스가 사라집니다. 복구 불가)")) return;
+        if (!confirm("💥 진짜로 뉴스룸의 모든 기사를 흔적도 없이 삭제하시겠습니까?")) return;
         try {
             await db.collection("market_data").doc("market_news").set({ newsList: [] });
             alert("🗑️ 뉴스룸 데이터가 깨끗하게 초기화되었습니다!");
-        } catch (e) {
-            console.error(e);
-            alert("데이터 초기화 중 오류가 발생했습니다.");
-        }
+        } catch (e) { console.error(e); alert("데이터 초기화 중 오류가 발생했습니다."); }
     }
+
+    // 🚨 [패치 핵심] 관리자 화면에도 유저창과 100% 동일한 실시간 전산 리스너 결성 연대 주입
+    function listenGlobalMarketRealtime() {
+        db.collection("market_data").onSnapshot(snapshot => {
+            snapshot.forEach(doc => {
+                if (doc.id === "market_status") {
+                    let data = doc.data();
+                    if (data && data.lastUpdate) {
+                        lastMarketUpdate = data.lastUpdate;
+                        globalActiveNews = data.activeNews || null;
+                        renderActiveNewsUI(globalActiveNews);
+                    }
+                    return;
+                }
+                if (doc.id === "market_news") return;
+                
+                let data = doc.data();
+                let s = stocks.find(x => x.id === doc.id);
+                if (s) s.price = Number(data.price);
+            });
+            renderUI();
+        });
+    }
+
     async function initMarket() {
-        // 드롭다운 종목 바인딩 연동 추가
         const selectEl = document.getElementById('news-stock-select');
         selectEl.innerHTML = '<option value="">영향을 줄 종목 선택</option>';
-        
-        for(let s of stocks) {
-            const doc = await db.collection("market_data").doc(s.id).get();
-            if (doc.exists) s.price = Number(doc.data().price);
+        stocks.forEach(s => {
             selectEl.innerHTML += `<option value="${s.id}">${s.name}</option>`;
-        }
+        });
         
-        const statusDoc = await db.collection("market_data").doc("market_status").get();
-        let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : Date.now();
-        let activeNews = (statusDoc.exists && statusDoc.data().activeNews) ? statusDoc.data().activeNews : null;
-        
-        targetTime = lastUpdate + 90000;
-        renderUI();
-        renderActiveNewsUI(activeNews);
+        listenGlobalMarketRealtime(); // 실시간 데이터 및 시간 감시망 활성화
         renderPendingList();
-        
         setInterval(tick, 1000);
-        tick();
     }
 
-    async function tick() {
-        let remaining = Math.floor((targetTime - Date.now()) / 1000);
-        if (remaining <= 0) await updateMarket();
-        else document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
+    function tick() {
+        let remaining = Math.max(0, Math.floor(((lastMarketUpdate + 90000) - Date.now()) / 1000));
+        if (remaining <= 0) {
+            updateMarket();
+        } else {
+            document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
+        }
     }
 
-    // 🚨 [엔진 전면 개편] 조기 턴 정산 차단 및 타이머 싱크 무결성 보장 버전
+    // 🚨 [2번 완치] 순차 처리를 철폐하고 15개 종목을 묶어서 단 1번에 쏘는 atomic writeBatch 시스템 도입
     async function updateMarket() {
         const now = Date.now();
-        const statusDoc = await db.collection("market_data").doc("market_status").get();
-        let lastUpdate = statusDoc.exists ? statusDoc.data().lastUpdate : now - 90000;
-        let activeNews = (statusDoc.exists && statusDoc.data().activeNews) ? statusDoc.data().activeNews : null;
-        
-        let elapsedMs = now - lastUpdate;
+        let elapsedMs = now - lastMarketUpdate;
         let missedTurns = Math.floor(elapsedMs / 90000);
         
-        // 🎯 [핵심 수정] 아직 정확히 90초가 흐르지 않았다면(0턴), 강제로 턴 정산을 수행하지 않고
-        // 다음 목표 타이머만 안전하게 기존 주기에 맞추어 리셋한 뒤 즉시 연산을 종료합니다.
-        if (missedTurns < 1) {
-            targetTime = lastUpdate + 90000;
-            let remaining = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
-            document.getElementById('timer-display').innerText = `다음 시장 변동까지: ${remaining}초 남음`;
-            return;
-        }
+        if (missedTurns < 1) return; // 유저 브라우저가 먼저 정산했다면 통제실은 중복 정산 생략 통과
 
-        // 정확히 90초 이상의 경과 시간이 물리적으로 확보되었을 때만 아래 주가 변동 루프가 실행됩니다.
+        let batch = db.batch();
+
         for (let turn = 0; turn < missedTurns; turn++) {
             for (let s of stocks) {
                 let change = 0;
-                
-                // 조건 1. 운영자의 1회성 강제 수동 배율(대기열)이 최우선권 가짐
                 if (turn === 0 && pendingPercents[s.id] !== undefined) {
                     change = s.price * pendingPercents[s.id];
                 } 
-                // 조건 2. 뉴스룸 특보 5턴 락인 버프/디버프 가속 연산
-                else if (activeNews && activeNews.stockId === s.id && activeNews.turnsLeft > 0) {
-                    if (activeNews.type === 'up') {
-                        change = s.price * ((Math.random() * 0.05) + 0.01); 
-                    } else {
-                        change = s.price * (-(Math.random() * 0.05) - 0.01); 
-                    }
+                else if (globalActiveNews && globalActiveNews.stockId === s.id && globalActiveNews.turnsLeft > 0) {
+                    if (globalActiveNews.type === 'up') change = s.price * ((Math.random() * 0.05) + 0.01); 
+                    else change = s.price * (-(Math.random() * 0.05) - 0.01); 
                 } 
-                // 조건 3. 일반 자율 시장 무작위 변동 모드 (±2.5%)
                 else {
-                    change = s.price * (Math.random() - 0.5) * 0.05;
+                    // 🚨 [3번 보존] 관리자 정산 시에도 동일하게 우상향 보정 공식 계수 할당
+                    change = s.price * (Math.random() - 0.44) * 0.05;
                 }
-                
                 s.price = Math.max(10, Math.floor(s.price + change));
             }
             
             if (turn === 0) {
                 for (let s of stocks) pendingPercents[s.id] = undefined;
             }
-            
-            // 한 턴이 완벽히 경과 처리될 때마다 특보 잔여 타이머를 1회 안전 차감
-            if (activeNews && activeNews.turnsLeft > 0) {
-                activeNews.turnsLeft--;
+            if (globalActiveNews && globalActiveNews.turnsLeft > 0) {
+                globalActiveNews.turnsLeft--;
             }
         }
 
-        // 연산 결과 파이어베이스 글로벌 노드 배포
-        for (let s of stocks) {
-            await db.collection("market_data").doc(s.id).set({ name: s.name, price: s.price });
-        }
+        // 🚨 15개 종목을 일제히 하나의 패키지에 추가
+        stocks.forEach(s => {
+            batch.set(db.collection("market_data").doc(s.id), { name: s.name, price: s.price });
+        });
 
-        let nextUpdateBase = lastUpdate + (missedTurns * 90000);
+        let nextUpdateBase = lastMarketUpdate + (missedTurns * 90000);
         if (now - nextUpdateBase > 90000) nextUpdateBase = now;
         
-        // 뉴스 가속 버프가 완전히 종료(turnsLeft === 0)되었다면 딱 1회만 취소선 플래그 정산
-        if (activeNews && activeNews.turnsLeft === 0 && !activeNews.processedExpired) {
+        if (globalActiveNews && globalActiveNews.turnsLeft === 0 && !globalActiveNews.processedExpired) {
             try {
-                activeNews.processedExpired = true; 
+                globalActiveNews.processedExpired = true; 
                 const newsDoc = await db.collection("market_data").doc("market_news").get();
                 if (newsDoc.exists && newsDoc.data().newsList) {
                     let list = newsDoc.data().newsList;
                     list.forEach(n => {
-                        if (Number(n.timestamp) === Number(activeNews.timestamp)) {
-                            n.isExpired = true;
-                        }
+                        if (Number(n.timestamp) === Number(globalActiveNews.timestamp)) n.isExpired = true;
                     });
-                    await db.collection("market_data").doc("market_news").set({ newsList: list }, { merge: true });
+                    batch.set(db.collection("market_data").doc("market_news"), { newsList: list }, { merge: true });
                 }
-            } catch (e) { console.error("뉴스 종료 처리 실패:", e); }
+            } catch (e) { console.error(e); }
         }
 
-        // 최종 시계 정보 및 잔여 뉴스 정보 최신화 오버라이트
-        await db.collection("market_data").doc("market_status").set({ 
-            lastUpdate: nextUpdateBase,
-            activeNews: activeNews 
+        // 🚨 글로벌 통합 마켓 시계까지 패키지에 합쳐 단 1번의 틱으로 전송 마감
+        batch.set(db.collection("market_data").doc("market_status"), { 
+            lastUpdate: nextUpdateBase, activeNews: globalActiveNews 
         });
         
-        targetTime = nextUpdateBase + 90000;
-        
-        renderUI();
+        await batch.commit(); // 전선 배포 완료
         renderPendingList();
-        renderActiveNewsUI(activeNews);
     }
 
     function renderUI() {
