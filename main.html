@@ -982,6 +982,8 @@ function saveGame(forceCloud = false) {
                             state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
                             state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
                             state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
+                            // 🚨 클라우드에 저장된 업무 타임스탬프 로드 연동
+                            state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
                             state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
                             state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
                             state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
