@@ -35,6 +35,35 @@
             padding: 0 20px;
         }
 
+        /* 🚨 [추가] 뒤로가기 버튼 배치 컨테이너 스타일 */
+        .back-btn-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        /* 🚨 [추가] 고급 서재 핸드북 느낌의 뒤로가기 버튼 스타일 명세 */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 8px 16px;
+            background-color: var(--bg-book);
+            border: 1px solid #334155;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+        .back-btn:hover {
+            background-color: #475569;
+            transform: translateX(-2px);
+        }
+
         /* 가이드북 커버 타일 */
         .guide-header {
             text-align: center;
@@ -240,11 +269,19 @@
             font-weight: 600;
         }
 
-        /* 🚨 [전격 주입] 스마트폰 화면 전용 모바일 최적화 미디어 쿼리 */
+        /* 스마트폰 화면 전용 모바일 최적화 미디어 쿼리 */
         @media (max-width: 650px) {
             .wrapper {
                 margin: 15px auto;
                 padding: 0 8px;
+            }
+            .back-btn-container {
+                margin-bottom: 10px;
+                padding-left: 2px;
+            }
+            .back-btn {
+                font-size: 13px;
+                padding: 6px 12px;
             }
             .guide-header {
                 margin-bottom: 18px;
@@ -317,6 +354,10 @@
 <body>
 
 <div class="wrapper">
+    
+    <div class="back-btn-container">
+        <a href="main.html" class="back-btn">← 메인화면 복귀</a>
+    </div>
     
     <div class="guide-header">
         <h1>💼 K-직장인 키우기 가이드북</h1>
@@ -418,7 +459,7 @@
                         <div class="card-desc">
                             컨베이어 벨트 위에 나타나는 캐릭터들을 좌우 버튼을 사용해 빛의 속도로 올바르게 분류하는 초정밀 순발력 게임입니다.<br><br>
                             • <b>피버타임:</b> 20콤보 달성 시 화면 전체에 황금빛 네온 이펙트가 켜지며 피버타임이 시작됩니다. 피버 중에는 단 하나의 캐릭터만 쏟아져 나오며, 터치에 성공할 때마다 <b>제한 시간이 1초씩 연장</b>됩니다.<br><br>
-                            • <b>난이도 상승:</b> 인게임 시간 1분이 경과할 때마다 분류해야 할 신규 캐릭터 스냅샷이 추가되어 난이도가 누적 상승합니다. 틀릴 시 5초의 패널티가 차감됩니다. 신기록 달성 시 정산 수당이 <b>무려 2배</b>로 가산 입금됩니다.
+                            • <b>난이도 상승:</b> 인게임 시간 1분이 경과할 때마다 분류해야 할 신규 캐릭터 스냅샷이 추가되어 난이도가 누적 상승합니다. 틀릴 시 5초의 패널티가 차감됩니다. 신기록 달성 시 정산 수당이 <b>무려 24배(기본 12배)</b>로 대폭 증폭 입금됩니다.
                         </div>
                     </div>
 
@@ -427,7 +468,7 @@
                         <div class="card-desc">
                             상사의 감시망을 피해 서류 마감 업무를 몰래 연타 처리하는 스릴링 타이밍 액션 게임입니다.<br><br>
                             • <b>레이더 감시 존:</b> 부장님이 화면 좌측에서 출근하여 중앙의 레이더 감시 존<b>(RED Zone)</b>에 머무르는 순간, 부장님과 눈이 딱 마주친 상태가 됩니다.<br><br>
-                            • <b>동작 중지 법칙:</b> 이 타이밍에 연타 버튼을 누르면 즉시 근무태만 적발 처리(게임오버)됩니다. 부장님이 지나가는 타이밍을 기가 막히게 조율해 안전 구역에서 폭풍 연타를 날려 적립 수당을 쟁취하세요.
+                            • <b>동작 중지 법칙:</b> 이 타이밍에 연타 버튼을 누르면 즉시 근무태만 적발 처리(게임오버)됩니다. 부장님이 지나가는 타이밍을 기가 막히게 조율해 안전 구역에서 폭풍 연타를 날려 <b>12배율</b>적립 수당을 쟁취하세요.
                         </div>
                     </div>
 
