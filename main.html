@@ -962,10 +962,13 @@ function saveGame(forceCloud = false) {
                             let cloudData = doc.data();
                             if (!cloudData.nickname) needsNickname = true;
 
-                            // 🚨 [동기화 락 해제 차단벽] 이미 화면이 켜져서 연산 중이라면, 데이터 오염(빽 현상)을 막기 위해 핵심 시뮬레이션 수치는 로드하지 않고 통과합니다.
+                            // 🚨 [동기화 락 해제 차단벽 교정] 오락실 등에서 돈이 바뀌어 저장되었다면 실시간 실시간 상향 반영해줘야 빽 현상이 안 납니다!
                             if (isCloudDataLoaded) {
                                 state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
                                 state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
+                                if (cloudData.money !== undefined && Number(cloudData.money) > state.money) {
+                                    state.money = Number(cloudData.money);
+                                }
                                 updateDisplay();
                                 return;
                             }
@@ -983,7 +986,6 @@ function saveGame(forceCloud = false) {
                             state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
                             state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
                             state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
-                            // 🚨 클라우드에 저장된 업무 타임스탬프 로드 연동
                             state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
                             state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
                             state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
