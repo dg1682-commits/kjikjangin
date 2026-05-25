@@ -342,7 +342,8 @@
             currentTask: null, workElapsed: 0, debuffTimeLeft: 0, 
             timeMult: 1.0, ownedItems: [], nickname: "김씨", nicknameChangeCount: 0, lastSaveTime: Date.now(), highScore: 0,
             inbox: [], nicknameTickets: 0,
-            lastWorkSaveTime: Date.now() // 🚨 업무 전용 타임스탬프 변수 추가
+            lastWorkSaveTime: Date.now(),
+            debuffEndTime: 0 // 🚨 [추가] 부장님 제재 종료 마감 시각 절대 변수 확보
         };
 
         const RANKS = [{name: "수습", req: 0, bonus: 0}, {name: "인턴", req: 800, bonus: 500}, {name: "사원", req: 3200, bonus: 1000}, {name: "주임", req: 6400, bonus: 2500}, {name: "대리", req: 9600, bonus: 4000}, {name: "과장", req: 16000, bonus: 7000}, {name: "차장", req: 25600, bonus: 10000}, {name: "부장", req: 38400, bonus: 15000}, {name: "사장", req: 153600, bonus: 50000}];
@@ -353,24 +354,22 @@
         const HOUSES = [{id: 'home', name: "부모님 집", deposit: 0, rent: 0, moveCost: 0, mult: 1.0, type: "기본"}, {id: 'goshi', name: "고시원", deposit: 0, rent: 50000, moveCost: 10000, mult: 1.2, type: "월세"}, {id: 'oneroom', name: "원룸", deposit: 20000000, rent: 500000, moveCost: 200000, mult: 1.5, type: "월세"}, {id: 'officetel_w', name: "오피스텔 (월세)", deposit: 40000000, rent: 1500000, moveCost: 80000, mult: 2.5, type: "월세"}, {id: 'officetel_j', name: "오피스텔 (전세)", deposit: 150000000, rent: 0, moveCost: 80000, mult: 2.5, type: "전세"}, {id: 'apt_w', name: "아파트 (월세)", deposit: 120000000, rent: 2500000, moveCost: 2500000, mult: 5.0, type: "월세"}, {id: 'apt_j', name: "아파트 (전세)", deposit: 650000000, rent: 0, moveCost: 2500000, mult: 5.0, type: "전세"}, {id: 'apt_m', name: "아파트 (매매)", deposit: 800000000, rent: 0, moveCost: 2500000, mult: 10.0, type: "매매"}, {id: 'river_w', name: "한강뷰 아파트 (월세)", deposit: 1200000000, rent: 10000000, moveCost: 6500000, mult: 12.0, type: "월세"}, {id: 'river_j', name: "한강뷰 아파트 (전세)", deposit: 2200000000, rent: 0, moveCost: 6500000, mult: 12.0, type: "전세"}, {id: 'river_m', name: "한강뷰 아파트 (매매)", deposit: 2500000000, rent: 0, moveCost: 6500000, mult: 17.0, type: "매매"}];
         const CARS = [{id: 'light_car', name: "K-경차", price: 12000000, timeMult: 0.95, incomeMult: 1.05, desc: "시간 5% 단축 | 보상 5% 증가"}, {id: 'small_car', name: "소형 세단", price: 25000000, timeMult: 0.90, incomeMult: 1.12, desc: "시간 10% 단축 | 보상 12% 증가"}, {id: 'mid_car', name: "중형 SUV", price: 42000000, timeMult: 0.82, incomeMult: 1.25, desc: "시간 18% 단축 | 보상 25% 증가"}, {id: 'large_car', name: "대형 세단", price: 75000000, timeMult: 0.70, incomeMult: 1.50, desc: "시간 30% 단축 | 보상 50% 증가"}];
 
-const SAVE_KEY = "k_worker_tycoon_save_data";
-const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+        const SAVE_KEY = "k_worker_tycoon_save_data";
+        const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
         
-        let isCloudDataLoaded = false; // 🚨 [추가] 서버 데이터를 읽어왔는지 감시하는 안전 장치
+        let isCloudDataLoaded = false; 
         let currentUser = null;
         let workIntervalRef = null;
         let lastCloudSaveTime = 0; 
 
-        // 🚨 [통합 대교정] 유저들의 소중한 데이터를 포맷시키던 유령 상한 리밋 조건식 완전 분쇄 소멸 완료
         function sanitizeState() {
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
             if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 100000000) state.stamina = 0;
             state.exp = Number(state.exp);
-            // 🚨 무한 축적 가능하도록 상한선 가드 전격 철폐 리셋 방지
             if (isNaN(state.exp) || state.exp < 0) state.exp = 0;
             state.rankIdx = Number(state.rankIdx);
             if (isNaN(state.rankIdx) || state.rankIdx < 0 || state.rankIdx >= RANKS.length) state.rankIdx = 0;
@@ -380,7 +379,6 @@ const db = firebase.firestore();
             if (isNaN(state.condition) || state.condition < 0) state.condition = 0;
             if (state.condition > state.maxCondition) state.condition = state.maxCondition;
             state.gameSeconds = Number(state.gameSeconds);
-            // 🚨 플레이 시간 25시간 돌파 시 0년 1월로 타임리프 되던 시한폭탄 조건 삭제 완료
             if (isNaN(state.gameSeconds) || state.gameSeconds < 0) state.gameSeconds = 0;
             state.houseIdx = Number(state.houseIdx);
             if (isNaN(state.houseIdx) || state.houseIdx < 0) state.houseIdx = 0;
@@ -390,8 +388,12 @@ const db = firebase.firestore();
             if (isNaN(state.timeMult) || state.timeMult <= 0) state.timeMult = 1.0;
             state.lastSaveTime = Number(state.lastSaveTime);
             if (isNaN(state.lastSaveTime) || state.lastSaveTime <= 0) state.lastSaveTime = Date.now();
-            // 🚨 무결성 검증 추가
             if (!state.lastWorkSaveTime || isNaN(state.lastWorkSaveTime)) state.lastWorkSaveTime = state.lastSaveTime; 
+            
+            // 🚨 [추가] 무결성 부장님 절대 종료 마크 가드 추가
+            state.debuffEndTime = Number(state.debuffEndTime);
+            if (isNaN(state.debuffEndTime) || state.debuffEndTime < 0) state.debuffEndTime = 0;
+
             if (!state.nickname || typeof state.nickname !== "string") state.nickname = "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
             state.highScore = Number(state.highScore);
@@ -521,6 +523,25 @@ function saveGame(forceCloud = false) {
 
         function updateDisplay() {
             sanitizeState();
+
+            // 🚨 [추가] 절대 마감시각을 기준으로 남은 초 실시간 연산 (오락실/증권사 이탈 공백 자동 환산)
+            if (state.debuffEndTime > 0) {
+                state.debuffTimeLeft = Math.max(0, Math.ceil((state.debuffEndTime - Date.now()) / 1000));
+            } else {
+                state.debuffTimeLeft = 0;
+            }
+
+            // 🚨 [추가] 부장님 제재 안내 문구 및 실시간 초 단위 카운트다운 레이어 바인딩 (Problem 1 완치)
+            let debuffLabelEl = document.getElementById('debuff-label');
+            if (debuffLabelEl) {
+                if (state.debuffTimeLeft > 0) {
+                    debuffLabelEl.innerText = `🚨 부장님께 적발됨! 잔여 제재 시간: ${state.debuffTimeLeft}초`;
+                    debuffLabelEl.style.color = "var(--danger)";
+                } else {
+                    debuffLabelEl.innerText = "";
+                }
+            }
+
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
             const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
@@ -796,7 +817,9 @@ function saveGame(forceCloud = false) {
                 if(Math.random() < job.risk) {
                     let lostPct = Math.floor(Math.random() * 10) + 1; 
                     let lostMoney = Math.floor(Number(state.money) * (lostPct / 100));
-                    state.money = Math.max(0, Number(state.money) - lostMoney); state.debuffTimeLeft = 180; 
+                    state.money = Math.max(0, Number(state.money) - lostMoney); 
+                    state.debuffTimeLeft = 180; 
+                    state.debuffEndTime = Date.now() + 180000; // 🚨 [추가] 180초 뒤 풀리는 절대 미래 마감 시간 기록
                     showAlert("적발됨!", `들켜서 📉${lostMoney.toLocaleString()}원을 삭감당했습니다!`);
                 } else {
                     let rand = Math.random(); let pct = 1;
@@ -809,6 +832,22 @@ function saveGame(forceCloud = false) {
                 state.workElapsed = 0;
                 updateDisplay(); saveGame(true); return;
             }
+
+            let ratio = isCanceled ? (elapsed / actualTime) : 1;
+            let costDeducted = Math.floor(job.conditionCost * ratio);
+            state.condition = Math.max(0, Number(state.condition) - costDeducted);
+
+            let baseMoney = job.money + RANKS[state.rankIdx].bonus;
+            let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
+            let totalMoney = baseMoney * getIncomeMultiplier(state.stamina) * carIncomeMult;
+            let earnedMoney = Math.floor(totalMoney * ratio);
+            let earnedExp = Math.floor(job.exp * ratio);
+
+            state.money = Number(state.money) + Number(earnedMoney); state.exp = Number(state.exp) + Number(earnedExp);
+            showAlert(isCanceled ? "작업 취소" : "업무 완료", `💰 수익: +${earnedMoney.toLocaleString()}원\n📉 소모 컨디션: ${costDeducted}`);
+            state.workElapsed = 0;
+            updateDisplay(); saveGame(true);
+        }
 
             let ratio = isCanceled ? (elapsed / actualTime) : 1;
             let costDeducted = Math.floor(job.conditionCost * ratio);
@@ -1038,6 +1077,7 @@ function saveGame(forceCloud = false) {
                             state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
                             state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
                             state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
+                            state.debuffEndTime = cloudData.debuffEndTime !== undefined ? Number(cloudData.debuffEndTime) : 0;
                             state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
                             state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
                             state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
