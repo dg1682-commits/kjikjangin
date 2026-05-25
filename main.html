@@ -819,7 +819,7 @@ function saveGame(forceCloud = false) {
                     let lostMoney = Math.floor(Number(state.money) * (lostPct / 100));
                     state.money = Math.max(0, Number(state.money) - lostMoney); 
                     state.debuffTimeLeft = 180; 
-                    state.debuffEndTime = Date.now() + 180000; // 🚨 [추가] 180초 뒤 풀리는 절대 미래 마감 시간 기록
+                    state.debuffEndTime = Date.now() + 180000; 
                     showAlert("적발됨!", `들켜서 📉${lostMoney.toLocaleString()}원을 삭감당했습니다!`);
                 } else {
                     let rand = Math.random(); let pct = 1;
@@ -849,22 +849,7 @@ function saveGame(forceCloud = false) {
             updateDisplay(); saveGame(true);
         }
 
-            let ratio = isCanceled ? (elapsed / actualTime) : 1;
-            let costDeducted = Math.floor(job.conditionCost * ratio);
-            state.condition = Math.max(0, Number(state.condition) - costDeducted);
-
-            let baseMoney = job.money + RANKS[state.rankIdx].bonus;
-            let carIncomeMult = (state.carIdx !== undefined && state.carIdx >= 0) ? CARS[state.carIdx].incomeMult : 1.0;
-            let totalMoney = baseMoney * getIncomeMultiplier(state.stamina) * carIncomeMult;
-            let earnedMoney = Math.floor(totalMoney * ratio);
-            let earnedExp = Math.floor(job.exp * ratio);
-
-            state.money = Number(state.money) + Number(earnedMoney); state.exp = Number(state.exp) + Number(earnedExp);
-            showAlert(isCanceled ? "작업 취소" : "업무 완료", `💰 수익: +${earnedMoney.toLocaleString()}원\n📉 소모 컨디션: ${costDeducted}`);
-            state.workElapsed = 0;
-            updateDisplay(); saveGame(true);
-        }
-
+            
         function startRest(idx) {
             let rest = RESTS[idx];
             if(state.debuffTimeLeft > 0) return showAlert("업무 불가", "혼나는 중입니다!");
