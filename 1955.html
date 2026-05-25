@@ -77,6 +77,27 @@
 </head>
 <body>
 
+    <div class="modal-overlay" id="start-curtain" style="display: flex; background: rgba(5, 7, 15, 0.95); z-index: 2000;">
+        <div class="modal-content" style="max-width: 340px; width: 95%; padding: 20px 15px; border-color: var(--neon-cyan); box-shadow: 0 0 30px rgba(6, 182, 212, 0.5);">
+            <div class="modal-title" style="color: var(--neon-cyan); font-size: 20px; margin-bottom: 12px; text-shadow: 0 0 15px rgba(6, 182, 212, 0.4);">🛩️ 1955 공식 가이드북</div>
+            
+            <div id="start-guide-desc" style="text-align: left; font-size: 13px; line-height: 1.6; max-height: 260px; overflow-y: auto; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 10px; margin-bottom: 15px; color: var(--text-light); -webkit-overflow-scrolling: touch;">
+                <p style="margin: 0 0 10px 0; font-weight: 800; color: #fff; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">포화 속을 누비는 클래식 슈팅 에이스 비행</p>
+                
+                <p style="margin: 0 0 4px 0; color: var(--neon-cyan); font-weight: 900;">↔️ 드래그 회피 조작</p>
+                <span style="color: var(--text-muted); display: block; margin-bottom: 10px; padding-left: 2px;">화면을 가볍게 좌우로 터치하거나 손가락으로 드래그하여 아군 비행 기체를 실시간 무빙 시킵니다. 사방에서 날아오는 적들의 화망을 피해내야 합니다.</span>
+                
+                <p style="margin: 0 0 4px 0; color: var(--neon-pink); font-weight: 900;">☄️ 위험한 낙하 오브젝트 가속</p>
+                <span style="color: var(--text-muted); display: block; margin-bottom: 10px; padding-left: 2px;">하늘에서 하강하는 무작위 거대 운석(Asteroid), 추적 유도 미사일(Missile), 고속 포탄(Bullet)이 플레이 스코어가 상승함에 따라 주사위 속도가 점점 흉악하게 증가합니다.</span>
+                
+                <p style="margin: 0 0 4px 0; color: #10b981; font-weight: 900;">💰 생존 시간 비례 정산</p>
+                <span style="color: var(--text-muted); display: block; padding-left: 2px;">스치기만 해도 아웃되는 전장입니다. 오래 버텨서 고득점을 기록하면, 최종 스코어 대비 정확히 <b>1.2배의 정속 성과급 수당 자금</b>이 유저 자산 잔액 데이터에 즉시 정산 인젝션됩니다.</span>
+            </div>
+            
+            <button class="modal-btn retry" onclick="launch1955Game()" style="margin: 0; background: linear-gradient(135deg, var(--neon-cyan), #0369a1);">🕹️ 출격 개시 (코인 완료)</button>
+        </div>
+    </div>
+
     <header>
         <a href="game.html" class="back-btn">←</a>
         <div class="header-title">🛩️ 클래식 스트라이커 1955</div>
@@ -103,7 +124,7 @@
 
     <div id="gameover-modal" class="modal-overlay">
         <div class="modal-content">
-            <h2 class="modal-title">💥(GAME OVER)</h2>
+            <h2 class="modal-title">💥 GAME OVER</h2>
             <div class="result-box" id="result-box"></div>
             <button class="modal-btn retry" onclick="resetEngineToRetry()">재시작 (100원)</button>
             <button class="modal-btn exit" onclick="location.replace('game.html')">오락실 나가기</button>
@@ -115,9 +136,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     
-    // 🚨 [전역 변수 오류 해결] 전역 상태 감시용 라이브 통제 플래그 안전 선언
     let currentUser = null, highScore1955 = 0;
-    let gameActive = true;
+    let gameActive = false; // 🚨 [수정] 안내 모달 정독용 초기 기동 락(Lock) 활성화
     let bossTimerRef = null;
 
     firebase.auth().onAuthStateChanged(user => { 
@@ -175,7 +195,7 @@
     let spawnTimer = 0;
 
     function handlePointerMove(e) {
-        if (isGameOver) return;
+        if (!gameActive || isGameOver) return;
         const rect = canvas.getBoundingClientRect();
         let clientX = e.clientX;
         if (e.touches && e.touches.length > 0) {
@@ -219,7 +239,7 @@
     }
 
     function updateEngineLoop() {
-        if (isGameOver) return;
+        if (!gameActive || isGameOver) return;
 
         bgY += bgSpeed;
         if (bgY >= canvasHeight) {
@@ -287,10 +307,8 @@
         isGameOver = true;
         gameActive = false;
 
-        // 🚨 [밸런스 패치] 정산 효율을 주임님께서 지시하신 점수 * 1.2배 정속으로 수정
         const earnings = Math.floor(score * 1.2); 
         
-        // 🚨 [버그 완치] 태그 바인딩 타깃 ID를 'result-box'로 긴급 교체하여 전산 충돌 완벽 방어!
         document.getElementById('result-box').innerText = `최종 비행 점수: ${score}점\n💰 오락실 정산 수당: +${earnings.toLocaleString()}원`;
         document.getElementById('gameover-modal').style.display = 'flex';
 
@@ -338,12 +356,26 @@
         });
     }
 
+    // 🚨 [추가] 가이드 팝업 모달에서 시작 버튼을 누르면 인비저블 전환 및 기동시키는 트리거 스위치
+    function launch1955Game() {
+        document.getElementById('start-curtain').style.display = 'none';
+        gameActive = true;
+        score = 0;
+        document.getElementById('current-score').innerText = score;
+        entities = [];
+        spawnTimer = 0;
+        isGameOver = false;
+        player.x = canvasWidth / 2;
+        player.targetX = canvasWidth / 2;
+        updateEngineLoop();
+    }
+
     window.addEventListener('resize', resizeCanvas);
     
-    resizeCanvas();
-    setTimeout(() => {
-        updateEngineLoop();
-    }, 500);
+    window.onload = () => {
+        resizeCanvas();
+        // 🚨 자동 실행 타이머 루프를 거세하고 launch1955Game()이 핸들을 가져가도록 완전 정지 대기
+    };
 </script>
 </body>
 </html>
