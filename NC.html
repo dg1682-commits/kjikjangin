@@ -326,7 +326,7 @@
         const boss = document.getElementById('boss-container');
         boss.style.transition = 'none';
 
-        const earnings = Math.floor(score * 1.2);
+        const earnings = Math.floor(score * 12);
         document.getElementById('result-text').innerText = `최종 점수: ${score}점\n💰 지급 수당: +${earnings.toLocaleString()}원`;
         document.getElementById('gameover-modal').style.display = 'flex';
         
