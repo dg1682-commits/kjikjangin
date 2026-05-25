@@ -1035,62 +1035,85 @@ function saveGame(forceCloud = false) {
                 if (user) {
                     currentUser = user; 
                     db.collection("users").doc(user.uid).onSnapshot((doc) => {
-                        let needsNickname = false; 
-                        if (doc.exists) {
-                            let cloudData = doc.data();
-                            if (!cloudData.nickname) needsNickname = true;
+                        // 1. 서버에 다큐먼트 장부 자체가 아예 존재하지 않는 진짜 신규 유저 제어
+                        if (!doc.exists) {
+                            sanitizeState(); 
+                            isCloudDataLoaded = true;
+                            document.getElementById('nickname-overlay').style.display = 'block';
+                            document.getElementById('nickname-modal').style.display = 'block';
+                            return;
+                        }
 
-                            // 🚨 [동기화 락 해제 차단벽 교정] 오락실 등에서 돈이 바뀌어 저장되었다면 실시간 실시간 상향 반영해줘야 빽 현상이 안 납니다!
-                            if (isCloudDataLoaded) {
-                                state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
-                                state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
-                                if (cloudData.money !== undefined && Number(cloudData.money) > state.money) {
-                                    state.money = Number(cloudData.money);
-                                }
-                                updateDisplay();
-                                return;
-                            }
+                        let cloudData = doc.data();
+                        
+                        // 2. 장부는 있으나 사원증 명찰 데이터가 누락된 유령 스냅샷 및 신규 유저 제어
+                        if (!cloudData.nickname) {
+                            sanitizeState(); 
+                            isCloudDataLoaded = true;
+                            document.getElementById('nickname-overlay').style.display = 'block';
+                            document.getElementById('nickname-modal').style.display = 'block';
+                            return;
+                        }
 
-                            state.money = cloudData.money !== undefined ? Number(cloudData.money) : 100000;
-                            state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
-                            state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
-                            state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
-                            state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : 100;
-                            state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : 100;
-                            state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : 0;
-                            state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : -1;
-                            state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
-                            state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
-                            state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
-                            state.debuffEndTime = cloudData.debuffEndTime !== undefined ? Number(cloudData.debuffEndTime) : 0;
-                            state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
+                        // 🎯 [완치 핵심 방어선] 정상적인 서버 장부가 확인되면 가입 축하 모달 가차 없이 즉시 폐쇄 및 차단
+                        document.getElementById('nickname-overlay').style.display = 'none';
+                        document.getElementById('nickname-modal').style.display = 'none';
+
+                        // 3. 증권사/오락실 등 멀티 탭에서 변동된 자산을 실시간 실시간 리스너로 가로채 지갑 동기화
+                        state.money = cloudData.money !== undefined ? Number(cloudData.money) : state.money;
+                        state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : state.stamina;
+                        state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : state.exp;
+                        state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : state.rankIdx;
+                        state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : state.condition;
+                        state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : state.maxCondition;
+                        state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : state.houseIdx;
+                        state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : state.carIdx;
+                        state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : state.gameSeconds;
+                        state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : state.rentDayCounter;
+                        state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : state.debuffTimeLeft;
+                        state.debuffEndTime = cloudData.debuffEndTime !== undefined ? Number(cloudData.debuffEndTime) : state.debuffEndTime;
+                        state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : state.timeMult;
+                        state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : state.nicknameChangeCount;
+                        state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : state.highScore;
+                        state.nickname = cloudData.nickname ? String(cloudData.nickname) : state.nickname;
+                        state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : state.ownedItems;
+                        state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : state.inbox;
+                        state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : state.nicknameTickets;
+
+                        if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
+                        if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
+                        if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
+
+                        // 4. 최초 연동 시각에만 딱 한 번 오프라인 방치 수당 엔진 가동 및 시뮬레이터 부팅
+                        if (!isCloudDataLoaded) {
                             state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
                             state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
-                            state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
-                            state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
-                            state.nickname = cloudData.nickname ? String(cloudData.nickname) : ""; 
-                            state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
-                            state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
-                            state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
+                            
+                            sanitizeState(); 
+                            isCloudDataLoaded = true;
+                            processOfflineProgress(); 
+                            
+                            if (state.isWorking && state.currentTask) { 
+                                startTaskInterval(); 
+                            } else { 
+                                resetUI(); 
+                            }
+                            startGameLoop(); 
+                        }
 
-                            if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
-                            if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
-                            if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
-                        } else { needsNickname = true; }
-                        
-                        sanitizeState(); 
-                        isCloudDataLoaded = true;
+                        // 로컬 파티션 장부 백업 동시 갱신
                         let saveState = { ...state };
                         delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
                         localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-                        
-                        if (!workIntervalRef) { launchGameEngine(); } else { updateDisplay(); }
-                        if (needsNickname) {
-                            document.getElementById('nickname-overlay').style.display = 'block';
-                            document.getElementById('nickname-modal').style.display = 'block';
-                        }
-                    }, (err) => { console.error(err); if (!workIntervalRef) launchGameEngine(); });
-                } else { location.href = 'index.html'; }
+
+                        updateDisplay();
+                    }, (err) => { 
+                        console.error("실시간 스트림 장해 교정 리부트:", err); 
+                        if (!isCloudDataLoaded) launchGameEngine(); 
+                    });
+                } else { 
+                    location.href = 'index.html'; 
+                }
             });
         };
 
