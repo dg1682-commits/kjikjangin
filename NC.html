@@ -240,8 +240,19 @@
     let gameActive = false;
     let bossTimerRef = null;
 
-    firebase.auth().onAuthStateChanged(user => { if (user) { currentUser = user; db.collection("users").doc(user.uid).get().then(doc => { if(doc.exists) { highScore = doc.data().highScore || 0; document.getElementById('best-score').innerText = highScore; } }); } });
-
+    firebase.auth().onAuthStateChanged(user => { 
+        if (user) { 
+            currentUser = user; 
+            db.collection("users").doc(user.uid).get().then(doc => { 
+                if(doc.exists) { 
+                    // 🚨 [교정] 눈치눈치 전용 최고 기록 데이터 필드 분리 바인딩
+                    highScore = doc.data().highScore_NC || 0; 
+                    document.getElementById('best-score').innerText = highScore; 
+                } 
+            }); 
+        } 
+    });
+    
     function moveBoss() {
         if (!gameActive) return;
         
@@ -314,7 +325,8 @@
             if (score > highScore) { 
                 highScore = score; 
                 document.getElementById('best-score').innerText = highScore; 
-                db.collection("users").doc(currentUser.uid).update({ highScore: highScore }); 
+                // 🚨 [교정] 공용 서랍 충돌을 막기 위해 highScore_NC 전용 필드로 교체 업데이트
+                db.collection("users").doc(currentUser.uid).update({ highScore_NC: highScore }); 
             }
         }
     }
