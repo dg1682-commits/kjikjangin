@@ -816,7 +816,7 @@ function terminateMiniGame() {
     }
 
     // 보상 지급 (기존 기록보다 높으면 2배, 아니면 1.2배)
-    let rewardMoney = isNewRecord ? Math.floor(score * 2) : Math.floor(score * 1.2);
+    let rewardMoney = isNewRecord ? Math.floor(score * 20) : Math.floor(score * 12);
     state.money = Number(state.money || 0) + rewardMoney;
 
     // 🚨 저장 객체 명확화 (money와 highScore를 모두 포함)
