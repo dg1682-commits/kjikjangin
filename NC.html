@@ -237,7 +237,7 @@
     const db = firebase.firestore();
     let currentUser = null, score = 0, highScore = 0, isWatching = false;
     
-    let gameActive = true;
+    let gameActive = false;
     let bossTimerRef = null;
 
     firebase.auth().onAuthStateChanged(user => { if (user) { currentUser = user; db.collection("users").doc(user.uid).get().then(doc => { if(doc.exists) { highScore = doc.data().highScore || 0; document.getElementById('best-score').innerText = highScore; } }); } });
@@ -354,9 +354,17 @@
         });
     }
 
+    function launchNCGame() {
+        document.getElementById('start-curtain').style.display = 'none';
+        gameActive = true;
+        score = 0;
+        document.getElementById('current-score').innerText = score;
+        setTimeout(moveBoss, 600);
+    }
+
     window.onload = () => { 
-        setTimeout(moveBoss, 1000); 
-        launchRealtimeRadarScanner(); 
+        
+launchRealtimeRadarScanner(); 
     };
 </script>
 </body>
