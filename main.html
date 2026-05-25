@@ -867,19 +867,73 @@ function saveGame(forceCloud = false) {
 
         function buyBuff(i) {
             let b = BUFFS[i];
+            
+            // 🚨 [교정] 100년 산삼 클릭 시 단발 구매 대신 전용 대량 구매 모달을 개방합니다.
+            if (b.id === 'wild') {
+                openSansamModal();
+                return;
+            }
+            
             if(Number(state.money) >= b.price) {
-                if (b.id === 'wild') {
-                    state.money = Number(state.money) - Number(b.price);
-                    state.stamina = Number(state.stamina) + Number(b.effect);
-                    showAlert("사용 완료", `${b.name} 복용 완료! (체력 수치가 +${b.effect} 영구 상승했습니다.)`);
-                } else {
-                    if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
-                    state.money = Number(state.money) - Number(b.price); 
-                    state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
-                    showAlert("사용 완료", `${b.name} 복용 완료!`);
-                }
+                if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
+                state.money = Number(state.money) - Number(b.price); 
+                state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
+                showAlert("사용 완료", `${b.name} 복용 완료!`);
                 updateDisplay(); closeSheet(); saveGame(true);
             } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
+        }
+
+        // 🚨 [신설] 100년 산삼 전용 구매 모달 제어 시스템 및 원자적 대량 연산 로직 엔진
+        function openSansamModal() {
+            document.getElementById('sansam-overlay').style.display = 'block';
+            document.getElementById('sansam-modal').style.display = 'block';
+            document.getElementById('sansam-qty').value = "";
+            document.getElementById('sansam-total-cost').innerText = "0";
+        }
+
+        function closeSansamModal() {
+            document.getElementById('sansam-overlay').style.display = 'none';
+            document.getElementById('sansam-modal').style.display = 'none';
+        }
+
+        function calcSansamTotal() {
+            let qty = parseInt(document.getElementById('sansam-qty').value) || 0;
+            if (qty < 0) {
+                qty = 0;
+                document.getElementById('sansam-qty').value = 0;
+            }
+            let pricePerEach = 13000; // BUFFS 배열 내 명세된 산삼 가격
+            document.getElementById('sansam-total-cost').innerText = (pricePerEach * qty).toLocaleString();
+        }
+
+        function setSansamMax() {
+            let pricePerEach = 13000;
+            let maxQty = Math.floor(Number(state.money) / pricePerEach);
+            document.getElementById('sansam-qty').value = maxQty > 0 ? maxQty : 0;
+            calcSansamTotal();
+        }
+
+        function executeSansamPurchase() {
+            let qty = parseInt(document.getElementById('sansam-qty').value);
+            if (!qty || qty <= 0) return alert("구매하실 수량을 올바르게 입력해주세요!");
+            
+            let pricePerEach = 13000;
+            let totalCost = pricePerEach * qty;
+            let staminaEffectPerEach = 100; // BUFFS 배열 내 명세된 체력 상승 스탯
+
+            if (Number(state.money) >= totalCost) {
+                state.money = Number(state.money) - totalCost;
+                state.stamina = Number(state.stamina) + (staminaEffectPerEach * qty);
+                
+                closeSansamModal();
+                closeSheet();
+                updateDisplay();
+                saveGame(true);
+                
+                showAlert("대량 복용 완료", `산삼 ${qty}주를 일제히 달여 복용했습니다!\n💎 체력 스탯이 +${(staminaEffectPerEach * qty).toLocaleString()} 영구 가산되었습니다.`);
+            } else {
+                alert("가용 현금이 부족합니다! 주문 수량을 조절해 주세요.");
+            }
         }
         
         function buyShop(i) {
@@ -1037,5 +1091,22 @@ function saveGame(forceCloud = false) {
         }
         initNewsBadgeRealtime();
     </script>
+    <div class="modal-overlay" id="sansam-overlay" style="z-index: 1500; display: none;" onclick="closeSansamModal()"></div>
+    <div class="alert-modal" id="sansam-modal" style="z-index: 1501; display: none; max-width: 330px; width: 85%; padding: 25px; border-radius: 16px; background: var(--card-bg); border: 2px solid #facc15; box-shadow: 0 10px 25px rgba(0,0,0,0.155);">
+        <div class="alert-title" style="color: #d97706; font-size: 18px; font-weight: 800; margin-bottom: 12px;">💎 100년 산삼 대량 구매</div>
+        <div class="alert-desc" style="text-align: center; font-size: 14px; color: var(--text-sub); margin-bottom: 15px; font-weight: 600; line-height: 1.5;">
+            구매하실 산삼의 수량을 선택하세요.<br>
+            <span style="font-size: 11px; color: var(--success); font-weight: 800;">개당 가격: 13,000원 | 즉시 체력 +100</span>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px; width: 100%;">
+            <span onclick="setSansamMax()" style="font-size: 11px; font-weight: 800; color: var(--success); background: #dcfce7; padding: 5px 10px; border-radius: 6px; cursor: pointer; user-select: none;">최대 수량</span>
+        </div>
+        <input type="number" id="sansam-qty" placeholder="수량 입력" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #facc15; border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box; background: #f8fafc; color: var(--text-main);" min="1" oninput="calcSansamTotal()">
+        <p style="font-size: 14px; font-weight: 700; margin: 0 0 20px 0; color: var(--text-main);">총 결제금액: <span id="sansam-total-cost" style="color: var(--danger); font-weight: 900;">0</span>원</p>
+        <div class="alert-btn-box" style="display: flex; gap: 10px;">
+            <button class="alert-btn cancel" style="background: #94a3b8; color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="closeSansamModal()">취소</button>
+            <button class="alert-btn" style="background: #0ea5e9; color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="executeSansamPurchase()">구매하기</button>
+        </div>
+    </div>
 </body>
 </html>
