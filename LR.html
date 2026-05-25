@@ -322,7 +322,7 @@ body, html {
                 <span style="color: #cbd5e1; display: block; margin-bottom: 10px; padding-left: 2px;">인게임 시간 기준 1분이 경과할 때마다 분류해야 할 신규 캐릭터 스냅샷이 누적 추가되어 뇌정지 난이도로 가속됩니다.</span>
                 
                 <p style="margin: 0 0 4px 0; color: var(--neon-pink); font-weight: 900;">💥 오답 패널티 & 신기록 수당</p>
-                <span style="color: #cbd5e1; display: block; padding-left: 2px;">잘못 분류하는 즉시 <b>제한 시간 5초가 가차 없이 삭감</b>되며 피버가 강제 해제됩니다. 자신의 기존 기록을 깨고 신기록 달성 시 <b>성과급 보너스를 정확히 2배</b>로 획득합니다!</span>
+                <span style="color: #cbd5e1; display: block; padding-left: 2px;">잘못 분류하는 즉시 <b>제한 시간 5초가 가차 없이 삭감</b>되며 피버가 강제 해제됩니다. 자신의 기존 기록을 깨고 신기록 달성 시 <b>성과급 보너스를 정확히 20배</b>로 획득합니다!</span>
             </div>
             
             <button class="curtain-start-btn" onclick="launchMiniGame()">🕹️ 업무 개시 (100원)</button>
@@ -815,7 +815,7 @@ function terminateMiniGame() {
         document.getElementById('best-val').innerText = state.highScore; // 화면 갱신
     }
 
-    // 보상 지급 (기존 기록보다 높으면 2배, 아니면 1.2배)
+    // 보상 지급 (기존 기록보다 높으면 20배, 아니면 12배)
     let rewardMoney = isNewRecord ? Math.floor(score * 20) : Math.floor(score * 12);
     state.money = Number(state.money || 0) + rewardMoney;
 
@@ -843,7 +843,7 @@ function terminateMiniGame() {
             </div>
             <div class="curtain-desc">
                 최종 스코어: <b>${score}점</b><br>
-                ${isNewRecord ? '최고기록 갱신! 보너스 2배!<br>' : ''}
+                ${isNewRecord ? '최고기록 갱신! 보너스 20배!<br>' : ''}
                 업무 성과급: <span style="color:#facc15; font-size:18px;">+${rewardMoney.toLocaleString()}원</span>
             </div>
             <button class="curtain-start-btn" onclick="location.reload()">한판 더 (100원)</button>
