@@ -61,7 +61,6 @@
         .modal-content { background: white; width: 90%; padding: 20px; border-radius: 16px; text-align: center; }
         .modal-btn { width: 45%; padding: 12px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
         
-        /* 🚨 하단 메뉴 바 내비게이션 4분할 균등 분배 레이아웃 교정 */
         .bottom-nav { 
             position: fixed; 
             bottom: 0; 
@@ -100,7 +99,10 @@
 
     <main>
         <section class="account-section">
-            <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); margin-bottom: 5px; text-align: right;">동기화 중...</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div id="kospi-display" style="font-size: 14px; font-weight: 900; color: var(--stock-up);">현재 코스피: 5,000 pt</div>
+                <div id="game-date" style="font-size: 13px; font-weight: 700; color: var(--accent-color); text-align: right;">동기화 중...</div>
+            </div>
             <div class="account-title" id="account-title">나의 총 자산</div>
             <div class="account-balance" id="total-asset">0원</div>
             
@@ -188,6 +190,8 @@
         if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; 
         if (!gameState.history) gameState.history = [];
         if (!gameState.gameSeconds) gameState.gameSeconds = 0;
+        if (gameState.kospi === undefined) gameState.kospi = 5000;
+        if (gameState.kospiTrend === undefined) gameState.kospiTrend = 'up';
 
         const INITIAL_STOCKS = [
             { name: "애비디아", price: 353189, prev: 353189 },
@@ -313,6 +317,34 @@
                     if (missedTurns < 1) missedTurns = 1;
                     if (missedTurns > 25) missedTurns = 25; 
                     
+                    let currentKospi = statusDoc.data().kospi !== undefined ? Number(statusDoc.data().kospi) : 5000;
+                    let currentKospiTrend = statusDoc.data().kospiTrend || 'up';
+                    let currentNextKospiTrend = statusDoc.data().nextKospiTrend || 'auto';
+                    let currentKospiDayCounter = statusDoc.data().kospiDayCounter !== undefined ? Number(statusDoc.data().kospiDayCounter) : 0;
+                    
+                    let kospiHistoryPerTurn = [];
+                    for (let turn = 0; turn < missedTurns; turn++) {
+                        let kospiChange = 0;
+                        if (currentKospiTrend === 'up') {
+                            kospiChange = currentKospi * ((Math.random() - 0.41) * 0.025);
+                        } else {
+                            kospiChange = currentKospi * ((Math.random() - 0.59) * 0.025);
+                        }
+                        currentKospi = Math.max(1000, Math.floor(currentKospi + kospiChange));
+
+                        currentKospiDayCounter++;
+                        if (currentKospiDayCounter >= 7) {
+                            currentKospiDayCounter = 0;
+                            if (currentNextKospiTrend === 'up' || currentNextKospiTrend === 'down') {
+                                currentKospiTrend = currentNextKospiTrend;
+                                currentNextKospiTrend = 'auto';
+                            } else {
+                                currentKospiTrend = (currentKospiTrend === 'up') ? 'down' : 'up';
+                            }
+                        }
+                        kospiHistoryPerTurn.push(currentKospi);
+                    }
+
                     const snapshot = await db.collection("market_data").get();
                     let batch = db.batch();
                     
@@ -333,7 +365,12 @@
                                 }
                                 localTurnsLeft--;
                             } else {
-                                change = currentPrice * (Math.random() - 0.44) * 0.05;
+                                let turnKospi = kospiHistoryPerTurn[turn];
+                                if (turnKospi > 5000) {
+                                    change = currentPrice * (Math.random() - 0.44) * 0.05;
+                                } else {
+                                    change = currentPrice * (Math.random() - 0.55) * 0.05;
+                                }
                             }
                             currentPrice = Math.max(10, Math.floor(currentPrice + change));
                         }
@@ -361,7 +398,7 @@
                                 });
                                 batch.set(db.collection("market_data").doc("market_news"), { newsList: list }, { merge: true });
                             }
-                        } catch (e) { console.error("유저 노드 뉴스 종료 처리 실패:", e); }
+                        } catch (e) { console.error("뉴스 만료 실패:", e); }
                     }
                     
                     let nextUpdateBase = lastUpdate + (missedTurns * 90000);
@@ -369,13 +406,17 @@
                     
                     batch.set(db.collection("market_data").doc("market_status"), { 
                         lastUpdate: nextUpdateBase,
-                        activeNews: activeNews
+                        activeNews: activeNews,
+                        kospi: currentKospi,
+                        kospiTrend: currentKospiTrend,
+                        nextKospiTrend: currentNextKospiTrend,
+                        kospiDayCounter: currentKospiDayCounter
                     }, { merge: true });
                     
                     await batch.commit();
                 }
             } catch (e) { 
-                console.warn("마켓 동시 틱 충돌 방지 우회 패스"); 
+                console.warn("마켓 충돌 패스"); 
             }
         }
 
@@ -417,6 +458,9 @@
                     if (doc.id === "market_status") {
                         let data = doc.data();
                         if (data && data.lastUpdate) { lastMarketUpdate = data.lastUpdate; }
+                        gameState.kospi = data.kospi !== undefined ? Number(data.kospi) : 5000;
+                        gameState.kospiTrend = data.kospiTrend || 'up';
+                        dataChanged = true;
                         return;
                     }
                     if (doc.id === "market_news") return; 
@@ -473,7 +517,16 @@
             const totalProfitLossEl = document.getElementById('total-profit-loss');
             const totalProfitRateEl = document.getElementById('total-profit-rate');
             const gameDateEl = document.getElementById('game-date');
+            const kospiEl = document.getElementById('kospi-display');
             
+            if (kospiEl) {
+                let kVal = gameState.kospi !== undefined ? Number(gameState.kospi) : 5000;
+                let kTrend = kVal > 5000 ? "상승장 📈" : "하락장 📉";
+                let kColor = kVal > 5000 ? "var(--stock-up)" : "var(--stock-down)";
+                kospiEl.innerText = `현재 코스피: ${kVal.toLocaleString()} pt (${kTrend})`;
+                kospiEl.style.color = kColor;
+            }
+
             if (accountTitleEl) {
                 if (currentTab === 'my') {
                     accountTitleEl.innerText = "📊 내 투자 포트폴리오";
@@ -506,7 +559,7 @@
             
             if (gameDateEl) {
                 let remaining = Math.max(0, Math.floor(((lastMarketUpdate + 90000) - Date.now()) / 1000));
-                gameDateEl.innerText = `다음 변동 ${remaining}초 남음`;
+                gameDateEl.innerText = `변동 ${remaining}초 전`;
             }
         }
 
@@ -520,7 +573,6 @@
             renderCoreView();
         }
 
-        // 🚨 [4번 구현] 가용 현금 연동 퀵 바인딩 레이어 팩토리
         function setTargetMaxQty(action) {
             if (!currentTarget) return;
             const inputQty = document.getElementById('trade-qty');
@@ -610,12 +662,11 @@
                 }
                 if (!has) list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 주식이 없습니다.</li>`;
             } else if (currentTab === 'portfolio') {
-                // 🚨 [5번 구현] 실시간 실현 손익 분석 시뮬레이션 원자적 장부 정산 연산 엔진 기동
                 let runningLedger = {};
                 let cumRealizedProfit = 0;
                 let monthRealizedProfit = 0;
                 
-                const ONE_MONTH_GAME_SECS = 2592000; // 인게임 표준시간 한 달 역산 타임 계수 (30일 분량)
+                const ONE_MONTH_GAME_SECS = 2592000; 
                 const currentSecs = Number(gameState.gameSeconds || 0);
 
                 (gameState.history || []).forEach(log => {
@@ -634,7 +685,6 @@
                             
                             cumRealizedProfit += localizedProfit;
                             
-                            // 타임스탬프 필터 가드 연산 (과거 누적 분 유실 방어 대체값 동기화)
                             let logSeconds = log.gameSeconds !== undefined ? log.gameSeconds : currentSecs;
                             if (currentSecs - logSeconds <= ONE_MONTH_GAME_SECS) {
                                 monthRealizedProfit += localizedProfit;
@@ -752,10 +802,9 @@
                         fill: true
                     }]
                 },
-options: {
+                options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    // 🚨 [교정] 점을 정확히 누르지 않고 선 근처만 터치해도 금액이 팝업되도록 인터랙션 가드 설치
                     interaction: {
                         mode: 'index',
                         intersect: false,
@@ -772,7 +821,6 @@ options: {
                     },
                     plugins: {
                         legend: { display: false },
-                        // 🚨 [추가] 팝업창에 세련되게 콤마(,)와 '원'이 붙어서 출력되도록 콜백 마감
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -834,7 +882,6 @@ options: {
                 }
             }
 
-            // 🚨 [5번 연동 스펙] 한 달 실현 손익 역산을 위해 거래 내역에 당시 인게임 gameSeconds 실시간 바인딩
             gameState.history.push({
                 name: currentTarget.name,
                 type: type === 'buy' ? '매수' : '매도',
