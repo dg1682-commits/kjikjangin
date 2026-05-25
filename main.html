@@ -1031,85 +1031,94 @@ function saveGame(forceCloud = false) {
         }
 
         window.onload = () => {
+            // 🚨 [주임님 기획 이식] 구동되자마자 화면 중앙 로딩 스크린을 강제로 활성화하여 유저 터치를 차단합니다.
+            document.getElementById('loading-screen').style.display = 'flex';
+
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    db.collection("users").doc(user.uid).onSnapshot((doc) => {
-                        // 1. 서버에 다큐먼트 장부 자체가 아예 존재하지 않는 진짜 신규 유저 제어
-                        if (!doc.exists) {
-                            sanitizeState(); 
-                            isCloudDataLoaded = true;
-                            document.getElementById('nickname-overlay').style.display = 'block';
-                            document.getElementById('nickname-modal').style.display = 'block';
-                            return;
-                        }
-
-                        let cloudData = doc.data();
+                    
+                    // 🎯 [1단계] 가짜 스냅샷 방지를 위해 단발성 .get()으로 서버의 '진짜 진실'을 먼저 확정 수신합니다.
+                    db.collection("users").doc(user.uid).get().then((doc) => {
                         
-                        // 2. 장부는 있으나 사원증 명찰 데이터가 누락된 유령 스냅샷 및 신규 유저 제어
-                        if (!cloudData.nickname) {
+                        // 서버에 장부가 아예 없거나, 사원증 명찰(닉네임) 데이터가 아예 없는 진짜 신규 계정일 때 판정
+                        if (!doc.exists || !doc.data() || !doc.data().nickname) {
                             sanitizeState(); 
                             isCloudDataLoaded = true;
+                            
+                            // 로딩창을 걷어내고 신규 입사자 닉네임 입력 창만 화면에 정확하게 개방합니다.
+                            document.getElementById('loading-screen').style.display = 'none';
                             document.getElementById('nickname-overlay').style.display = 'block';
                             document.getElementById('nickname-modal').style.display = 'block';
                             return;
                         }
 
-                        // 🎯 [완치 핵심 방어선] 정상적인 서버 장부가 확인되면 가입 축하 모달 가차 없이 즉시 폐쇄 및 차단
+                        // 🎯 [2단계] 서버에 정상 장부가 확인되면 가입 축하 사원증 모달을 백그라운드에서 즉시 강제 폐쇄합니다.
                         document.getElementById('nickname-overlay').style.display = 'none';
                         document.getElementById('nickname-modal').style.display = 'none';
 
-                        // 3. 증권사/오락실 등 멀티 탭에서 변동된 자산을 실시간 실시간 리스너로 가로채 지갑 동기화
-                        state.money = cloudData.money !== undefined ? Number(cloudData.money) : state.money;
-                        state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : state.stamina;
-                        state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : state.exp;
-                        state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : state.rankIdx;
-                        state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : state.condition;
-                        state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : state.maxCondition;
-                        state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : state.houseIdx;
-                        state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : state.carIdx;
-                        state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : state.gameSeconds;
-                        state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : state.rentDayCounter;
-                        state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : state.debuffTimeLeft;
-                        state.debuffEndTime = cloudData.debuffEndTime !== undefined ? Number(cloudData.debuffEndTime) : state.debuffEndTime;
-                        state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : state.timeMult;
-                        state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : state.nicknameChangeCount;
-                        state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : state.highScore;
-                        state.nickname = cloudData.nickname ? String(cloudData.nickname) : state.nickname;
-                        state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : state.ownedItems;
-                        state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : state.inbox;
-                        state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : state.nicknameTickets;
+                        // 기존 유저의 안전하게 보존된 서버 자산을 로컬 메모리에 최초 100% 이식 동기화합니다.
+                        let cloudData = doc.data();
+                        state.money = cloudData.money !== undefined ? Number(cloudData.money) : 100000;
+                        state.stamina = cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0;
+                        state.exp = cloudData.exp !== undefined ? Number(cloudData.exp) : 0;
+                        state.rankIdx = cloudData.rankIdx !== undefined ? Number(cloudData.rankIdx) : 0;
+                        state.condition = cloudData.condition !== undefined ? Number(cloudData.condition) : 100;
+                        state.maxCondition = cloudData.maxCondition !== undefined ? Number(cloudData.maxCondition) : 100;
+                        state.houseIdx = cloudData.houseIdx !== undefined ? Number(cloudData.houseIdx) : 0;
+                        state.carIdx = cloudData.carIdx !== undefined ? Number(cloudData.carIdx) : -1;
+                        state.gameSeconds = cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0;
+                        state.rentDayCounter = cloudData.rentDayCounter !== undefined ? Number(cloudData.rentDayCounter) : 0;
+                        state.debuffTimeLeft = cloudData.debuffTimeLeft !== undefined ? Number(cloudData.debuffTimeLeft) : 0;
+                        state.debuffEndTime = cloudData.debuffEndTime !== undefined ? Number(cloudData.debuffEndTime) : 0;
+                        state.timeMult = cloudData.timeMult !== undefined ? Number(cloudData.timeMult) : 1.0;
+                        state.nicknameChangeCount = cloudData.nicknameChangeCount !== undefined ? Number(cloudData.nicknameChangeCount) : 0;
+                        state.highScore = cloudData.highScore !== undefined ? Number(cloudData.highScore) : 0;
+                        state.nickname = cloudData.nickname ? String(cloudData.nickname) : "김씨";
+                        state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
+                        state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
+                        state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
 
                         if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
                         if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
                         if (cloudData.workElapsed !== undefined) state.workElapsed = Number(cloudData.workElapsed);
 
-                        // 4. 최초 연동 시각에만 딱 한 번 오프라인 방치 수당 엔진 가동 및 시뮬레이터 부팅
-                        if (!isCloudDataLoaded) {
-                            state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
-                            state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
-                            
-                            sanitizeState(); 
-                            isCloudDataLoaded = true;
-                            processOfflineProgress(); 
-                            
-                            if (state.isWorking && state.currentTask) { 
-                                startTaskInterval(); 
-                            } else { 
-                                resetUI(); 
-                            }
-                            startGameLoop(); 
+                        state.lastSaveTime = cloudData.lastSaveTime !== undefined ? Number(cloudData.lastSaveTime) : Date.now();
+                        state.lastWorkSaveTime = cloudData.lastWorkSaveTime !== undefined ? Number(cloudData.lastWorkSaveTime) : state.lastSaveTime;
+
+                        sanitizeState(); 
+                        isCloudDataLoaded = true;
+                        
+                        // 🎯 [3단계] 검증과 이식이 완벽히 끝나면 비로소 로딩 화면을 걷어내고 메인 월드 엔진을 부팅합니다.
+                        document.getElementById('loading-screen').style.display = 'none';
+                        
+                        processOfflineProgress(); 
+                        if (state.isWorking && state.currentTask) { 
+                            startTaskInterval(); 
+                        } else { 
+                            resetUI(); 
                         }
-
-                        // 로컬 파티션 장부 백업 동시 갱신
-                        let saveState = { ...state };
-                        delete saveState.workInterval; delete saveState.isWorking; delete saveState.currentTask;
-                        localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-
+                        startGameLoop(); 
                         updateDisplay();
-                    }, (err) => { 
-                        console.error("실시간 스트림 장해 교정 리부트:", err); 
-                        if (!isCloudDataLoaded) launchGameEngine(); 
+
+                        // 🎯 [4단계] 마스터 동기화가 끝난 시점부터 실시간 자산 증감 전용 안전 안테나(onSnapshot)를 개방합니다.
+                        // 이 리스너는 절대로 닉네임 창을 재가동하거나 장부를 역공습하지 않고 오직 주식/오락실 수당만 패시브 수신합니다.
+                        db.collection("users").doc(user.uid).onSnapshot((liveDoc) => {
+                            if (!liveDoc.exists) return;
+                            let liveData = liveDoc.data();
+                            if (!liveData || !liveData.nickname) return;
+
+                            // 타 탭 세션에서 정산된 재화 수치와 우편함 필드만 메모리에 동시 유기적 동기화
+                            state.money = liveData.money !== undefined ? Number(liveData.money) : state.money;
+                            state.inbox = Array.isArray(liveData.inbox) ? liveData.inbox : state.inbox;
+                            state.nicknameTickets = liveData.nicknameTickets !== undefined ? Number(liveData.nicknameTickets) : state.nicknameTickets;
+                            
+                            updateDisplay();
+                        }, (err) => { console.error("백그라운드 채널 수신 장해:", err); });
+
+                    }).catch((err) => {
+                        console.error("원격 서버 데이터 Hydration 대참사 장해:", err);
+                        alert("전산망 연결이 지연되고 있습니다. 안정적인 네트워크에서 새로고침을 시도해 주세요.");
                     });
                 } else { 
                     location.href = 'index.html'; 
