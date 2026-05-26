@@ -547,70 +547,175 @@
         }
 
         function renderCoreView() {
-            const list = document.getElementById('stock-list');
-            if (!list) return;
-            list.innerHTML = "";
+    const list = document.getElementById('stock-list');
+    if (!list) return;
+    list.innerHTML = "";
 
-            if (currentTab === 'list') {
-                gameState.stocks.forEach(s => {
-                    // 🚨 [안전 가드] s.prev 가 0이거나 Infinity 크래시 방지 수식 전면 정화
-                    let rate = "0.00";
-                    if (s.prev && s.prev !== 0) {
-                        let calcRate = ((s.price - s.prev) / s.prev) * 100;
-                        if (isFinite(calcRate)) rate = calcRate.toFixed(2);
-                    }
-                    let sign = rate > 0 ? "+" : "";
-                    let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
-                    let myQty = Number(gameState.holdings[s.name] || 0);
-                    let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유</span>` : '';
+    if (currentTab === 'list') {
+        gameState.stocks.forEach(s => {
+            let rate = "0.00";
+            if (s.prev && s.prev !== 0) {
+                let calcRate = ((s.price - s.prev) / s.prev) * 100;
+                if (isFinite(calcRate)) rate = calcRate.toFixed(2);
+            }
+            let sign = rate > 0 ? "+" : "";
+            let color = rate > 0 ? "var(--stock-up)" : (rate < 0 ? "var(--stock-down)" : "var(--stock-even)");
+            let myQty = Number(gameState.holdings[s.name] || 0);
+            let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유</span>` : '';
 
-                    list.innerHTML += `
-                        <li class="stock-item" onclick="openModal('${s.name}')">
+            list.innerHTML += `
+                <li class="stock-item" onclick="openModal('${s.name}')">
+                    <div class="stock-info">
+                        <div class="stock-icon">${s.name.charAt(0)}</div>
+                        <div class="stock-name-box">
+                            <div style="display:flex; align-items:center; gap:2px;">
+                                <span class="stock-name">${s.name}</span>${ownedBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stock-price-box">
+                        <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
+                        <span style="color:${color}; font-size:12px; font-weight:700;">${sign}${rate}%</span>
+                    </div>
+                </li>`;
+        });
+    } else if (currentTab === 'my') {
+        let has = false;
+        for (let name in gameState.holdings) {
+            let qty = Number(gameState.holdings[name] || 0);
+            if (qty > 0) {
+                let s = gameState.stocks.find(x => x.name === name);
+                if (!s) continue;
+                let principal = Number(gameState.buyPrinciples[name] || 0);
+                let evaluation = s.price * qty;
+                let profitLoss = evaluation - principal;
+                let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
+                let sign = profitLoss > 0 ? "+" : "";
+                let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
+                let avgPrice = Math.round(principal / qty);
+
+                list.innerHTML += `
+                    <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div class="stock-info">
-                                <div class="stock-icon">${s.name.charAt(0)}</div>
-                                <div class="stock-name-box">
-                                    <div style="display:flex; align-items:center; gap:2px;">
-                                        <span class="stock-name">${s.name}</span>${ownedBadge}
-                                    </div>
-                                </div>
+                                <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
+                                <div class="stock-name-box"><span class="stock-name">${name}</span><span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span></div>
                             </div>
-                            <div class="stock-price-box">
-                                <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
-                                <span style="color:${color}; font-size:12px; font-weight:700;">${sign}${rate}%</span>
-                            </div>
-                        </li>`;
-                });
-            } else if (currentTab === 'my') {
-                let has = false;
-                for (let name in gameState.holdings) {
-                    let qty = Number(gameState.holdings[name] || 0);
-                    if (qty > 0) {
-                        let s = gameState.stocks.find(x => x.name === name);
-                        if (!s) continue;
-                        let principal = Number(gameState.buyPrinciples[name] || 0);
-                        let evaluation = s.price * qty;
-                        let profitLoss = evaluation - principal;
-                        let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
-                        let sign = profitLoss > 0 ? "+" : "";
-                        let color = profitLoss > 0 ? "var(--stock-up)" : (profitLoss < 0 ? "var(--stock-down)" : "var(--text-main)");
-                        let avgPrice = Math.round(principal / qty);
-
-                        list.innerHTML += `
-                            <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div class="stock-info">
-                                        <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
-                                        <div class="stock-name-box"><span class="stock-name">${name}</span><span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span></div>
-                                    </div>
-                                    <div class="stock-price-box"><span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Math.floor(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span></div>
-                                </div>
-                            </li>`;
-                        has = true;
-                    }
-                }
-                if (!has) list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 주식이 없습니다.</li>`;
-            } // 이외 역사적 포트폴리오 탭 생략 안전선 가동
+                            <div class="stock-price-box"><span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Math.floor(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span></div>
+                        </div>
+                    </li>`;
+                has = true;
+            }
         }
+        if (!has) list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">보유 주식이 없습니다.</li>`;
+    } else if (currentTab === 'portfolio') {
+        let runningLedger = {};
+        let cumRealizedProfit = 0;
+        let monthRealizedProfit = 0;
+        
+        const ONE_MONTH_GAME_SECS = 2592000; 
+        const currentSecs = Number(gameState.gameSeconds || 0);
+
+        (gameState.history || []).forEach(log => {
+            if (!runningLedger[log.name]) {
+                runningLedger[log.name] = { qty: 0, capital: 0 };
+            }
+            let ledger = runningLedger[log.name];
+            if (log.type === '매수') {
+                ledger.qty += log.qty;
+                ledger.capital += log.total;
+            } else if (log.type === '매도') {
+                if (ledger.qty > 0) {
+                    let avgCost = ledger.capital / ledger.qty;
+                    let originCostBasis = avgCost * log.qty;
+                    let localizedProfit = log.total - originCostBasis;
+                    
+                    cumRealizedProfit += localizedProfit;
+                    
+                    let logSeconds = log.gameSeconds !== undefined ? log.gameSeconds : currentSecs;
+                    if (currentSecs - logSeconds <= ONE_MONTH_GAME_SECS) {
+                        monthRealizedProfit += localizedProfit;
+                    }
+                    
+                    ledger.qty -= log.qty;
+                    ledger.capital = Math.max(0, ledger.capital - originCostBasis);
+                }
+            }
+        });
+
+        let stockEvalAmt = 0;
+        gameState.stocks.forEach(s => {
+            let ownedQty = Number(gameState.holdings[s.name] || 0);
+            stockEvalAmt += s.price * ownedQty;
+        });
+        let totalCapitalPool = gameState.money + stockEvalAmt;
+
+        let cashRatio = totalCapitalPool > 0 ? ((gameState.money / totalCapitalPool) * 100).toFixed(1) : "100.0";
+        let stockRatio = totalCapitalPool > 0 ? ((stockEvalAmt / totalCapitalPool) * 100).toFixed(1) : "0.0";
+
+        let signCum = cumRealizedProfit > 0 ? "+" : "";
+        let colorCum = cumRealizedProfit > 0 ? "var(--stock-up)" : (cumRealizedProfit < 0 ? "var(--stock-down)" : "var(--text-main)");
+        
+        let signMon = monthRealizedProfit > 0 ? "+" : "";
+        let colorMon = monthRealizedProfit > 0 ? "var(--stock-up)" : (monthRealizedProfit < 0 ? "var(--stock-down)" : "var(--text-main)");
+
+        list.innerHTML = `
+            <li class="stock-item" style="flex-direction: column; align-items: stretch; gap: 16px; cursor: default; background: #fff; padding: 20px;">
+                <div style="font-size: 15px; font-weight: 800; border-bottom: 2px solid var(--text-main); padding-bottom: 8px; color: var(--text-main);">📈 계좌 종합 실현손익 리포트</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; background: var(--bg-sub); padding: 14px; border-radius: 10px; font-weight: 700; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-sub);">누적 총 실현손익</span>
+                        <span style="color: ${colorCum};">${signCum}${Math.floor(cumRealizedProfit).toLocaleString()}원</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 2px;">
+                        <span style="color: var(--accent-color);">📅 최근 1달 기준 실현수익</span>
+                        <span style="color: ${colorMon}; font-weight: 900;">${signMon}${Math.floor(monthRealizedProfit).toLocaleString()}원</span>
+                    </div>
+                </div>
+
+                <div style="font-size: 14px; font-weight: 800; margin-top: 6px; color: var(--text-main);">📊 투자 자산 구성 비율</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #fbbf24; border-radius: 50%;"></span>가용 예수금</div>
+                        <span style="color: var(--text-main);">${Math.floor(gameState.money).toLocaleString()}원 (${cashRatio}%)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; background: #0ea5e9; border-radius: 50%;"></span>주식 평가금액</div>
+                        <span style="color: var(--text-main);">${Math.floor(stockEvalAmt).toLocaleString()}원 (${stockRatio}%)</span>
+                    </div>
+                </div>
+                
+                <div style="width: 100%; background: #e5e7eb; height: 14px; border-radius: 7px; overflow: hidden; display: flex; margin-top: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);">
+                    <div style="background: #fbbf24; width: ${cashRatio}%;"></div>
+                    <div style="background: #0ea5e9; width: ${stockRatio}%;"></div>
+                </div>
+            </li>`;
+    } else {
+        if (gameState.history.length === 0) {
+            list.innerHTML = `<li class="stock-item" style="justify-content:center; color:var(--text-light); font-weight:600; padding:40px 0;">거래 내역이 없습니다.</li>`;
+        } else {
+            for (let i = gameState.history.length - 1; i >= 0; i--) {
+                let h = gameState.history[i];
+                let typeColor = h.type === '매수' ? 'var(--stock-up)' : 'var(--stock-down)';
+                list.innerHTML += `
+                    <li class="stock-item">
+                        <div class="stock-info">
+                            <div class="stock-icon" style="font-size:12px; background:var(--bg-sub); color:${typeColor};">${h.type}</div>
+                            <div class="stock-name-box">
+                                <span class="stock-name">${h.name}</span>
+                                <span style="font-size:11px; color:var(--text-sub); font-weight:500;">${h.date}</span>
+                            </div>
+                        </div>
+                        <div class="stock-price-box">
+                            <span class="stock-price" style="font-size:14px; color:${typeColor};">${h.type === '매수' ? '-' : '+'}${Number(h.total || 0).toLocaleString()}원</span>
+                            <span style="font-size:11px; color:var(--text-sub); font-weight:600;">${h.qty}주</span>
+                        </div>
+                    </li>`;
+            }
+        }
+    }
+}
 
         function openChartModal() {
             if (!currentTarget) return;
