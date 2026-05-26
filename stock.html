@@ -775,9 +775,22 @@
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
                 } else { return showCustomAlert("주문 실패", "수량 부족!"); }
             }
+
+            // 🚨 [누락 복구] 거래 내역 배열에 로그를 실시간으로 쑤셔 넣는 마스터 안테나 복원
+            gameState.history.push({
+                name: currentTarget.name,
+                type: type === 'buy' ? '매수' : '매도',
+                qty: qty,
+                price: currentTarget.price,
+                total: totalCost,
+                date: getGameDateString(),
+                gameSeconds: Number(gameState.gameSeconds || 0)
+            });
+
             saveStockStateToStorage();
             document.getElementById('trade-modal').style.display = 'none';
-            updateAccountUI(); renderCoreView();
+            updateAccountUI(); 
+            renderCoreView();
         }
 
         function goBack(e) { e.preventDefault(); saveStockStateToStorage(); location.replace('main.html'); }
