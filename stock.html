@@ -91,7 +91,13 @@
 </head>
 <body>
 
+    <div id="loading-screen">
+        <div class="jumping-money">💸</div>
+        <div class="loading-text" style="margin-top: 20px; font-size: 18px; font-weight: 800;">Loading...</div>
+    </div>
+
     <header>
+        <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
         <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
         <div class="header-title">K-증권</div>
         <div class="empty-space"></div>
@@ -185,13 +191,17 @@
     <script>
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
-        let gameState = JSON.parse(localStorage.getItem(SAVE_KEY)) || { money: 10000000 };
-        if (!gameState.holdings) gameState.holdings = {};
-        if (!gameState.buyPrinciples) gameState.buyPrinciples = {}; 
-        if (!gameState.history) gameState.history = [];
-        if (!gameState.gameSeconds) gameState.gameSeconds = 0;
-        if (gameState.kospi === undefined) gameState.kospi = 5000;
-        if (gameState.kospiTrend === undefined) gameState.kospiTrend = 'up';
+        // 🚨 [완치 방어선] 캐시 오염 조작을 원천 단절하고 오직 서버 동기화 장부 매칭을 위해 빈 오버레이 틀로 대기
+        let gameState = { 
+            money: 0, 
+            holdings: {}, 
+            buyPrinciples: {}, 
+            history: [], 
+            gameSeconds: 0, 
+            kospi: 5000, 
+            kospiTrend: 'up',
+            stocks: []
+        };
 
         const INITIAL_STOCKS = [
             { name: "애비디아", price: 353189, prev: 353189 },
@@ -908,28 +918,50 @@
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
-                    db.collection("users").doc(user.uid).get()
-                        .then((doc) => {
-                            if (doc.exists) {
-                                let cloudData = doc.data();
-                                gameState = { ...gameState, ...cloudData };
-                                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                    
+                    // 🎯 단발성 .get() 연산으로 원격 파이어베이스의 진짜 원본 잔고 데이터를 먼저 강제 수신합니다.
+                    db.collection("users").doc(user.uid).get().then((doc) => {
+                        if (doc.exists) {
+                            let cloudData = doc.data();
+                            
+                            // 구형 로컬 캐시와의 얕은 병합을 완벽히 차단하고, 오직 원격지 서버 수치만 정식 진실로 이식합니다.
+                            gameState = {
+                                money: cloudData.money !== undefined ? Number(cloudData.money) : 100000,
+                                stamina: cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0,
+                                holdings: cloudData.holdings || {},
+                                buyPrinciples: cloudData.buyPrinciples || {},
+                                history: cloudData.history || [],
+                                gameSeconds: cloudData.gameSeconds !== undefined ? Number(cloudData.gameSeconds) : 0,
+                                kospi: cloudData.kospi !== undefined ? Number(cloudData.kospi) : 5000,
+                                kospiTrend: cloudData.kospiTrend || 'up',
+                                stocks: cloudData.stocks || []
+                            };
+
+                            if (!gameState.stocks || gameState.stocks.length !== 15 || !cloudData.stockResetV3Done) {
+                                gameState.stocks = INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }));
+                                gameState.stockResetV3Done = true; 
                             }
+
+                            gameState.stocks.forEach(s => { 
+                                if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
+                                if(!s.history || !Array.isArray(s.history)) s.history = [s.price]; 
+                            });
+
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                            
+                            // 🎯 서버 마스터 데이터 동기화가 완벽히 마감되었으므로 선제 잠금 락 화면을 거두어냅니다.
+                            document.getElementById('loading-screen').style.display = 'none';
                             
                             processStockOfflineProgress(); 
                             updateAccountUI(); 
                             renderCoreView(); 
                             startGameLoop(); 
                             syncGlobalMarket();
-                        })
-                        .catch((err) => {
-                            console.error("클라우드 로드 장해:", err);
-                            processStockOfflineProgress(); 
-                            updateAccountUI(); 
-                            renderCoreView(); 
-                            startGameLoop(); 
-                            syncGlobalMarket();
-                        });
+                        }
+                    }).catch((err) => {
+                        console.error("증권 원격 서버 연동 대참사 장해:", err);
+                        alert("전산망 연결이 원활하지 않습니다. 잠시 후 새로고침을 시도해 주세요.");
+                    });
                 } else {
                     alert("로그인이 필요한 페이지입니다.");
                     location.href = 'index.html';
