@@ -226,11 +226,6 @@
         const db = firebase.firestore();
         let currentUser = null; 
 
-        if (!gameState.stocks || gameState.stocks.length !== 15 || !gameState.stockResetV3Done) {
-            gameState.stocks = INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }));
-            gameState.stockResetV3Done = true; 
-            saveStockStateToStorage();
-        }
 
         gameState.stocks.forEach(s => { 
             if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
