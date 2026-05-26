@@ -708,17 +708,16 @@ function saveGame(forceCloud = false) {
             if (!item) return;
 
             if (item.item === 'nickname') {
-                let n = prompt("새로운 사원증 이름을 입력해주세요 (8자 이내):", state.nickname);
-                if (n && n.trim() !== "") {
-                    if (n.trim().length > 8) {
-                        alert("이름은 8자 이내로 입력해주세요.");
-                        return;
-                    }
-                    state.nickname = n.trim();
-                    state.nicknameChangeCount++;
-                    showAlert("변경 완료", `황금 명찰이 [${state.nickname}] 이름으로 새롭게 교체되었습니다!`);
-                } else { return; }
-            } else if (item.item === 'money' || (item.rewardText && item.rewardText.includes('원'))) {
+            // 우편함에서 즉시 명찰 변경 모달을 열기 위해 티켓을 가산 후 리팩토링 모달로 제어권을 넘깁니다.
+            state.nicknameTickets++;
+            state.inbox.splice(idx, 1);
+            closeSheet();
+            updateDisplay();
+            saveGame(true);
+            openNicknameChangeModal();
+            return; // 하단의 우편함 시트 재개방 라인을 우회 차단합니다.
+        }
+            else if (item.item === 'money' || (item.rewardText && item.rewardText.includes('원'))) {
                 let amt = Number(item.amount);
                 if(isNaN(amt) || !amt) { amt = Number(item.rewardText.replace(/[^0-9]/g, '')) || 0; }
                 state.money = Number(state.money) + amt;
@@ -911,6 +910,8 @@ function saveGame(forceCloud = false) {
             document.getElementById('sansam-modal').style.display = 'block';
             document.getElementById('sansam-qty').value = "";
             document.getElementById('sansam-total-cost').innerText = "0";
+            // 🚨 [추가] 모달이 열릴 때 예상 체력 수치 그릇도 함께 0으로 세팅합니다.
+            document.getElementById('sansam-total-stamina').innerText = "0";
         }
 
         function closeSansamModal() {
@@ -926,6 +927,8 @@ function saveGame(forceCloud = false) {
             }
             let pricePerEach = 13000; // BUFFS 배열 내 명세된 산삼 가격
             document.getElementById('sansam-total-cost').innerText = (pricePerEach * qty).toLocaleString();
+            // 🚨 [추가] 산삼 1개당 체력 +100 스펙을 수량에 곱해서 화면에 실시간으로 뿌려줍니다.
+            document.getElementById('sansam-total-stamina').innerText = (100 * qty).toLocaleString();
         }
 
         function setSansamMax() {
@@ -979,24 +982,56 @@ function saveGame(forceCloud = false) {
         }
         
         function buyNickname() {
+            if (!isCloudDataLoaded) return;
+            openNicknameChangeModal();
+        }
+
+        function openNicknameChangeModal() {
+            let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
+            let descText = state.nicknameTickets > 0 ? 
+                `황금 명찰 변경권을 사용하여 이름을 변경합니다.<br><span style="color:var(--success); font-weight:800;">(변경권 보유: ${state.nicknameTickets}개)</span>` : 
+                `새로운 사원증 이름을 입력해주세요.<br><span style="color:var(--danger); font-weight:800;">명찰 발급 비용: ${price.toLocaleString()}원</span>`;
+            
+            document.getElementById('nick-change-desc').innerHTML = descText;
+            document.getElementById('nick-change-input').value = state.nickname;
+            document.getElementById('nick-change-overlay').style.display = 'block';
+            document.getElementById('nick-change-modal').style.display = 'block';
+        }
+
+        function closeNicknameChangeModal() {
+            document.getElementById('nick-change-overlay').style.display = 'none';
+            document.getElementById('nick-change-modal').style.display = 'none';
+        }
+
+        function executeNicknameChange() {
+            const input = document.getElementById('nick-change-input').value.trim();
+            if (!input) return alert("발급하실 이름을 정확히 입력해주세요!");
+            if (input.length > 8) return alert("이름은 최대 8자 이내로 제한됩니다.");
+
             if (state.nicknameTickets > 0) {
-                let n = prompt("새 이름 (변경권 사용 중):", state.nickname);
-                if (n && n.trim() !== "") {
-                    state.nicknameTickets--; state.nickname = n.trim(); state.nicknameChangeCount++;
-                    updateDisplay(); closeSheet(); saveGame(true);
-                    showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
-                }
+                state.nicknameTickets--;
+                state.nickname = input;
+                state.nicknameChangeCount++;
+                completeNicknameChangeProcess();
             } else {
                 let price = state.nicknameChangeCount === 0 ? 100000 : 100000000;
-                if(Number(state.money) >= price) {
-                    let n = prompt(`새 이름 (비용: ${price.toLocaleString()}원):`);
-                    if(n && n.trim() !== "") { 
-                        state.money = Number(state.money) - Number(price); state.nickname = n.trim(); state.nicknameChangeCount++; 
-                        updateDisplay(); closeSheet(); saveGame(true); 
-                        showAlert("변경 완료", "황금 명찰이 새 이름으로 발급되었습니다!");
-                    }
-                } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
+                if (Number(state.money) >= price) {
+                    state.money = Number(state.money) - price;
+                    state.nickname = input;
+                    state.nicknameChangeCount++;
+                    completeNicknameChangeProcess();
+                } else {
+                    alert("현금이 부족합니다! 열심히 더 모으세요!");
+                }
             }
+        }
+
+        function completeNicknameChangeProcess() {
+            closeNicknameChangeModal();
+            closeSheet();
+            updateDisplay();
+            saveGame(true);
+            showAlert("명찰 발급 완료", `닉네임이 [${state.nickname}] 으로 새롭게 갱신되었습니다!`);
         }
 
         function closeSheet() { document.getElementById('bottom-sheet').classList.remove('active'); document.getElementById('overlay').style.display = 'none'; }
@@ -1153,10 +1188,23 @@ function saveGame(forceCloud = false) {
             <span onclick="setSansamMax()" style="font-size: 11px; font-weight: 800; color: var(--success); background: #dcfce7; padding: 5px 10px; border-radius: 6px; cursor: pointer; user-select: none;">최대 수량</span>
         </div>
         <input type="number" id="sansam-qty" placeholder="수량 입력" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 2px solid #facc15; border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box; background: #f8fafc; color: var(--text-main);" min="1" oninput="calcSansamTotal()">
+        <p style="font-size: 14px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-main);">💪 예상 체력 증가: <span id="sansam-total-stamina" style="color: var(--success); font-weight: 900;">0</span> 영구 가산</p>
         <p style="font-size: 14px; font-weight: 700; margin: 0 0 20px 0; color: var(--text-main);">총 결제금액: <span id="sansam-total-cost" style="color: var(--danger); font-weight: 900;">0</span>원</p>
         <div class="alert-btn-box" style="display: flex; gap: 10px;">
             <button class="alert-btn cancel" style="background: #94a3b8; color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="closeSansamModal()">취소</button>
             <button class="alert-btn" style="background: #0ea5e9; color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="executeSansamPurchase()">구매하기</button>
+        </div>
+    </div>
+    <div class="modal-overlay" id="nick-change-overlay" style="z-index: 1600; display: none;" onclick="closeNicknameChangeModal()"></div>
+    <div class="alert-modal" id="nick-change-modal" style="z-index: 1601; display: none; max-width: 330px; width: 85%; padding: 25px; border-radius: 16px; background: var(--card-bg); border: 2px solid var(--accent-color); box-shadow: 0 10px 25px rgba(0,0,0,0.155);">
+        <div class="alert-title" style="color: var(--accent-color); font-size: 18px; font-weight: 800; margin-bottom: 12px;">✨ 황금 명찰 이름 변경</div>
+        <div class="alert-desc" id="nick-change-desc" style="text-align: center; font-size: 14px; color: var(--text-sub); margin-bottom: 15px; font-weight: 600; line-height: 1.5;">
+            새로운 사원증 이름을 입력해주세요.
+        </div>
+        <input type="text" id="nick-change-input" placeholder="새 이름 입력" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid var(--accent-color); border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box; background: #f8fafc; color: var(--text-main);">
+        <div class="alert-btn-box" style="display: flex; gap: 10px;">
+            <button class="alert-btn cancel" style="background: #94a3b8; color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="closeNicknameChangeModal()">취소</button>
+            <button class="alert-btn" style="background: var(--accent-color); color: white; width: 50%; margin: 0; padding: 12px; border-radius: 8px;" onclick="executeNicknameChange()">발급하기</button>
         </div>
     </div>
 </body>
