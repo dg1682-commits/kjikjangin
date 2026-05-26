@@ -931,12 +931,10 @@
                 if (user) {
                     currentUser = user; 
                     
-                    // 🎯 단발성 .get() 연산으로 원격 파이어베이스의 진짜 원본 잔고 데이터를 먼저 강제 수신합니다.
                     db.collection("users").doc(user.uid).get().then((doc) => {
                         if (doc.exists) {
                             let cloudData = doc.data();
                             
-                            // 구형 로컬 캐시와의 얕은 병합을 완벽히 차단하고, 오직 원격지 서버 수치만 정식 진실로 이식합니다.
                             gameState = {
                                 money: cloudData.money !== undefined ? Number(cloudData.money) : 100000,
                                 stamina: cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0,
@@ -960,11 +958,31 @@
                             });
 
                             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-                            
-                            // 🚨 [추가] 데이터 이식이 끝났으므로 이제부터 자동 저장을 허용합니다.
                             isEngineAuthorized = true; 
-                            
                             document.getElementById('loading-screen').style.display = 'none';
+                            
+                            processStockOfflineProgress();
+                            updateAccountUI(); 
+                            renderCoreView(); 
+                            startGameLoop(); 
+                            syncGlobalMarket();
+                        } else {
+                            // 🚨 [예외 구역 신설] 데이터베이스에 장부가 아예 없는 유저거나 도중에 유실됐을 때 무한 로딩 방지 낙하산
+                            gameState = {
+                                money: 100000,
+                                stamina: 0,
+                                holdings: {},
+                                buyPrinciples: {},
+                                history: [],
+                                gameSeconds: 0,
+                                kospi: 5000,
+                                kospiTrend: 'up',
+                                stocks: INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] })),
+                                stockResetV3Done: true
+                            };
+                            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                            isEngineAuthorized = true; 
+                            document.getElementById('loading-screen').style.display = 'none'; // 락 해제 후 강제 입장
                             
                             processStockOfflineProgress();
                             updateAccountUI(); 
@@ -974,6 +992,8 @@
                         }
                     }).catch((err) => {
                         console.error("증권 원격 서버 연동 대참사 장해:", err);
+                        // 🚨 [무한 로딩 차단 벽 파괴] 타임아웃이나 파폭 에러가 나도 화면이 완전히 박제되는 현상 가드
+                        document.getElementById('loading-screen').style.display = 'none';
                         alert("전산망 연결이 원활하지 않습니다. 잠시 후 새로고침을 시도해 주세요.");
                     });
                 } else {
