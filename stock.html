@@ -98,7 +98,6 @@
 
     <header>
         <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
-        <a href="main.html" class="back-btn" onclick="goBack(event)">←</a>
         <div class="header-title">K-증권</div>
         <div class="empty-space"></div>
     </header>
@@ -228,11 +227,7 @@
         let isEngineAuthorized = false; // 🚨 [추가] 서버 검증 완료 전까지 저장을 잠그는 보안 락 플래그
 
 
-        gameState.stocks.forEach(s => { 
-            if(s.prev === undefined || isNaN(s.prev)) s.prev = s.price; 
-            if(!s.history || !Array.isArray(s.history)) s.history = [s.price]; 
-        });
-
+        
         let currentTarget = null;
         let currentTab = "list";
         let chartInstance = null; 
@@ -283,7 +278,6 @@
         }
 
         function saveStockStateToStorage() {
-            // 🚨 [새크리파이스 안전 가드] 파이어베이스 장부 Hydration이 완결되기 전엔 저장 연산을 원천 봉쇄합니다.
             if (!isEngineAuthorized) return;
 
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
@@ -291,7 +285,19 @@
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
 
             if (currentUser) {
-                db.collection("users").doc(currentUser.uid).set(merged, { merge: true })
+                // 🎯 [완치 방어선] 메인 화면의 자동차, 집, 닉네임 서랍을 침범하지 않도록 주식 재화만 분리 전송합니다.
+                let stockPayload = {
+                    money: gameState.money,
+                    holdings: gameState.holdings,
+                    buyPrinciples: gameState.buyPrinciples,
+                    history: gameState.history,
+                    gameSeconds: gameState.gameSeconds,
+                    kospi: gameState.kospi,
+                    kospiTrend: gameState.kospiTrend,
+                    stocks: gameState.stocks,
+                    stockResetV3Done: gameState.stockResetV3Done
+                };
+                db.collection("users").doc(currentUser.uid).set(stockPayload, { merge: true })
                     .catch(e => console.error("데이터 원격 저장 실패:", e));
             }
         }
