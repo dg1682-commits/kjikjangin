@@ -187,7 +187,8 @@
             border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.155);
         }
         .alert-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-wrap: pre-wrap; text-align: left; font-weight: 500;}
+        /* 이 부분 찾아서 white-wrap을 white-space로 변경하세요 */
+        .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap; text-align: left; font-weight: 500;}
         .alert-btn-box { display: flex; gap: 10px; }
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
         .alert-btn.cancel { background: #94a3b8; }
