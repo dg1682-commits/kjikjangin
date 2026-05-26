@@ -282,6 +282,9 @@
         }
 
         function saveStockStateToStorage() {
+            // 🚨 [새크리파이스 안전 가드] 파이어베이스 장부 Hydration이 완결되기 전엔 저장 연산을 원천 봉쇄합니다.
+            if (!isEngineAuthorized) return;
+
             let existing = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
             let merged = { ...existing, ...gameState };
             localStorage.setItem(SAVE_KEY, JSON.stringify(merged));
