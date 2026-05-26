@@ -783,7 +783,7 @@
         function goBack(e) { e.preventDefault(); saveStockStateToStorage(); location.replace('main.html'); }
 
         window.onload = () => {
-            // 🚨 [초강력 낙하산 가드] 통신 지연이나 크래시가 터져도 3초 뒤에 강제로 로딩 화면을 차단
+            // 🚨 [안전장치 1] 서버 응답이 없어도 3초 뒤 로딩 스크린은 무조건 제거 (벽돌 방지)
             const criticalTimeout = setTimeout(() => {
                 document.getElementById('loading-screen').style.display = 'none';
             }, 3000);
@@ -791,15 +791,16 @@
             firebase.auth().onAuthStateChanged((user) => {
                 if (user) {
                     currentUser = user; 
+                    
                     db.collection("users").doc(user.uid).get().then((doc) => {
-                        clearTimeout(criticalTimeout); // 정상 진입 시 타이머 제거
+                        clearTimeout(criticalTimeout); 
                         document.getElementById('loading-screen').style.display = 'none';
 
                         try {
                             if (doc.exists) {
                                 let cloudData = doc.data();
                                 gameState = {
-                                    money: cloudData.money !== undefined ? Number(cloudData.money) : 100000,
+                                    money: cloudData.money !== undefined ? Number(cloudData.money) : 10000000,
                                     stamina: cloudData.stamina !== undefined ? Number(cloudData.stamina) : 0,
                                     holdings: cloudData.holdings || {},
                                     buyPrinciples: cloudData.buyPrinciples || {},
@@ -820,31 +821,54 @@
                                     if(s.prev === undefined || isNaN(s.prev) || s.prev === 0) s.prev = s.price; 
                                     if(!s.history || !Array.isArray(s.history)) s.history = [s.price]; 
                                 });
+                                
+                                // 정상 유저 판제 완결 -> 원격 저장 권한 승인
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                                isEngineAuthorized = true; 
+                                
+                                processStockOfflineProgress();
+                                updateAccountUI(); 
+                                renderCoreView(); 
+                                startGameLoop(); 
+                                syncGlobalMarket();
+
                             } else {
-                                throw new Error("신규 지갑 개설");
+                                // 🚨 완전히 장부가 없는 "생신규 유저"일 때만 안전하게 생성
+                                gameState = {
+                                    money: 10000000, stamina: 0, holdings: {}, buyPrinciples: {}, history: [], gameSeconds: 0,
+                                    kospi: 5000, kospiTrend: 'up', stockResetV3Done: true,
+                                    stocks: INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }))
+                                };
+                                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                                isEngineAuthorized = true; // 신규 유저 권한 승인
+                                saveStockStateToStorage(); // 첫 장부 등록
+                                
+                                updateAccountUI(); renderCoreView(); startGameLoop(); syncGlobalMarket();
                             }
 
-                            localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
-                            isEngineAuthorized = true; 
-                            
-                            processStockOfflineProgress();
-                            updateAccountUI(); 
-                            renderCoreView(); 
-                            startGameLoop(); 
-                            syncGlobalMarket();
-
                         } catch (innerErr) {
-                            console.warn("초기화 비상 복구 가동");
-                            gameState.stocks = INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }));
-                            isEngineAuthorized = true;
-                            updateAccountUI(); renderCoreView(); startGameLoop(); syncGlobalMarket();
+                            // 🚨 [안전장치 2] 로컬 파싱 오류 시 서버 데이터를 초기화하지 않고 에러만 띄움 (서버 데이터 보호)
+                            console.error("장부 데이터 연산 크래시 오류:", innerErr);
+                            alert("주식 데이터를 불러오는 중 오류가 발생했습니다. 새로고침을 해주세요.");
                         }
                     }).catch((err) => {
+                        // 🚨 [안전장치 3] 인터넷이 끊기거나 서버 에러 발생 시 처리
+                        console.error("원격 서버 통신 장애 발령:", err);
                         clearTimeout(criticalTimeout);
                         document.getElementById('loading-screen').style.display = 'none';
-                        gameState.stocks = INITIAL_STOCKS.map(s => ({ ...s, history: [s.price] }));
-                        isEngineAuthorized = true;
-                        updateAccountUI(); renderCoreView(); startGameLoop(); syncGlobalMarket();
+                        
+                        // 서버 데이터를 날리지 않기 위해 백업 장부(Local)가 있으면 로딩하되, 원격 저장 권한(isEngineAuthorized)은 '거부' 처리
+                        isEngineAuthorized = false; // 💥 서버 덮어쓰기 절대 금지 락(Lock) 가드
+                        
+                        let localSave = localStorage.getItem(SAVE_KEY);
+                        if (localSave) {
+                            gameState = JSON.parse(localSave);
+                            alert("네트워크 연결이 불안정하여 비상 오프라인 모드(거래 저장 불가)로 진입합니다.");
+                            updateAccountUI(); 
+                            renderCoreView();
+                        } else {
+                            alert("전산망 연결이 원활하지 않습니다. 인터넷 연결을 확인하고 다시 새로고침 해주세요.");
+                        }
                     });
                 } else { location.href = 'index.html'; }
             });
