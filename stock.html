@@ -948,10 +948,12 @@
 
                             localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
                             
-                            // 🎯 서버 마스터 데이터 동기화가 완벽히 마감되었으므로 선제 잠금 락 화면을 거두어냅니다.
+                            // 🚨 [추가] 데이터 이식이 끝났으므로 이제부터 자동 저장을 허용합니다.
+                            isEngineAuthorized = true; 
+                            
                             document.getElementById('loading-screen').style.display = 'none';
                             
-                            processStockOfflineProgress(); 
+                            processStockOfflineProgress();
                             updateAccountUI(); 
                             renderCoreView(); 
                             startGameLoop(); 
