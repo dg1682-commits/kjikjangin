@@ -225,6 +225,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         let currentUser = null; 
+        let isEngineAuthorized = false; // 🚨 [추가] 서버 검증 완료 전까지 저장을 잠그는 보안 락 플래그
 
 
         gameState.stocks.forEach(s => { 
