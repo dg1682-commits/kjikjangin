@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K-직장인 자산 현황 명세서</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --card-bg: #ffffff;
+            --accent-blue: #0ea5e9;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --income-green: #10b981;
+            --expense-red: #ef4444;
+            --border-color: #e2e8f0;
+            --dark-box: #1e293b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', -apple-system, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: var(--bg-main); color: var(--text-main); }
+
+        /* 상단 고정 헤더 */
+        header { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px; 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); 
+            border-bottom: 1px solid var(--border-color); z-index: 100; 
+        }
+        .back-btn { font-size: 24px; font-weight: bold; color: var(--text-main); cursor: pointer; text-decoration: none; width: 40px; }
+        .header-title { font-size: 17px; font-weight: 800; text-align: center; flex-grow: 1; }
+        .header-rank { font-size: 12px; font-weight: 800; background: var(--accent-blue); color: white; padding: 4px 10px; border-radius: 6px; flex-shrink: 0; }
+
+        main { padding-top: 75px; padding-bottom: 40px; overflow-y: auto; height: 100%; px; padding-left: 15px; padding-right: 15px; }
+
+        /* 프로필 요약 카드 */
+        .profile-card {
+            background: var(--card-bg); padding: 18px; border-radius: 16px;
+            border: 1px solid var(--border-color); margin-bottom: 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        .profile-item { display: flex; flex-direction: column; gap: 3px; }
+        .profile-label { font-size: 11px; color: var(--text-sub); font-weight: 700; }
+        .profile-val { font-size: 14px; font-weight: 800; color: var(--text-main); }
+
+        /* 총 대장 명세서 박스 */
+        .summary-box {
+            background: var(--dark-box); color: white; padding: 22px; border-radius: 20px;
+            margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .summary-title { font-size: 13px; opacity: 0.8; font-weight: 600; }
+        .summary-balance { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 12px; margin-top: 4px; }
+        .grid-label { font-size: 11px; opacity: 0.7; margin-bottom: 2px; }
+        .grid-val { font-size: 14px; font-weight: 800; }
+        .text-plus { color: #34d399; }
+        .text-minus { color: #fca5a5; }
+
+        /* 대문단 타이틀 */
+        section { margin-bottom: 20px; }
+        .section-title { font-size: 15px; font-weight: 800; margin-bottom: 10px; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+        
+        /* 리스트 컨테이너 */
+        .report-list { background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border-color); padding: 0; margin: 0; list-style: none; overflow: hidden; }
+        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border-color); }
+        .report-item:last-child { border-bottom: none; }
+        
+        .item-info { display: flex; flex-direction: column; gap: 3px; }
+        .item-title { font-size: 13.5px; font-weight: 700; color: var(--text-main); }
+        .item-sub { font-size: 11px; color: var(--text-sub); font-weight: 600; }
+        .item-right { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+        .item-val { font-size: 14px; font-weight: 800; }
+        .item-badge { font-size: 10px; font-weight: 800; color: white; background: #64748b; padding: 2px 6px; border-radius: 4px; width: max-content; margin-left: auto; }
+
+        /* 선제 락 로딩 스크린 */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-main); z-index: 9999; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .jumping-money { font-size: 60px; animation: jump 0.4s ease-in-out infinite alternate; }
+        @keyframes jump { 0% { transform: translateY(0); } 100% { transform: translateY(-30px); } }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="jumping-money">📊</div>
+        <div style="margin-top: 20px; font-size: 16px; font-weight: 800;">급여 및 자산 정밀 진단 중...</div>
+    </div>
+
+    <header>
+        <a href="main.html" class="back-btn" onclick="location.replace('main.html'); return false;">←</a>
+        <div class="header-title" id="top-nickname">동기화 중...</div>
+        <div class="header-rank" id="top-rank">수습</div>
+    </header>
+
+    <main>
+        <div class="profile-card">
+            <div class="profile-item"><span class="profile-label">임직원 연령</span><span class="profile-val" id="prof-age">20살 0개월</span></div>
+            <div class="profile-item"><span class="profile-label">부동산 거주지 주소</span><span class="profile-val" id="prof-house">부모님 집</span></div>
+            <div class="profile-item"><span class="profile-label">보유 차량 정보</span><span class="profile-val" id="prof-car">미보유</span></div>
+            <div class="profile-item"><span class="profile-label">명세서 구분</span><span class="profile-val" style="color:var(--accent-blue);">정기 자산 보고서</span></div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-title">현재 실시간 가용 예수금(보유 현금)</div>
+            <div class="summary-balance" id="total-cash">0원</div>
+            <div class="summary-grid">
+                <div>
+                    <div class="grid-label">당월 총 수입 종합</div>
+                    <div class="grid-val text-plus" id="month-income">+0원</div>
+                </div>
+                <div>
+                    <div class="grid-label">당월 총 지출 종합</div>
+                    <div class="grid-val text-minus" id="month-expense">-0원</div>
+                </div>
+            </div>
+        </div>
+
+        <section>
+            <div class="section-title">💼 당월 업무 수행 성과 및 수당</div>
+            <ul class="report-list" id="work-list">
+                <li class="report-item" style="color:var(--text-sub); font-size:13px; justify-content:center; padding:25px 0;">완료한 업무가 없습니다.</li>
+            </ul>
+        </section>
+
+        <section>
+            <div class="section-title">💤 당월 컨디션 충전 및 휴식 시간</div>
+            <ul class="report-list" id="rest-list">
+                <li class="report-item" style="color:var(--text-sub); font-size:13px; justify-content:center; padding:25px 0;">진행한 휴식이 없습니다.</li>
+            </ul>
+        </section>
+
+        <section>
+            <div class="section-title">💊 약국 버프 복용 및 지출 내역</div>
+            <ul class="report-list" id="buff-list">
+                <li class="report-item" style="color:var(--text-sub); font-size:13px; justify-content:center; padding:25px 0;">복용한 의약품이 없습니다.</li>
+            </ul>
+        </section>
+
+        <section id="shop-section" style="display: none;">
+            <div class="section-title">🛒 쇼핑몰 장비 자산 확충</div>
+            <ul class="report-list" id="shop-list"></ul>
+        </section>
+
+        <section id="house-section" style="display: none;">
+            <div class="section-title">🏠 부동산 계약 및 유지 명세</div>
+            <ul class="report-list" id="house-list"></ul>
+        </section>
+
+        <section id="car-section" style="display: none;">
+            <div class="section-title">🚗 모빌리티 자동차 인도 명세</div>
+            <ul class="report-list" id="car-list"></ul>
+        </section>
+
+        <section>
+            <div class="section-title">📈 주식 계좌 실시간 평가 및 포트폴리오</div>
+            <ul class="report-list" id="stock-list">
+                <li class="report-item" style="color:var(--text-sub); font-size:13px; justify-content:center; padding:25px 0;">보유 중인 주식 자산이 없습니다.</li>
+            </ul>
+        </section>
+
+        <section>
+            <div class="section-title">🕹️ 오락실 유흥 손익 명세</div>
+            <ul class="report-list" id="game-list">
+                <li class="report-item" style="color:var(--text-sub); font-size:13px; justify-content:center; padding:25px 0;">오락실 이용 기록이 없습니다.</li>
+            </ul>
+        </section>
+    </main>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyDr6T_3ZCMMeWasorTJrrcfwnNaPi38TXk", authDomain: "kkkjikjang.firebaseapp.com", projectId: "kkkjikjang", storageBucket: "kkkjikjang.firebasestorage.app", messagingSenderId: "138250223666", appId: "1:138250223666:web:997b7ed4572f717354fc2b" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const RANKS = ["수습", "인턴", "사원", "주임", "대리", "과장", "차장", "부장", "사장"];
+        const HOUSES = ["부모님 집", "고시원", "원룸", "오피스텔 (월세)", "오피스텔 (전세)", "아파트 (월세)", "아파트 (전세)", "아파트 (매매)", "한강뷰 아파트 (월세)", "한강뷰 아파트 (전세)", "한강뷰 아파트 (매매)"];
+        const CARS = ["K-경차", "소형 세단", "중형 SUV", "대형 세단"];
+
+        window.onload = () => {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    db.collection("users").doc(user.uid).get().then((doc) => {
+                        if (doc.exists) {
+                            compileReport(doc.data());
+                        } else {
+                            alert("게임 장부 데이터가 비어있습니다. 메인 화면을 먼저 구동해 주세요.");
+                            location.replace('main.html');
+                        }
+                        document.getElementById('loading-screen').style.display = 'none';
+                    }).catch(e => {
+                        console.error(e);
+                        document.getElementById('loading-screen').style.display = 'none';
+                    });
+                } else {
+                    location.href = 'index.html';
+                }
+            });
+        };
+
+        function compileReport(data) {
+            // [상단 기본 지표 바인딩]
+            document.getElementById('top-nickname').innerText = `${data.nickname || "김씨"}님의 재산 명세서`;
+            document.getElementById('top-rank').innerText = RANKS[data.rankIdx || 0] || "수습";
+            
+            // 나이 환산 (0년차 = 20살 기준)
+            const totalMin = Math.floor(Number(data.gameSeconds || 0) / 60);
+            const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
+            const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
+            document.getElementById('prof-age').innerText = `${20 + y}살 ${m}개월`;
+            
+            document.getElementById('prof-house').innerText = HOUSES[data.houseIdx || 0] || "부모님 집";
+            document.getElementById('prof-car').innerText = (data.carIdx !== undefined && data.carIdx >= 0) ? CARS[data.carIdx] : "미보유";
+            document.getElementById('total-cash').innerText = Math.floor(data.money || 0).toLocaleString() + "원";
+
+            // 1. 월간 가상 회계 총 장부 결산
+            let mIncome = data.monthIncome || 0;
+            let mExpense = data.monthExpense || 0;
+            
+            // 만약 통계 서랍이 비어있다면, history 배열을 가공해서 하위 호환성 자동 추출 기동
+            const logs = data.history || [];
+            
+            // 2. 업무 데이터 렌더링
+            const workList = document.getElementById('work-list');
+            if (data.workStats && Object.keys(data.workStats).length > 0) {
+                workList.innerHTML = Object.entries(data.workStats).map(([name, count]) => {
+                    let earned = data.workEarnings ? (data.workEarnings[name] || 0) : 0;
+                    if(count > 0) mIncome += earned;
+                    return `
+                        <li class="report-item">
+                            <div class="item-info"><span class="item-title">${name}</span><span class="item-sub">수행 지시 총 횟수</span></div>
+                            <div class="item-right"><span class="item-val text-plus">+${earned.toLocaleString()}원</span><span class="item-badge" style="background:#0ea5e9;">${count}회 완료</span></div>
+                        </li>`;
+                }).join('');
+            }
+
+            // 3. 휴식 데이터 렌더링
+            const restList = document.getElementById('rest-list');
+            if (data.restStats && Object.keys(data.restStats).length > 0) {
+                restList.innerHTML = Object.entries(data.restStats).map(([name, sec]) => {
+                    let h = Math.floor(sec / 3600);
+                    let min = Math.floor((sec % 3600) / 60);
+                    let timeStr = h > 0 ? `${h}시간 ${min}분` : `${min}분`;
+                    return `
+                        <li class="report-item">
+                            <div class="item-info"><span class="item-title">${name} 누적 수면</span><span class="item-sub">총 충전 시간: ${timeStr}</span></div>
+                            <div class="item-right"><span class="item-val" style="color:var(--text-sub);">컨디션 정상화</span><span class="item-badge" style="background:#10b981;">치료 완료</span></div>
+                        </li>`;
+                }).join('');
+            }
+
+            // 4. 약국 구매 렌더링
+            const buffList = document.getElementById('buff-list');
+            if (data.buffStats && Object.keys(data.buffStats).length > 0) {
+                buffList.innerHTML = Object.entries(data.buffStats).map(([name, count]) => {
+                    let spent = data.buffSpending ? (data.buffSpending[name] || 0) : 0;
+                    if(count > 0) mExpense += spent;
+                    return `
+                        <li class="report-item">
+                            <div class="item-info"><span class="item-title">${name} 구매 복용</span><span class="item-sub">수량: ${count}개 복용 완료</span></div>
+                            <div class="item-right"><span class="item-val text-minus">-${spent.toLocaleString()}원</span><span class="item-badge" style="background:#f43f5e;">지출 완료</span></div>
+                        </li>`;
+                }).join('');
+            }
+
+            // 5. 쇼핑몰 조건부 노출
+            if (data.lastShopBoughtItem && data.lastShopItemCost) {
+                document.getElementById('shop-section').style.display = 'block';
+                mExpense += data.lastShopItemCost;
+                document.getElementById('shop-list').innerHTML = `
+                    <li class="report-item">
+                        <div class="item-info"><span class="item-title">🛒 ${data.lastShopBoughtItem}</span><span class="item-sub">사무 보조 장비 영구 확충</span></div>
+                        <div class="item-right"><span class="item-val text-minus">-${data.lastShopItemCost.toLocaleString()}원</span></div>
+                    </li>`;
+            }
+
+            // 6. 부동산 주거 지출 명세 (월세 포함)
+            const currentHouseId = data.houseIdx || 0;
+            let houseHtml = "";
+            if (data.boughtHouseThisMonth && data.housePurchaseCost) {
+                document.getElementById('house-section').style.display = 'block';
+                mExpense += data.housePurchaseCost;
+                houseHtml += `
+                    <li class="report-item">
+                        <div class="item-info"><span class="item-title">🏠 ${HOUSES[currentHouseId]} 계약 신설</span><span class="item-sub">부동산 보증금/매매가 납부 완료</span></div>
+                        <div class="item-right"><span class="item-val text-minus">-${data.housePurchaseCost.toLocaleString()}원</span></div>
+                    </li>`;
+            }
+            // 고시원, 원룸 등 월세 패널티 정산 내역 상시 표기 가드
+            if (currentHouseId === 1 || currentHouseId === 2 || currentHouseId === 3 || currentHouseId === 5 || currentHouseId === 8) {
+                document.getElementById('house-section').style.display = 'block';
+                let rents = [0, 50000, 500000, 1500000, 0, 2500000, 0, 0, 10000000, 0, 0];
+                let currentRent = rents[currentHouseId];
+                houseHtml += `
+                    <li class="report-item">
+                        <div class="item-info"><span class="item-title">💸 ${HOUSES[currentHouseId]} 고정 월세</span><span class="item-sub">인게임 30일 주기 고정 징수 명세</span></div>
+                        <div class="item-right"><span class="item-val text-minus">-${currentRent.toLocaleString()}원 / 월</span></div>
+                    </li>`;
+            }
+            document.getElementById('house-list').innerHTML = houseHtml;
+
+            // 7. 자동차 조건부 노출
+            if (data.boughtCarThisMonth && data.carPurchaseCost) {
+                document.getElementById('car-section').style.display = 'block';
+                mExpense += data.carPurchaseCost;
+                document.getElementById('car-list').innerHTML = `
+                    <li class="report-item">
+                        <div class="item-info"><span class="item-title">🚗 ${CARS[data.carIdx]} 인도 서명</span><span class="item-sub">대리점 차량 계약 완결 지출</span></div>
+                        <div class="item-right"><span class="item-val text-minus">-${data.carPurchaseCost.toLocaleString()}원</span></div>
+                    </li>`;
+            }
+
+            // 8. 주식 계좌 포트폴리오 결산 (내주식 + 포트폴리오 리포트 병합 하이브리드 엔진)
+            const stockList = document.getElementById('stock-list');
+            if (data.holdings && Object.keys(data.holdings).length > 0) {
+                let stockHtml = "";
+                let totalStockEvaluation = 0;
+                let totalStockPrincipal = 0;
+
+                for (let name in data.holdings) {
+                    let qty = Number(data.holdings[name] || 0);
+                    if (qty <= 0) continue;
+                    let stockObj = (data.stocks || []).find(s => s.name === name);
+                    let currentPrice = stockObj ? stockObj.price : 0;
+                    let principal = Number(data.buyPrinciples[name] || 0);
+                    let evalAmount = currentPrice * qty;
+                    
+                    totalStockEvaluation += evalAmount;
+                    totalStockPrincipal += principal;
+
+                    let profitLoss = evalAmount - principal;
+                    let profitRate = principal > 0 ? ((profitLoss / principal) * 100).toFixed(2) : "0.00";
+                    let sign = profitLoss > 0 ? "+" : "";
+                    let color = profitLoss > 0 ? "var(--income-green)" : (profitLoss < 0 ? "var(--expense-red)" : "var(--text-main)");
+
+                    stockHtml += `
+                        <li class="report-item">
+                            <div class="item-info">
+                                <span class="item-title">${name}</span>
+                                <span class="item-sub">잔고: ${qty}주 보유 (평단가: ${Math.round(principal/qty).toLocaleString()}원)</span>
+                            </div>
+                            <div class="item-right">
+                                <span class="item-val" style="color:${color};">${sign}${Math.floor(profitLoss).toLocaleString()}원</span>
+                                <span class="item-sub" style="color:${color}; font-weight:bold;">${sign}${profitRate}%</span>
+                            </div>
+                        </li>`;
+                }
+                
+                // 계좌 요약 리포트 상단에 한 줄 가산 탑재
+                if(totalStockPrincipal > 0) {
+                    let totalProfit = totalStockEvaluation - totalStockPrincipal;
+                    let totalRate = ((totalProfit / totalStockPrincipal) * 100).toFixed(2);
+                    stockHtml = `
+                        <li class="report-item" style="background: rgba(14, 165, 233, 0.04); border-bottom: 2px solid var(--border-color);">
+                            <div class="item-info"><span class="item-title" style="color:var(--accent-blue);">💼 주식 자산 계좌 총계</span><span class="item-sub">총 매입원금: ${Math.floor(totalStockPrincipal).toLocaleString()}원</span></div>
+                            <div class="item-right"><span class="item-val ${totalProfit >= 0 ? 'text-plus' : 'text-minus'}">${totalProfit >= 0 ? '+' : ''}${Math.floor(totalProfit).toLocaleString()}원</span><span class="item-badge" style="background:var(--accent-blue);">${totalRate}%</span></div>
+                        </li>` + stockHtml;
+                    stockList.innerHTML = stockHtml;
+                }
+            }
+
+            // 9. 오락실 손익 렌더링
+            const gameList = document.getElementById('game-list');
+            if (data.arcadeStats && data.arcadeStats.count > 0) {
+                let aStats = data.arcadeStats;
+                let netProfit = aStats.earned - aStats.spent;
+                mIncome += aStats.earned;
+                mExpense += aStats.spent;
+                gameList.innerHTML = `
+                    <li class="report-item">
+                        <div class="item-info"><span class="item-title">🕹️ 미니게임 피버 누적</span><span class="item-sub">오락실 총 입장 횟수: ${aStats.count}회</span></div>
+                        <div class="item-right"><span class="item-val text-plus">+${aStats.earned.toLocaleString()}원 번 자금</span><span class="item-sub text-minus">-${aStats.spent.toLocaleString()}원 판돈</span></div>
+                    </li>
+                    <li class="report-item" style="background: #fafafa;">
+                        <div class="item-info"><span class="item-title" style="font-size:12px; color:var(--text-sub);">오락실 최종 순손익 정산</span></div>
+                        <div class="item-right"><span class="item-val ${netProfit >= 0 ? 'text-plus' : 'text-minus'}" style="font-size:13px;">${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}원</span></div>
+                    </li>`;
+            }
+
+            // 최종 계산된 마스터 장부 UI 명세서에 확정 출력
+            document.getElementById('month-income').innerText = `+${mIncome.toLocaleString()}원`;
+            document.getElementById('month-expense').innerText = `-${mExpense.toLocaleString()}원`;
+        }
+    </script>
+</body>
+</html>
