@@ -336,9 +336,9 @@
                     for (let turn = 0; turn < missedTurns; turn++) {
                         let kospiChange = 0;
                         if (currentKospiTrend === 'up') {
-                            kospiChange = currentKospi * ((Math.random() - 0.41) * 0.025);
+                            kospiChange = currentKospi * ((Math.random() - 0.38) * 0.025);
                         } else {
-                            kospiChange = currentKospi * ((Math.random() - 0.59) * 0.025);
+                            kospiChange = currentKospi * ((Math.random() - 0.56) * 0.025);
                         }
                         currentKospi = Math.max(1000, Math.floor(currentKospi + kospiChange));
 
@@ -377,9 +377,9 @@
                             } else {
                                 let turnKospi = kospiHistoryPerTurn[turn];
                                 if (turnKospi > 5000) {
-                                    change = currentPrice * (Math.random() - 0.44) * 0.05;
+                                    change = currentPrice * (Math.random() - 0.42) * 0.05;
                                 } else {
-                                    change = currentPrice * (Math.random() - 0.55) * 0.05;
+                                    change = currentPrice * (Math.random() - 0.51) * 0.05;
                                 }
                             }
                             currentPrice = Math.max(10, Math.floor(currentPrice + change));
