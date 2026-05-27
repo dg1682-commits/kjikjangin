@@ -743,13 +743,67 @@
             
             const ctx = document.getElementById('stock-canvas-chart').getContext('2d');
             if (chartInstance) chartInstance.destroy(); 
+            
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.08)', borderWidth: 2.5, fill: true }]
+                    datasets: [{ 
+                        data: data, 
+                        borderColor: '#0ea5e9', 
+                        backgroundColor: 'rgba(14, 165, 233, 0.05)', 
+                        borderWidth: 2.5, 
+                        fill: true,
+                        pointRadius: 4,                  // ✨ 모바일 터치 인식을 위해 데이터 점 크기 이식
+                        pointHoverRadius: 7,             // ✨ 손가락으로 누를 때 점이 커지며 반응하도록 유도
+                        pointBackgroundColor: '#0ea5e9',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    // ✨ [핵심 조작감] 선을 정확히 누르지 않고 근처만 터치해도 자석처럼 금액 팝업이 뜨는 가드
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 5, font: { size: 10, weight: 'bold' } }
+                        },
+                        y: {
+                            // ✨ 눈금 가로선을 살려 현재 주가가 어느 라인에 걸쳐있는지 직관성 확보
+                            grid: { color: '#f3f4f6' }, 
+                            ticks: { 
+                                font: { size: 10, weight: '600' },
+                                // ✨ 왼쪽 주가 축에도 세로로 ,콤마와 '원' 표기가 실시간 박히도록 세팅
+                                callback: function(value) {
+                                    return value.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false },
+                        // ✨ 터치 시 상단에 뜨는 말풍선 UI를 완전히 증권사 앱 스타일로 변경
+                        tooltip: {
+                            padding: 10,
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            titleFont: { size: 11, weight: '500' },
+                            bodyFont: { size: 13, weight: '800' },
+                            bodyColor: '#ffffff',
+                            displayColors: false, // 불필요한 사각형 아이콘 제거
+                            callbacks: {
+                                label: function(context) {
+                                    return ' 주가: ' + context.parsed.y.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    }
+                }
             });
         }
         
