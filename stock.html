@@ -564,18 +564,27 @@
             let ownedBadge = myQty > 0 ? `<span style="font-size:11px; color:var(--accent-color); font-weight:800; margin-left:6px; background:#e0f2fe; padding:2px 6px; border-radius:4px;">보유</span>` : '';
 
             list.innerHTML += `
-                <li class="stock-item" onclick="openModal('${s.name}')">
-                    <div class="stock-info">
-                        <div class="stock-icon">${s.name.charAt(0)}</div>
-                        <div class="stock-name-box">
-                            <div style="display:flex; align-items:center; gap:2px;">
-                                <span class="stock-name">${s.name}</span>${ownedBadge}
+                <li class="stock-item" onclick="openModal('${name}')" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="stock-info">
+                            <div class="stock-icon" style="background:#e0f2fe; color:#0369a1;">💼</div>
+                            <div class="stock-name-box">
+                                <span class="stock-name">${name}</span>
+                                <span style="font-size:12px; color:var(--text-sub); font-weight:600;">보유: ${qty}주</span>
                             </div>
                         </div>
+                        <div class="stock-price-box">
+                            <span class="stock-price" style="color:${color}; font-size:16px;">${sign}${Math.floor(profitLoss).toLocaleString()}원 (${sign}${profitRate}%)</span>
+                        </div>
                     </div>
-                    <div class="stock-price-box">
-                        <span class="stock-price" style="color: ${color};">${s.price.toLocaleString()}원</span>
-                        <span style="color:${color}; font-size:12px; font-weight:700;">${sign}${rate}%</span>
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-sub); background: var(--bg-sub); padding: 10px 12px; border-radius: 8px; font-weight: 600;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>평단가: <span style="color:var(--text-main); font-weight:800;">${avgPrice.toLocaleString()}원</span></div>
+                            <div>총 매입원금: <span style="color:var(--text-main); font-weight:800;">${Math.floor(principal).toLocaleString()}원</span></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-top: 1px dashed #e5e7eb; padding-top: 4px; margin-top: 2px;">
+                            <div>평가금액: <span style="color:var(--text-main); font-weight:800;">${Math.floor(evaluation).toLocaleString()}원</span></div>
+                        </div>
                     </div>
                 </li>`;
         });
@@ -617,6 +626,11 @@
         const currentSecs = Number(gameState.gameSeconds || 0);
 
         (gameState.history || []).forEach(log => {
+            let logSeconds = log.gameSeconds !== undefined ? log.gameSeconds : 0;
+            
+            // 🚨 [타임라인 가드] 리셋 대참사로 인해 현재 인게임 시간보다 미래의 구버전 로그가 남아있다면 연산에서 완벽하게 제외합니다.
+            if (logSeconds > currentSecs) return;
+
             if (!runningLedger[log.name]) {
                 runningLedger[log.name] = { qty: 0, capital: 0 };
             }
@@ -632,8 +646,9 @@
                     
                     cumRealizedProfit += localizedProfit;
                     
-                    let logSeconds = log.gameSeconds !== undefined ? log.gameSeconds : currentSecs;
-                    if (currentSecs - logSeconds <= ONE_MONTH_GAME_SECS) {
+                    // 🚨 역연산 시간 차 대수학 필터 교정 (과거 역전현상 방지)
+                    let diff = currentSecs - logSeconds;
+                    if (diff >= 0 && diff <= ONE_MONTH_GAME_SECS) {
                         monthRealizedProfit += localizedProfit;
                     }
                     
