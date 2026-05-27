@@ -187,7 +187,7 @@
             border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.155);
         }
         .alert-title { font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--text-main); }
-        /* 이 부분 찾아서 white-wrap을 white-space로 변경하세요 */
+        /* 🚨 [교정] white-wrap 오타를 white-space로 교정하여 커스텀 모달 내 줄바꿈을 정상화합니다. */
         .alert-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap; text-align: left; font-weight: 500;}
         .alert-btn-box { display: flex; gap: 10px; }
         .alert-btn { background: var(--accent-color); color: #fff; padding: 12px; width: 100%; border-radius: 8px; font-weight: 800; }
@@ -369,7 +369,8 @@
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
-            if (isNaN(state.stamina) || state.stamina < 0 || state.stamina > 100000000) state.stamina = 0;
+            // 🚨 [완치 리밋 박멸] 1억 초과 시 0으로 밀어버리던 악질 조건을 삭제하여 무한대 스탯 성장을 개방합니다.
+            if (isNaN(state.stamina) || state.stamina < 0) state.stamina = 0;
             state.exp = Number(state.exp);
             if (isNaN(state.exp) || state.exp < 0) state.exp = 0;
             state.rankIdx = Number(state.rankIdx);
