@@ -206,9 +206,11 @@
         const SAVE_KEY = "k_worker_tycoon_save_data";
         
         let state = {
-            money: 10000000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
+            money: 100000, stamina: 0, exp: 0, rankIdx: 0, condition: 100, maxCondition: 100, 
             houseIdx: 0, carIdx: -1, gameSeconds: 0, rentDayCounter: 0, isWorking: false, 
-            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, timeMult: 1.0, ownedItems: [], highScore: 0
+            currentTask: null, workElapsed: 0, debuffTimeLeft: 0, timeMult: 1.0, ownedItems: [], highScore: 0,
+            monthIncome: 0, monthExpense: 0, lastProcessedMonth: 0,
+            arcadeStats: { count: 0, earned: 0, spent: 0 }
         };
 
         const firebaseConfig = {
@@ -232,7 +234,7 @@
         ];
 
         function sanitizeState() {
-            state.money = isNaN(Number(state.money)) ? 10000000 : Number(state.money);
+            state.money = isNaN(Number(state.money)) ? 100000 : Number(state.money);
             state.stamina = isNaN(Number(state.stamina)) ? 0 : Number(state.stamina);
             state.exp = isNaN(Number(state.exp)) ? 0 : Number(state.exp);
             state.rankIdx = isNaN(Number(state.rankIdx)) ? 0 : Number(state.rankIdx);
@@ -240,6 +242,14 @@
             state.maxCondition = isNaN(Number(state.maxCondition)) ? 100 : Number(state.maxCondition);
             state.gameSeconds = isNaN(Number(state.gameSeconds)) ? 0 : Number(state.gameSeconds);
             state.highScore = isNaN(Number(state.highScore)) ? 0 : Number(state.highScore);
+            state.monthIncome = isNaN(Number(state.monthIncome)) ? 0 : Number(state.monthIncome);
+            state.monthExpense = isNaN(Number(state.monthExpense)) ? 0 : Number(state.monthExpense);
+            if (state.lastProcessedMonth === undefined || state.lastProcessedMonth === null || isNaN(Number(state.lastProcessedMonth))) {
+                state.lastProcessedMonth = Math.floor((state.gameSeconds || 0) / 2592000);
+            } else {
+                state.lastProcessedMonth = Number(state.lastProcessedMonth);
+            }
+            if (!state.arcadeStats) state.arcadeStats = { count: 0, earned: 0, spent: 0 };
         }
 
         function saveGame() { 
@@ -269,6 +279,18 @@
 
         function updateDisplay() {
             sanitizeState();
+            let currentMonth = Math.floor((state.gameSeconds || 0) / 2592000);
+            if (state.lastProcessedMonth !== currentMonth) {
+                state.monthIncome = 0;
+                state.monthExpense = 0;
+                state.boughtHouseThisMonth = false;
+                state.housePurchaseCost = 0;
+                state.boughtCarThisMonth = false;
+                state.carPurchaseCost = 0;
+                state.lastShopBoughtItem = "";
+                state.lastShopItemCost = 0;
+                state.lastProcessedMonth = currentMonth;
+            }
             const totalMin = Math.floor(state.gameSeconds / 60);
             const y = Math.floor(totalMin / (60 * 24 * 30 * 12));
             const m = Math.floor(totalMin / (60 * 24 * 30)) % 12;
@@ -340,14 +362,26 @@
 
             if (game.id === "LR") {
                 state.money -= game.cost;
+                if (!state.arcadeStats) state.arcadeStats = { count: 0, earned: 0, spent: 0 };
+                state.arcadeStats.count++;
+                state.arcadeStats.spent += game.cost;
+                state.monthExpense = (state.monthExpense || 0) + game.cost;
                 saveGame(); 
                 location.replace('LR.html');
             } else if (game.id === "NC") { 
                 state.money -= game.cost;
+                if (!state.arcadeStats) state.arcadeStats = { count: 0, earned: 0, spent: 0 };
+                state.arcadeStats.count++;
+                state.arcadeStats.spent += game.cost;
+                state.monthExpense = (state.monthExpense || 0) + game.cost;
                 saveGame(); 
                 location.replace('NC.html'); 
             } else if (game.id === "1955") { 
                 state.money -= game.cost;
+                if (!state.arcadeStats) state.arcadeStats = { count: 0, earned: 0, spent: 0 };
+                state.arcadeStats.count++;
+                state.arcadeStats.spent += game.cost;
+                state.monthExpense = (state.monthExpense || 0) + game.cost;
                 saveGame(); 
                 location.replace('1955.html'); 
             } else {
@@ -355,12 +389,18 @@
             }
         }
 
+        let autoSaveCounter = 0;
         function startGameLoop() {
             setInterval(() => {
                 state.gameSeconds += 108; 
                 let mult = getIncomeMultiplier(state.stamina);
                 let passiveAdd = (0.5 * mult) * 0.2;
                 if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
+                autoSaveCounter += 0.2;
+                if (autoSaveCounter >= 10) {
+                    autoSaveCounter = 0;
+                    saveGame();
+                }
                 updateDisplay();
             }, 200);
         }
