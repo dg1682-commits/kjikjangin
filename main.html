@@ -209,14 +209,8 @@
             transition: transform 0.1s, background-color 0.2s;
         }
         .settings-floating-btn:active { transform: scale(0.9); background-color: #f1f5f9; }
-        .info-floating-btn {
-            position: fixed; bottom: 72px; left: 20px; height: 42px; padding: 0 14px;
-            background: #ffffff; border: 2px solid var(--border-color); border-radius: 21px; 
-            display: flex; align-items: center; justify-content: center; font-size: 13px; 
-            font-weight: 800; color: #1e293b; cursor: pointer; z-index: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); 
-            transition: transform 0.1s, background-color 0.2s; text-decoration: none;
-        }
-        .info-floating-btn:active { transform: scale(0.95); background-color: #f1f5f9; }
+        .header-info-btn { font-size: 22px; cursor: pointer; transition: transform 0.1s; user-select: none; padding-right: 2px; }
+        .header-info-btn:active { transform: scale(0.85); }
         
         .settings-bubble-modal {
             position: fixed; bottom: 76px; right: 20px; width: 150px;
@@ -272,7 +266,10 @@
                 </div>
                 
                 <div class="header-right">
-                    <div class="rank-badge" style="margin-bottom: 4px;"><span id="rank-badge-text">수습</span> <span id="val-nickname" style="margin-left: 4px; color: #fff;">김씨</span></div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span class="header-info-btn" onclick="saveGame(true); setTimeout(() => { location.href='info.html'; }, 200);">🧾</span>
+                        <div class="rank-badge" style="margin-bottom: 0;"><span id="rank-badge-text">수습</span> <span id="val-nickname" style="margin-left: 4px; color: #fff;">김씨</span></div>
+                    </div>
                     <div id="game-date">0년 1월 1일 00:00</div>
                     <div id="stat-money">0원</div>
                     <div class="income-rates"><div id="stat-passive-rate">초당 +0.0</div><div id="stat-click-rate">👆 +0.0</div></div>
@@ -314,9 +311,7 @@
         <input type="text" id="initial-nickname-input" placeholder="예: 김주임" style="width: 100%; padding: 12px; margin-bottom: 15px; border: 2px solid var(--accent-color); border-radius: 8px; font-size: 16px; font-weight: 800; text-align: center; box-sizing: border-box;">
         <button class="alert-btn" style="width: 100%;" onclick="submitInitialNickname()">내 자리로 가기 (입사)</button>
     </div>
-    <div class="info-floating-btn" onclick="saveGame(true); setTimeout(() => { location.href='info.html'; }, 200);">
-        급여명세서 🧾
-    </div>
+    
     <div class="news-floating-btn" onclick="if(window.latestNewsTimestamp){ localStorage.setItem('k_worker_last_read_news', window.latestNewsTimestamp); } location.href='news.html'" style="position: fixed; bottom: 20px; left: 20px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 900;" ontouchstart="">
         <img src="메인배경/news.png" alt="뉴스" style="width: 36px; height: 36px; object-fit: contain; -webkit-user-drag: none; user-select: none;">
         <span id="news-badge" style="display:none; position: absolute; top: 0px; right: 0px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: 800; line-height: 1; min-width: 14px; text-align: center;">N</span>
