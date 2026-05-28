@@ -290,7 +290,10 @@
                     kospi: Number(gameState.kospi || 5000),
                     kospiTrend: gameState.kospiTrend || 'up',
                     stocks: gameState.stocks || [],
-                    stockResetV3Done: gameState.stockResetV3Done === true
+                    stockResetV3Done: gameState.stockResetV3Done === true,
+                    monthIncome: Number(gameState.monthIncome || 0),
+                    monthExpense: Number(gameState.monthExpense || 0),
+                    lastProcessedMonth: Number(gameState.lastProcessedMonth || 0)
                 };
                 db.collection("users").doc(currentUser.uid).set(stockPayload, { merge: true })
                     .catch(e => console.error("데이터 원격 저장 실패:", e));
@@ -835,6 +838,7 @@
                     gameState.money -= totalCost;
                     gameState.holdings[currentTarget.name] = Number(gameState.holdings[currentTarget.name] || 0) + qty;
                     gameState.buyPrinciples[currentTarget.name] = Number(gameState.buyPrinciples[currentTarget.name] || 0) + totalCost;
+                    gameState.monthExpense = (gameState.monthExpense || 0) + totalCost;
                 } else { return showCustomAlert("주문 실패", "예수금 부족!"); }
             } else {
                 let currentQty = Number(gameState.holdings[currentTarget.name] || 0);
@@ -843,10 +847,10 @@
                     gameState.money += totalCost;
                     gameState.holdings[currentTarget.name] = currentQty - qty;
                     gameState.buyPrinciples[currentTarget.name] = Math.max(0, gameState.buyPrinciples[currentTarget.name] - (currentAvgPrice * qty));
+                    gameState.monthIncome = (gameState.monthIncome || 0) + totalCost;
                 } else { return showCustomAlert("주문 실패", "수량 부족!"); }
             }
 
-            // 🚨 [누락 복구] 거래 내역 배열에 로그를 실시간으로 쑤셔 넣는 마스터 안테나 복원
             gameState.history.push({
                 name: currentTarget.name,
                 type: type === 'buy' ? '매수' : '매도',
@@ -892,7 +896,10 @@
                                     kospi: cloudData.kospi !== undefined ? Number(cloudData.kospi) : 5000,
                                     kospiTrend: cloudData.kospiTrend || 'up',
                                     stocks: Array.isArray(cloudData.stocks) ? cloudData.stocks : [],
-                                    stockResetV3Done: cloudData.stockResetV3Done !== undefined ? cloudData.stockResetV3Done : true
+                                    stockResetV3Done: cloudData.stockResetV3Done !== undefined ? cloudData.stockResetV3Done : true,
+                                    monthIncome: cloudData.monthIncome !== undefined ? Number(cloudData.monthIncome) : 0,
+                                    monthExpense: cloudData.monthExpense !== undefined ? Number(cloudData.monthExpense) : 0,
+                                    lastProcessedMonth: cloudData.lastProcessedMonth !== undefined ? Number(cloudData.lastProcessedMonth) : Math.floor((cloudData.gameSeconds || 0) / 2592000)
                                 };
 
                                 if (!gameState.stocks || gameState.stocks.length !== 15 || !gameState.stockResetV3Done) {
