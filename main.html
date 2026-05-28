@@ -503,6 +503,7 @@ function saveGame(forceCloud = false) {
         }
 
         let lastGameTick = Date.now();
+        let autoSaveCounter = 0;
         function startGameLoop() {
             lastGameTick = Date.now();
             setInterval(() => {
@@ -517,6 +518,12 @@ function saveGame(forceCloud = false) {
                     let mult = getIncomeMultiplier(state.stamina);
                     let passiveAdd = (0.5 * mult) * passedSecs;
                     if (!isNaN(passiveAdd)) state.money = Number(state.money) + passiveAdd;
+                    
+                    autoSaveCounter += passedSecs;
+                    if (autoSaveCounter >= 10) {
+                        autoSaveCounter = 0;
+                        saveGame();
+                    }
                     
                     updateDisplay(); 
                 }
