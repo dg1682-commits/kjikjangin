@@ -369,7 +369,6 @@
             state.money = Number(state.money);
             if (isNaN(state.money) || state.money < 0) state.money = 0;
             state.stamina = Number(state.stamina);
-            // 🚨 [완치 리밋 박멸] 1억 초과 시 0으로 밀어버리던 악질 조건을 삭제하여 무한대 스탯 성장을 개방합니다.
             if (isNaN(state.stamina) || state.stamina < 0) state.stamina = 0;
             state.exp = Number(state.exp);
             if (isNaN(state.exp) || state.exp < 0) state.exp = 0;
@@ -391,23 +390,29 @@
             state.lastSaveTime = Number(state.lastSaveTime);
             if (isNaN(state.lastSaveTime) || state.lastSaveTime <= 0) state.lastSaveTime = Date.now();
             if (!state.lastWorkSaveTime || isNaN(state.lastWorkSaveTime)) state.lastWorkSaveTime = state.lastSaveTime; 
-            
-            // 🚨 [추가] 무결성 부장님 절대 종료 마크 가드 추가
             state.debuffEndTime = Number(state.debuffEndTime);
             if (isNaN(state.debuffEndTime) || state.debuffEndTime < 0) state.debuffEndTime = 0;
-
             if (!state.nickname || typeof state.nickname !== "string") state.nickname = "김씨";
             if (!Array.isArray(state.ownedItems)) state.ownedItems = [];
             state.highScore = Number(state.highScore);
             if (isNaN(state.highScore) || state.highScore < 0) state.highScore = 0;
-            
             if (!Array.isArray(state.inbox)) state.inbox = [];
             state.nicknameTickets = Number(state.nicknameTickets);
             if (isNaN(state.nicknameTickets) || state.nicknameTickets < 0) state.nicknameTickets = 0;
-
             if (state.isWorking === undefined) state.isWorking = false;
             state.workElapsed = Number(state.workElapsed);
             if (isNaN(state.workElapsed) || state.workElapsed < 0) state.workElapsed = 0;
+            if (!state.workStats) state.workStats = {};
+            if (!state.workEarnings) state.workEarnings = {};
+            if (!state.restStats) state.restStats = {};
+            if (!state.buffStats) state.buffStats = {};
+            if (!state.buffSpending) state.buffSpending = {};
+            if (state.monthIncome === undefined) state.monthIncome = 0;
+            if (state.monthExpense === undefined) state.monthExpense = 0;
+            if (state.lastProcessedMonth === undefined) {
+                state.lastProcessedMonth = Math.floor((state.gameSeconds || 0) / 2592000);
+            }
+            if (!state.arcadeStats) state.arcadeStats = { count: 0, earned: 0, spent: 0 };
         }
 
 function saveGame(forceCloud = false) { 
@@ -532,8 +537,19 @@ function saveGame(forceCloud = false) {
 
         function updateDisplay() {
             sanitizeState();
+            let currentMonth = Math.floor((state.gameSeconds || 0) / 2592000);
+            if (state.lastProcessedMonth !== currentMonth) {
+                state.monthIncome = 0;
+                state.monthExpense = 0;
+                state.boughtHouseThisMonth = false;
+                state.housePurchaseCost = 0;
+                state.boughtCarThisMonth = false;
+                state.carPurchaseCost = 0;
+                state.lastShopBoughtItem = "";
+                state.lastShopItemCost = 0;
+                state.lastProcessedMonth = currentMonth;
+            }
 
-            // 🚨 [추가] 절대 마감시각을 기준으로 남은 초 실시간 연산 (오락실/증권사 이탈 공백 자동 환산)
             if (state.debuffEndTime > 0) {
                 state.debuffTimeLeft = Math.max(0, Math.ceil((state.debuffEndTime - Date.now()) / 1000));
             } else {
@@ -748,6 +764,9 @@ function saveGame(forceCloud = false) {
             if (Number(state.money) < car.price) return showAlert("잔액 부족", `소집 자금이 부족합니다.`);
             showConfirm("차량 구매", `차량 가격: ${car.price.toLocaleString()}원\n구매하시겠습니까?`, () => {
                 state.money = Number(state.money) - Number(car.price); state.carIdx = idx;
+                state.boughtCarThisMonth = true;
+                state.carPurchaseCost = car.price;
+                state.monthExpense = (state.monthExpense || 0) + car.price;
                 showAlert("구매 성공", `${car.name} 인도가 완료되었습니다!`); updateDisplay(); closeSheet(); saveGame(true);
             });
         }
@@ -826,6 +845,7 @@ function saveGame(forceCloud = false) {
                     let lostPct = Math.floor(Math.random() * 10) + 1; 
                     let lostMoney = Math.floor(Number(state.money) * (lostPct / 100));
                     state.money = Math.max(0, Number(state.money) - lostMoney); 
+                    state.monthExpense = (state.monthExpense || 0) + lostMoney;
                     state.debuffTimeLeft = 180; 
                     state.debuffEndTime = Date.now() + 180000; 
                     showAlert("적발됨!", `들켜서 📉${lostMoney.toLocaleString()}원을 삭감당했습니다!`);
@@ -835,6 +855,9 @@ function saveGame(forceCloud = false) {
                     let earn = Math.floor(Number(state.money) * (pct / 100));
                     if (earn < 100) earn = 100; 
                     state.money = Number(state.money) + earn; state.exp = Math.max(0, Number(state.exp) - 1); 
+                    state.workStats[job.name] = (state.workStats[job.name] || 0) + 1;
+                    state.workEarnings[job.name] = (state.workEarnings[job.name] || 0) + earn;
+                    state.monthIncome = (state.monthIncome || 0) + earn;
                     showAlert("완전 범죄", `주식을 몰래 켜서 💰${earn.toLocaleString()}원을 벌었습니다!`);
                 }
                 state.workElapsed = 0;
@@ -852,6 +875,11 @@ function saveGame(forceCloud = false) {
             let earnedExp = Math.floor(job.exp * ratio);
 
             state.money = Number(state.money) + Number(earnedMoney); state.exp = Number(state.exp) + Number(earnedExp);
+            if (!isCanceled) {
+                state.workStats[job.name] = (state.workStats[job.name] || 0) + 1;
+                state.workEarnings[job.name] = (state.workEarnings[job.name] || 0) + earnedMoney;
+                state.monthIncome = (state.monthIncome || 0) + earnedMoney;
+            }
             showAlert(isCanceled ? "작업 취소" : "업무 완료", `💰 수익: +${earnedMoney.toLocaleString()}원\n📉 소모 컨디션: ${costDeducted}`);
             state.workElapsed = 0;
             updateDisplay(); saveGame(true);
@@ -873,6 +901,7 @@ function saveGame(forceCloud = false) {
                 let gainedStamina = (state.workElapsed / 60) * rest.rate * houseMult;
                 if (state.workElapsed >= rest.minTime) state.condition = 100; 
                 state.stamina = Number(state.stamina) + gainedStamina;
+                state.restStats[rest.name] = (state.restStats[rest.name] || 0) + state.workElapsed;
                 
                 resetUI(); 
                 state.workElapsed = 0;
@@ -908,6 +937,9 @@ function saveGame(forceCloud = false) {
                 if (Number(state.condition) >= Number(state.maxCondition)) return showAlert("안내", "컨디션 최고입니다!");
                 state.money = Number(state.money) - Number(b.price); 
                 state.condition = Math.min(Number(state.maxCondition), Number(state.condition) + Number(b.effect));
+                state.buffStats[b.name] = (state.buffStats[b.name] || 0) + 1;
+                state.buffSpending[b.name] = (state.buffSpending[b.name] || 0) + b.price;
+                state.monthExpense = (state.monthExpense || 0) + b.price;
                 showAlert("사용 완료", `${b.name} 복용 완료!`);
                 updateDisplay(); closeSheet(); saveGame(true);
             } else { showAlert("잔액 부족", "돈이 부족합니다!"); }
@@ -953,11 +985,14 @@ function saveGame(forceCloud = false) {
             
             let pricePerEach = 13000;
             let totalCost = pricePerEach * qty;
-            let staminaEffectPerEach = 100; // BUFFS 배열 내 명세된 체력 상승 스탯
+            let staminaEffectPerEach = 100; 
 
             if (Number(state.money) >= totalCost) {
                 state.money = Number(state.money) - totalCost;
                 state.stamina = Number(state.stamina) + (staminaEffectPerEach * qty);
+                state.buffStats["100년 산삼"] = (state.buffStats["100년 산삼"] || 0) + qty;
+                state.buffSpending["100년 산삼"] = (state.buffSpending["100년 산삼"] || 0) + totalCost;
+                state.monthExpense = (state.monthExpense || 0) + totalCost;
                 
                 closeSansamModal();
                 closeSheet();
@@ -975,6 +1010,9 @@ function saveGame(forceCloud = false) {
             if (state.ownedItems.includes(s.id)) return showAlert("안내", "보유 중입니다.");
             if(Number(state.money) >= s.price) {
                 state.money = Number(state.money) - Number(s.price); state.ownedItems.push(s.id); state.timeMult *= s.mult;
+                state.lastShopBoughtItem = s.name;
+                state.lastShopItemCost = s.price;
+                state.monthExpense = (state.monthExpense || 0) + s.price;
                 showAlert("쇼핑 완료", `${s.name} 구매!`); updateDisplay(); openSheet('shop'); saveGame(true);
             } else { showAlert("잔액 부족", "돈 부족!"); }
         }
@@ -986,6 +1024,9 @@ function saveGame(forceCloud = false) {
             if (Number(state.money) < initialCost) return showAlert("잔액 부족", `비용: ${initialCost.toLocaleString()}원`);
             showConfirm("이사", `계약하시겠습니까?`, () => {
                 state.money = Number(state.money) - Number(initialCost); state.houseIdx = idx;
+                state.boughtHouseThisMonth = true;
+                state.housePurchaseCost = initialCost;
+                state.monthExpense = (state.monthExpense || 0) + initialCost;
                 showAlert("이사 성공", `${house.name} 이사 완료!`); updateDisplay(); closeSheet(); saveGame(true);
             });
         }
@@ -1116,6 +1157,21 @@ function saveGame(forceCloud = false) {
                         state.ownedItems = Array.isArray(cloudData.ownedItems) ? cloudData.ownedItems : [];
                         state.inbox = Array.isArray(cloudData.inbox) ? cloudData.inbox : [];
                         state.nicknameTickets = cloudData.nicknameTickets !== undefined ? Number(cloudData.nicknameTickets) : 0;
+                        state.workStats = cloudData.workStats || {};
+                        state.workEarnings = cloudData.workEarnings || {};
+                        state.restStats = cloudData.restStats || {};
+                        state.buffStats = cloudData.buffStats || {};
+                        state.buffSpending = cloudData.buffSpending || {};
+                        state.monthIncome = cloudData.monthIncome !== undefined ? Number(cloudData.monthIncome) : 0;
+                        state.monthExpense = cloudData.monthExpense !== undefined ? Number(cloudData.monthExpense) : 0;
+                        state.lastProcessedMonth = cloudData.lastProcessedMonth !== undefined ? Number(cloudData.lastProcessedMonth) : Math.floor((cloudData.gameSeconds || 0) / 2592000);
+                        state.arcadeStats = cloudData.arcadeStats || { count: 0, earned: 0, spent: 0 };
+                        state.boughtHouseThisMonth = cloudData.boughtHouseThisMonth || false;
+                        state.housePurchaseCost = cloudData.housePurchaseCost !== undefined ? Number(cloudData.housePurchaseCost) : 0;
+                        state.boughtCarThisMonth = cloudData.boughtCarThisMonth || false;
+                        state.carPurchaseCost = cloudData.carPurchaseCost !== undefined ? Number(cloudData.carPurchaseCost) : 0;
+                        state.lastShopBoughtItem = cloudData.lastShopBoughtItem || "";
+                        state.lastShopItemCost = cloudData.lastShopItemCost !== undefined ? Number(cloudData.lastShopItemCost) : 0;
 
                         if (cloudData.isWorking !== undefined) state.isWorking = cloudData.isWorking;
                         if (cloudData.currentTask !== undefined) state.currentTask = cloudData.currentTask;
