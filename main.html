@@ -768,7 +768,13 @@ function saveGame(forceCloud = false) {
             let car = CARS[idx]; 
             if (state.carIdx === idx) return showAlert("안내", "이미 보유 중인 차량입니다.");
             if (Number(state.money) < car.price) return showAlert("잔액 부족", `소집 자금이 부족합니다.`);
-            showConfirm("차량 구매", `차량 가격: ${car.price.toLocaleString()}원\n구매하시겠습니까?`, () => {
+            
+            let confirmMsg = `차량 가격: ${car.price.toLocaleString()}원\n구매하시겠습니까?`;
+            if (state.carIdx !== -1 && idx < state.carIdx) {
+                confirmMsg = `⚠️ 경고: 현재 보유 중인 차량보다 낮은 등급의 차량을 구매하시면, 기존 차량이 제공하던 강력한 시간 단축 및 보상 수당 배수 증가 버프가 즉시 하락합니다.\n차량 가격: ${car.price.toLocaleString()}원\n정말 인도를 진행하시겠습니까?`;
+            }
+            
+            showConfirm("차량 구매 결정", confirmMsg, () => {
                 state.money = Number(state.money) - Number(car.price); state.carIdx = idx;
                 state.boughtCarThisMonth = true;
                 state.carPurchaseCost = car.price;
@@ -1028,7 +1034,13 @@ function saveGame(forceCloud = false) {
             if (state.houseIdx === idx) return showAlert("안내", "거주 중입니다.");
             let initialCost = house.deposit + house.moveCost; if (house.id === 'goshi') initialCost += house.rent; 
             if (Number(state.money) < initialCost) return showAlert("잔액 부족", `비용: ${initialCost.toLocaleString()}원`);
-            showConfirm("이사", `계약하시겠습니까?`, () => {
+            
+            let confirmMsg = `계약하시겠습니까?`;
+            if (idx < state.houseIdx) {
+                confirmMsg = `⚠️ 경고: 현재 거주지보다 낮은 등급으로 이사할 경우, 기존에 누리던 높은 수면 효율 효과가 감소하고 패널티가 적용됩니다. 정말 이사하시겠습니까?`;
+            }
+            
+            showConfirm("부동산 계약 결정", confirmMsg, () => {
                 state.money = Number(state.money) - Number(initialCost); state.houseIdx = idx;
                 state.boughtHouseThisMonth = true;
                 state.housePurchaseCost = initialCost;
